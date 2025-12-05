@@ -83,9 +83,7 @@ struct CalendarView: View {
         }
         .padding(.vertical)
         .sheet(isPresented: $showingAddInterview) {
-            if let date = selectedDate {
-                AddInterviewView(initialDate: date)
-            }
+            AddInterviewView(initialDate: selectedDate ?? Date())
         }
     }
 
