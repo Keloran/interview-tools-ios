@@ -5,6 +5,7 @@
 //  Created by keloran on 05/12/2025.
 //
 
+import Foundation
 import Testing
 import SwiftData
 @testable import Interviews
@@ -25,7 +26,7 @@ struct StageTests {
         #expect(stage.stage == "Phone Screen")
     }
 
-    @Test func testStageWithInterviews() async throws {
+    @Test @MainActor func testStageWithInterviews() async throws{
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Stage.self, Interview.self, Company.self, StageMethod.self,

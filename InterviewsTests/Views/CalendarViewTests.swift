@@ -5,6 +5,7 @@
 //  Created by keloran on 05/12/2025.
 //
 
+import Foundation
 import Testing
 import SwiftData
 @testable import Interviews
@@ -83,7 +84,7 @@ struct CalendarViewTests {
         #expect(!calendar.isDate(date1, inSameDayAs: date3))
     }
 
-    @Test func testInterviewFilteringByDate() async throws {
+    @Test @MainActor func testInterviewFilteringByDate() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -168,7 +169,7 @@ struct CalendarViewTests {
         }
     }
 
-    @Test func testMultipleInterviewsOnSameDay() async throws {
+    @Test @MainActor func testMultipleInterviewsOnSameDay() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,

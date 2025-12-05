@@ -21,6 +21,7 @@ struct AddInterviewView: View {
     @State private var selectedCompany: Company?
     @State private var clientCompany = ""
     @State private var jobTitle = ""
+    @State private var jobPostingLink = ""
     @State private var applicationDate = Date()
     @State private var interviewer = ""
     @State private var selectedStage: Stage?
@@ -31,14 +32,35 @@ struct AddInterviewView: View {
     @State private var notes = ""
     @State private var link = ""
 
-    @State private var useInterviewDate = true
     @State private var showError = false
     @State private var errorMessage = ""
+
+    // Computed properties to match React logic
+    private var selectedStageName: String {
+        selectedStage?.stage ?? "Applied"
+    }
+
+    private var isTechnicalTest: Bool {
+        selectedStageName == "Technical Test"
+    }
+
+    private var requiresScheduling: Bool {
+        selectedStageName != "Applied" && selectedStageName != "Offer"
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Company") {
+                Section("Interview Stage") {
+                    Picker("Stage", selection: $selectedStage) {
+                        Text("Select Stage").tag(nil as Stage?)
+                        ForEach(stages, id: \.id) { stage in
+                            Text(stage.stage).tag(stage as Stage?)
+                        }
+                    }
+                }
+
+                Section("Company & Position") {
                     if companies.isEmpty {
                         TextField("Company Name", text: $companyName)
                     } else {
@@ -56,63 +78,52 @@ struct AddInterviewView: View {
 
                     TextField("Client Company (Optional)", text: $clientCompany)
                         .textContentType(.organizationName)
-                }
 
-                Section("Position") {
                     TextField("Job Title", text: $jobTitle)
                         .textContentType(.jobTitle)
 
-                    DatePicker("Application Date", selection: $applicationDate, displayedComponents: .date)
-
-                    TextField("Interviewer (Optional)", text: $interviewer)
-                        .textContentType(.name)
-                }
-
-                Section("Interview Details") {
-                    Picker("Stage", selection: $selectedStage) {
-                        Text("Select Stage").tag(nil as Stage?)
-                        ForEach(stages, id: \.id) { stage in
-                            Text(stage.stage).tag(stage as Stage?)
-                        }
-                    }
-
-                    Picker("Method", selection: $selectedStageMethod) {
-                        Text("Select Method").tag(nil as StageMethod?)
-                        ForEach(stageMethods, id: \.id) { method in
-                            Text(method.method).tag(method as StageMethod?)
-                        }
-                    }
-
-                    Toggle("Interview Date", isOn: $useInterviewDate)
-
-                    if useInterviewDate {
-                        DatePicker("Date & Time", selection: Binding(
-                            get: { interviewDate ?? initialDate },
-                            set: { interviewDate = $0 }
-                        ), displayedComponents: [.date, .hourAndMinute])
-                    } else {
-                        DatePicker("Deadline", selection: Binding(
-                            get: { deadline ?? initialDate },
-                            set: { deadline = $0 }
-                        ), displayedComponents: .date)
-                    }
-
-                    TextField("Meeting Link (Optional)", text: $link)
+                    TextField("Job Posting Link (Optional)", text: $jobPostingLink)
                         .textContentType(.URL)
                         .keyboardType(.URL)
                         .autocapitalization(.none)
                 }
 
-                Section("Status & Notes") {
-                    Picker("Outcome", selection: $outcome) {
-                        Text("None").tag(nil as InterviewOutcome?)
-                        ForEach(InterviewOutcome.allCases, id: \.self) { outcome in
-                            Text(outcome.displayName).tag(outcome as InterviewOutcome?)
+                // Only show scheduling section if stage requires it
+                if requiresScheduling {
+                    Section(isTechnicalTest ? "Test Details" : "Interview Details") {
+                        if isTechnicalTest {
+                            DatePicker("Deadline", selection: Binding(
+                                get: { deadline ?? initialDate },
+                                set: { deadline = $0 }
+                            ), displayedComponents: .date)
+
+                            TextField("Notes", text: $notes, axis: .vertical)
+                                .lineLimit(5...10)
+                        } else {
+                            DatePicker("Date & Time", selection: Binding(
+                                get: { interviewDate ?? initialDate },
+                                set: { interviewDate = $0 }
+                            ), displayedComponents: [.date, .hourAndMinute])
+
+                            TextField("Interviewer", text: $interviewer)
+                                .textContentType(.name)
+
+                            Picker("Method", selection: $selectedStageMethod) {
+                                Text("Select Method").tag(nil as StageMethod?)
+                                ForEach(stageMethods, id: \.id) { method in
+                                    Text(method.method).tag(method as StageMethod?)
+                                }
+                            }
+
+                            if selectedStageMethod?.method.lowercased().contains("video") == true ||
+                               selectedStageMethod?.method.lowercased().contains("call") == true {
+                                TextField("Meeting Link (Optional)", text: $link)
+                                    .textContentType(.URL)
+                                    .keyboardType(.URL)
+                                    .autocapitalization(.none)
+                            }
                         }
                     }
-
-                    TextField("Notes", text: $notes, axis: .vertical)
-                        .lineLimit(5...10)
                 }
             }
             .navigationTitle("Add Interview")
@@ -140,9 +151,26 @@ struct AddInterviewView: View {
 
     private var isValid: Bool {
         let hasCompany = selectedCompany != nil || !companyName.isEmpty
-        let hasStage = selectedStage != nil
-        let hasMethod = selectedStageMethod != nil
-        return hasCompany && !jobTitle.isEmpty && hasStage && hasMethod
+        let hasJobTitle = !jobTitle.isEmpty
+
+        // For "Applied" stage, only company and job title are required
+        if selectedStageName == "Applied" {
+            return hasCompany && hasJobTitle
+        }
+
+        // For technical tests, we need company, job title, and deadline
+        if isTechnicalTest {
+            return hasCompany && hasJobTitle && deadline != nil
+        }
+
+        // For other stages that require scheduling
+        if requiresScheduling {
+            let hasInterviewer = !interviewer.isEmpty
+            let hasMethod = selectedStageMethod != nil
+            return hasCompany && hasJobTitle && hasInterviewer && hasMethod
+        }
+
+        return hasCompany && hasJobTitle
     }
 
     private func saveInterview() {
@@ -155,29 +183,40 @@ struct AddInterviewView: View {
             modelContext.insert(company)
         }
 
-        // Validate stage and method
-        guard let stage = selectedStage,
-              let stageMethod = selectedStageMethod else {
-            errorMessage = "Please select a stage and method"
-            showError = true
-            return
+        // Default to "Applied" stage if none selected
+        let stage: Stage
+        if let selected = selectedStage {
+            stage = selected
+        } else {
+            // Find or create "Applied" stage
+            if let appliedStage = stages.first(where: { $0.stage == "Applied" }) {
+                stage = appliedStage
+            } else {
+                stage = Stage(stage: "Applied")
+                modelContext.insert(stage)
+            }
         }
 
-        // Create interview
+        // Create interview with conditional fields based on stage
         let interview = Interview(
             company: company,
             clientCompany: clientCompany.isEmpty ? nil : clientCompany,
             jobTitle: jobTitle,
             applicationDate: applicationDate,
-            interviewer: interviewer.isEmpty ? nil : interviewer,
+            interviewer: (requiresScheduling && !isTechnicalTest) ? (interviewer.isEmpty ? nil : interviewer) : nil,
             stage: stage,
-            stageMethod: stageMethod,
-            date: useInterviewDate ? (interviewDate ?? initialDate) : nil,
-            deadline: useInterviewDate ? nil : (deadline ?? initialDate),
-            outcome: outcome,
-            notes: notes.isEmpty ? nil : notes,
-            link: link.isEmpty ? nil : link
+            stageMethod: (requiresScheduling && !isTechnicalTest) ? selectedStageMethod : nil,
+            date: (requiresScheduling && !isTechnicalTest) ? (interviewDate ?? initialDate) : nil,
+            deadline: isTechnicalTest ? (deadline ?? initialDate) : nil,
+            outcome: selectedStageName == "Applied" ? .awaitingResponse : .scheduled,
+            notes: isTechnicalTest ? (notes.isEmpty ? nil : notes) : nil,
+            link: (requiresScheduling && !isTechnicalTest) ? (link.isEmpty ? nil : link) : nil
         )
+
+        // Store job posting link in metadata
+        if !jobPostingLink.isEmpty {
+            interview.metadataJSON = "{\"jobListing\":\"\(jobPostingLink)\"}"
+        }
 
         modelContext.insert(interview)
 

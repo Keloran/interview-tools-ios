@@ -5,12 +5,13 @@
 //  Created by keloran on 05/12/2025.
 //
 
+import Foundation
 import Testing
 import SwiftData
 @testable import Interviews
 
 struct InterviewTests {
-    @Test func testInterviewInitialization() async throws {
+    @Test @MainActor func testInterviewInitialization() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -42,7 +43,7 @@ struct InterviewTests {
         #expect(interview.stageMethod?.method == "Video Call")
     }
 
-    @Test func testInterviewWithOptionalFields() async throws {
+    @Test @MainActor func testInterviewWithOptionalFields() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -80,7 +81,7 @@ struct InterviewTests {
         #expect(interview.link == "https://meet.google.com/abc-defg-hij")
     }
 
-    @Test func testInterviewDisplayDate() async throws {
+    @Test @MainActor func testInterviewDisplayDate() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -121,7 +122,7 @@ struct InterviewTests {
         #expect(interview2.displayDate == deadlineDate)
     }
 
-    @Test func testInterviewDisplayDatePrefersDateOverDeadline() async throws {
+    @Test @MainActor func testInterviewDisplayDatePrefersDateOverDeadline() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -153,7 +154,7 @@ struct InterviewTests {
         #expect(interview.displayDate == interviewDate)
     }
 
-    @Test func testInterviewDisplayColor() async throws {
+    @Test @MainActor func testInterviewDisplayColor() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -191,7 +192,7 @@ struct InterviewTests {
         #expect(interview2.displayColor == "Final Round")
     }
 
-    @Test func testInterviewOutcomeTransitions() async throws {
+    @Test @MainActor func testInterviewOutcomeTransitions() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -230,7 +231,7 @@ struct InterviewTests {
         #expect(interview.outcome == .offerAccepted)
     }
 
-    @Test func testInterviewTimestamps() async throws {
+    @Test @MainActor func testInterviewTimestamps() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -262,7 +263,7 @@ struct InterviewTests {
         #expect(interview.updatedAt <= afterDate)
     }
 
-    @Test func testInterviewMetadataJSON() async throws {
+    @Test @MainActor func testInterviewMetadataJSON() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,

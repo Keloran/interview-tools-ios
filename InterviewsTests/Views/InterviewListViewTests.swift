@@ -5,12 +5,13 @@
 //  Created by keloran on 05/12/2025.
 //
 
+import Foundation
 import Testing
 import SwiftData
 @testable import Interviews
 
 struct InterviewListViewTests {
-    @Test func testSortedInterviewsByDate() async throws {
+    @Test @MainActor func testSortedInterviewsByDate() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -75,7 +76,7 @@ struct InterviewListViewTests {
         #expect(sorted[2].jobTitle == "Staff iOS Engineer")
     }
 
-    @Test func testInterviewsWithNoDateAreFiltered() async throws {
+    @Test @MainActor func testInterviewsWithNoDateAreFiltered() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -122,7 +123,7 @@ struct InterviewListViewTests {
         #expect(filtered.first?.jobTitle == "SWE I")
     }
 
-    @Test func testInterviewUsesDeadlineAsFallback() async throws {
+    @Test @MainActor func testInterviewUsesDeadlineAsFallback() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -155,7 +156,7 @@ struct InterviewListViewTests {
         #expect(interview.displayDate == deadline)
     }
 
-    @Test func testInterviewPrefersDateOverDeadline() async throws {
+    @Test @MainActor func testInterviewPrefersDateOverDeadline() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -207,7 +208,7 @@ struct InterviewListViewTests {
         }
     }
 
-    @Test func testMultipleCompaniesInList() async throws {
+    @Test @MainActor func testMultipleCompaniesInList() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -270,7 +271,7 @@ struct InterviewListViewTests {
         #expect(companies.contains("Meta"))
     }
 
-    @Test func testInterviewWithClientCompany() async throws {
+    @Test @MainActor func testInterviewWithClientCompany() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -302,7 +303,7 @@ struct InterviewListViewTests {
         #expect(interview.clientCompany == "Stripe")
     }
 
-    @Test func testInterviewWithNotes() async throws {
+    @Test @MainActor func testInterviewWithNotes() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -335,7 +336,7 @@ struct InterviewListViewTests {
         #expect(interview.notes == notes)
     }
 
-    @Test func testInterviewWithMeetingLink() async throws {
+    @Test @MainActor func testInterviewWithMeetingLink() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -368,7 +369,7 @@ struct InterviewListViewTests {
         #expect(interview.link == meetingLink)
     }
 
-    @Test func testEmptyInterviewList() async throws {
+    @Test @MainActor func testEmptyInterviewList() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -382,7 +383,7 @@ struct InterviewListViewTests {
         #expect(interviews.isEmpty)
     }
 
-    @Test func testInterviewDisplayDateLogic() async throws {
+    @Test @MainActor func testInterviewDisplayDateLogic() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,

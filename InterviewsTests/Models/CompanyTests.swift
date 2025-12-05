@@ -5,6 +5,7 @@
 //  Created by keloran on 05/12/2025.
 //
 
+import Foundation
 import Testing
 import SwiftData
 @testable import Interviews
@@ -28,7 +29,7 @@ struct CompanyTests {
         #expect(company.createdAt != nil)
     }
 
-    @Test func testCompanyWithInterviews() async throws {
+    @Test @MainActor func testCompanyWithInterviews() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Company.self, Interview.self, Stage.self, StageMethod.self,

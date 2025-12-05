@@ -5,6 +5,7 @@
 //  Created by keloran on 05/12/2025.
 //
 
+import Foundation
 import Testing
 @testable import Interviews
 
