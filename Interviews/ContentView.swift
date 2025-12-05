@@ -13,19 +13,16 @@ struct ContentView: View {
     @Query private var interviews: [Interview]
 
     var body: some View {
-        NavigationSplitView {
-            CalendarView()
-                .navigationTitle("Interviews")
-        } detail: {
-            if let selectedInterview = interviews.first {
-                InterviewDetailView(interview: selectedInterview)
-            } else {
-                ContentUnavailableView(
-                    "No Interview Selected",
-                    systemImage: "calendar",
-                    description: Text("Select a date on the calendar to view interviews")
-                )
+        NavigationStack {
+            VStack(spacing: 0) {
+                CalendarView()
+                    .frame(maxHeight: 400)
+
+                Divider()
+
+                InterviewListView()
             }
+            .navigationTitle("Interviews")
         }
     }
 }
