@@ -10,52 +10,155 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query private var interviews: [Interview]
 
     var body: some View {
         NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
+            CalendarView()
+                .navigationTitle("Interviews")
         } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+            if let selectedInterview = interviews.first {
+                InterviewDetailView(interview: selectedInterview)
+            } else {
+                ContentUnavailableView(
+                    "No Interview Selected",
+                    systemImage: "calendar",
+                    description: Text("Select a date on the calendar to view interviews")
+                )
             }
         }
     }
 }
 
+struct InterviewDetailView: View {
+    let interview: Interview
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(interview.jobTitle)
+                    .font(.title)
+                    .fontWeight(.bold)
+
+                if let company = interview.company {
+                    Label(company.name, systemImage: "building.2")
+                        .font(.headline)
+                }
+
+                if let clientCompany = interview.clientCompany {
+                    Label("Client: \(clientCompany)", systemImage: "briefcase")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    if let stage = interview.stage {
+                        HStack {
+                            Text("Stage:")
+                                .foregroundStyle(.secondary)
+                            Text(stage.stage)
+                                .fontWeight(.medium)
+                        }
+                    }
+
+                    if let method = interview.stageMethod {
+                        HStack {
+                            Text("Method:")
+                                .foregroundStyle(.secondary)
+                            Text(method.method)
+                                .fontWeight(.medium)
+                        }
+                    }
+
+                    if let outcome = interview.outcome {
+                        HStack {
+                            Text("Outcome:")
+                                .foregroundStyle(.secondary)
+                            Text(outcome.displayName)
+                                .fontWeight(.medium)
+                                .foregroundStyle(colorForOutcome(outcome))
+                        }
+                    }
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(
+                        interview.applicationDate.formatted(date: .long, time: .omitted),
+                        systemImage: "calendar.badge.plus"
+                    )
+                    .font(.subheadline)
+
+                    if let date = interview.date {
+                        Label(
+                            date.formatted(date: .long, time: .shortened),
+                            systemImage: "calendar"
+                        )
+                        .font(.subheadline)
+                    }
+
+                    if let deadline = interview.deadline {
+                        Label(
+                            "Deadline: \(deadline.formatted(date: .long, time: .omitted))",
+                            systemImage: "clock"
+                        )
+                        .font(.subheadline)
+                    }
+                }
+
+                if let interviewer = interview.interviewer {
+                    Divider()
+                    Label(interviewer, systemImage: "person")
+                        .font(.subheadline)
+                }
+
+                if let link = interview.link {
+                    Divider()
+                    Link(destination: URL(string: link) ?? URL(string: "https://")!) {
+                        Label("Join Meeting", systemImage: "video")
+                            .font(.subheadline)
+                    }
+                }
+
+                if let notes = interview.notes {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Notes")
+                            .font(.headline)
+                        Text(notes)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+
+    private func colorForOutcome(_ outcome: InterviewOutcome) -> Color {
+        switch outcome {
+        case .scheduled: return .blue
+        case .passed: return .green
+        case .rejected: return .red
+        case .awaitingResponse: return .yellow
+        case .offerReceived: return .purple
+        case .offerAccepted: return .green
+        case .offerDeclined: return .orange
+        case .withdrew: return .gray
+        }
+    }
+}
+
 #Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(
+        for: Interview.self, Company.self, Stage.self, StageMethod.self,
+        configurations: config
+    )
+
+    return ContentView()
+        .modelContainer(container)
 }
