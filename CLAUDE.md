@@ -106,3 +106,4 @@ To run a single test in Xcode: Click the diamond icon next to the test function.
 - Uses `NavigationSplitView` for master-detail layout
 - List-based navigation with SwiftUI's declarative syntax
 - State management via SwiftData's `@Query` for reactive updates
+- make sure we always add tests for any features, and run tests to make sure that the code worked before saying a task is finished

@@ -22,30 +22,31 @@ struct CalendarView: View {
                               "July", "August", "September", "October", "November", "December"]
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Header with month/year and navigation
-            HStack {
-                Text("\(monthNames[calendar.component(.month, from: currentDate) - 1]) \(calendar.component(.year, from: currentDate))")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+        ZStack(alignment: .bottomTrailing) {
+            VStack(spacing: 16) {
+                // Header with month/year and navigation
+                HStack {
+                    Text("\(monthNames[calendar.component(.month, from: currentDate) - 1]) \(calendar.component(.year, from: currentDate))")
+                        .font(.title2)
+                        .fontWeight(.semibold)
 
-                Spacer()
+                    Spacer()
 
-                HStack(spacing: 8) {
-                    Button(action: previousMonth) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
+                    HStack(spacing: 8) {
+                        Button(action: previousMonth) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: nextMonth) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-
-                    Button(action: nextMonth) {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .buttonStyle(.plain)
                 }
-            }
-            .padding(.horizontal)
+                .padding(.horizontal)
 
             // Weekday headers
             LazyVGrid(columns: columns, spacing: 4) {
@@ -79,9 +80,26 @@ struct CalendarView: View {
             }
             .padding(.horizontal)
 
-            Spacer()
+                Spacer()
+            }
+            .padding(.vertical)
+
+            // Floating action button
+            if selectedDate != nil {
+                Button(action: {
+                    showingAddInterview = true
+                }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Color.accentColor)
+                        .clipShape(Circle())
+                        .shadow(radius: 4)
+                }
+                .padding(16)
+            }
         }
-        .padding(.vertical)
         .sheet(isPresented: $showingAddInterview) {
             AddInterviewView(initialDate: selectedDate ?? Date())
         }
@@ -197,11 +215,11 @@ struct CalendarDayCell: View {
 
                 Spacer()
 
-                if isHovering {
+                if isHovering || isSelected {
                     Button(action: onAddInterview) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.blue)
                     }
                     .buttonStyle(.plain)
                 }
@@ -216,6 +234,11 @@ struct CalendarDayCell: View {
                             .fill(colorForInterview(interview))
                             .frame(width: 4, height: 4)
                     }
+                    if interviews.count > 2 {
+                        Text("+\(interviews.count - 2)")
+                            .font(.system(size: 6))
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -228,7 +251,13 @@ struct CalendarDayCell: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
         )
+        .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
+        .contextMenu {
+            Button(action: onAddInterview) {
+                Label("Add Interview", systemImage: "plus.circle")
+            }
+        }
         .onHover { hovering in
             isHovering = hovering
         }
