@@ -7,12 +7,14 @@
 
 import SwiftUI
 import SwiftData
+import Clerk
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var interviews: [Interview]
 
     @State private var showingSettings = false
+    @State private var clerk = Clerk.shared
 
     var body: some View {
         NavigationStack {
@@ -36,6 +38,11 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(modelContext: modelContext)
+            }
+            .environment(\.clerk, clerk)
+            .task {
+                clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
+                try? await clerk.load()
             }
         }
     }

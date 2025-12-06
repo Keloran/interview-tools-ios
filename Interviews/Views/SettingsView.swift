@@ -7,16 +7,18 @@
 
 import SwiftUI
 import SwiftData
+import Clerk
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.clerk) private var clerk
 
-    @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var syncService: SyncService
 
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var authIsPresented = false
 
     init(modelContext: ModelContext) {
         _syncService = StateObject(wrappedValue: SyncService(modelContext: modelContext))
@@ -26,88 +28,22 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Authentication") {
-                    if authManager.isAuthenticated {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                                Text("Signed In")
-                            }
-
-                            if let email = authManager.userEmail {
-                                Text(email)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                    VStack {
+                        if clerk.user != nil {
+                          UserButton()
+                            .frame(width: 36, height: 36)
+                        } else {
+                          Button("Sign in") {
+                            authIsPresented = true
+                          }
                         }
-
-                        Button("Sign Out", role: .destructive) {
-                            Task {
-                                await authManager.signOut()
-                            }
-                        }
-                    } else {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Sign in to sync with interviews.tools")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-
-                            Button {
-                                Task {
-                                    do {
-                                        try await authManager.signIn()
-                                        // Trigger initial sync after sign-in
-                                        await syncService.syncAll()
-                                    } catch {
-                                        errorMessage = error.localizedDescription
-                                        showingError = true
-                                    }
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "person.circle.fill")
-                                    Text("Sign In with Clerk")
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                    }
+                      }
+                      .sheet(isPresented: $authIsPresented) {
+                        AuthView()
+                      }
                 }
 
-                if authManager.isAuthenticated {
-                    Section("Sync") {
-                        if let lastSync = syncService.lastSyncDate {
-                            HStack {
-                                Text("Last synced")
-                                Spacer()
-                                Text(lastSync, style: .relative)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        Button {
-                            Task {
-                                await syncService.syncAll()
-                            }
-                        } label: {
-                            HStack {
-                                if syncService.isSyncing {
-                                    ProgressView()
-                                        .padding(.trailing, 4)
-                                }
-                                Text(syncService.isSyncing ? "Syncing..." : "Sync Now")
-                            }
-                        }
-                        .disabled(syncService.isSyncing)
-
-                        if let error = syncService.syncError {
-                            Text(error.localizedDescription)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
-                    }
-                }
+                
 
                 Section("About") {
                     Link(destination: URL(string: "https://interviews.tools")!) {

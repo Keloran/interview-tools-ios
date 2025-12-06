@@ -26,7 +26,7 @@ struct CalendarView: View {
             VStack(spacing: 16) {
                 // Header with month/year and navigation
                 HStack {
-                    Text("\(monthNames[calendar.component(.month, from: currentDate) - 1]) \(calendar.component(.year, from: currentDate))")
+                    Text("\(monthNames[calendar.component(.month, from: currentDate) - 1]) \(String(calendar.component(.year, from: currentDate)))")
                         .font(.title2)
                         .fontWeight(.semibold)
 
