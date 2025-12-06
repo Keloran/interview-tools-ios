@@ -17,7 +17,7 @@ struct CalendarView: View {
     @State private var showingAddInterview = false
 
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
-    private let weekDays = ["M", "T", "W", "T", "F", "S", "S"]
+    private let weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     private let monthNames = ["January", "February", "March", "April", "May", "June",
                               "July", "August", "September", "October", "November", "December"]
 

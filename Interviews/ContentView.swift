@@ -99,7 +99,14 @@ struct ContentView: View {
             let syncService = SyncService(modelContext: modelContext)
             await syncService.syncAll()
             
-            print("Initial sync completed successfully")
+            // Log summary
+            let descriptor = FetchDescriptor<Interview>()
+            if let allInterviews = try? modelContext.fetch(descriptor) {
+                let withDates = allInterviews.filter { $0.displayDate != nil }
+                print("✅ Sync complete: \(allInterviews.count) interviews (\(withDates.count) with scheduled dates)")
+            } else {
+                print("✅ Sync completed successfully")
+            }
         } catch {
             print("Initial sync failed: \(error)")
         }

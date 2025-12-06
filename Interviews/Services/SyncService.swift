@@ -168,8 +168,10 @@ class SyncService: ObservableObject {
                 stageMethod = try modelContext.fetch(methodDescriptor).first
             }
 
-            // Parse dates
+            // Parse dates - configure formatter to handle fractional seconds
             let dateFormatter = ISO8601DateFormatter()
+            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            
             let applicationDate = dateFormatter.date(from: apiInterview.applicationDate) ?? Date()
             let date = apiInterview.date.flatMap { dateFormatter.date(from: $0) }
             let deadline = apiInterview.deadline.flatMap { dateFormatter.date(from: $0) }
