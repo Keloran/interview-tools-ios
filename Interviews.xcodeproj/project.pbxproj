@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F3F3C1DD2EE3A7F80000102D /* Clerk in Frameworks */ = {isa = PBXBuildFile; productRef = F3F3C1DC2EE3A7F80000102D /* Clerk */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F3F3C1972EE397D50000102D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F3F3C1DD2EE3A7F80000102D /* Clerk in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = Interviews;
 			packageProductDependencies = (
+				F3F3C1DC2EE3A7F80000102D /* Clerk */,
 			);
 			productName = Interviews;
 			productReference = F3F3C1872EE397CD0000102D /* Interviews.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = F3F3C17E2EE397CD0000102D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F3F3C1882EE397CD0000102D /* Products */;
 			projectDirPath = "";
@@ -578,6 +587,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/clerk/clerk-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.71.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F3F3C1DC2EE3A7F80000102D /* Clerk */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */;
+			productName = Clerk;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F3F3C17F2EE397CD0000102D /* Project object */;
 }
