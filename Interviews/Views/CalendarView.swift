@@ -212,17 +212,6 @@ struct CalendarDayCell: View {
                     .font(.caption)
                     .fontWeight(isToday ? .bold : .medium)
                     .foregroundStyle(isToday ? .white : .primary)
-
-                Spacer()
-
-                if isHovering || isSelected {
-                    Button(action: onAddInterview) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.blue)
-                    }
-                    .buttonStyle(.plain)
-                }
             }
 
             Spacer()

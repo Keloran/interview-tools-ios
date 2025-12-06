@@ -27,39 +27,9 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Authentication") {
-                    VStack {
-                        if clerk.user != nil {
-                          UserButton()
-                            .frame(width: 36, height: 36)
-                        } else {
-                          Button("Sign in") {
-                            authIsPresented = true
-                          }
-                        }
-                      }
-                      .sheet(isPresented: $authIsPresented) {
-                        AuthView()
-                      }
-                      .onChange(of: clerk.user) { oldValue, newValue in
-                          // Dismiss auth sheet when user successfully signs in
-                          if newValue != nil {
-                              authIsPresented = false
-                          }
-                      }
-                }
-
-                
-
-                Section("About") {
-                    Link(destination: URL(string: "https://interviews.tools")!) {
-                        HStack {
-                            Text("Visit interviews.tools")
-                            Spacer()
-                            Image(systemName: "arrow.up.forward")
-                        }
-                    }
-                }
+                authSection
+                syncSection
+                aboutSection
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -75,6 +45,100 @@ struct SettingsView: View {
             } message: {
                 Text(errorMessage)
             }
+        }
+    }
+
+    private var authSection: some View {
+        Section("Authentication") {
+            VStack {
+                if clerk.user != nil {
+                    UserButton()
+                        .frame(width: 36, height: 36)
+                } else {
+                    Button("Sign in") {
+                        authIsPresented = true
+                    }
+                }
+            }
+            .sheet(isPresented: $authIsPresented) {
+                AuthView()
+            }
+            .onChange(of: clerk.user) { oldValue, newValue in
+                handleAuthChange(oldValue: oldValue, newValue: newValue)
+            }
+        }
+    }
+
+    private var syncSection: some View {
+        Section("Sync") {
+            if syncService.isSyncing {
+                HStack {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                    Text("Syncing...")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                syncButton
+                lastSyncText
+                syncErrorText
+            }
+        }
+    }
+
+    private var syncButton: some View {
+        Button("Sync Now") {
+            Task {
+                await performSync()
+            }
+        }
+        .disabled(clerk.user == nil)
+    }
+
+    @ViewBuilder
+    private var lastSyncText: some View {
+        if let lastSync = syncService.lastSyncDate {
+            Text("Last synced: \(lastSync.formatted(date: .abbreviated, time: .shortened))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var syncErrorText: some View {
+        if let error = syncService.syncError {
+            Text("Error: \(error.localizedDescription)")
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
+    }
+
+    private var aboutSection: some View {
+        Section("About") {
+            Link(destination: URL(string: "https://interviews.tools")!) {
+                HStack {
+                    Text("Visit interviews.tools")
+                    Spacer()
+                    Image(systemName: "arrow.up.forward")
+                }
+            }
+        }
+    }
+
+    private func handleAuthChange(oldValue: User?, newValue: User?) {
+        if oldValue == nil && newValue != nil {
+            authIsPresented = false
+            Task {
+                await performSync()
+            }
+        }
+    }
+
+    private func performSync() async {
+        if let session = await clerk.session,
+           let token = try? await session.getToken() {
+            await APIService.shared.setAuthToken(token.jwt)
+            await syncService.syncAll()
         }
     }
 }
