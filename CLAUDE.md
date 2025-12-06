@@ -33,9 +33,11 @@ Built with SwiftUI and SwiftData using Xcode's default project structure.
 The app integrates with the interviews.tools API (https://interviews.tools/api):
 
 ### Authentication
-- Uses Clerk-based authentication tokens from the web app
-- Tokens stored securely in iOS Keychain
-- Users must obtain token from interviews.tools website
+- Uses Clerk iOS SDK for authentication
+- Session tokens automatically managed by Clerk SDK
+- Seamless sign-in experience with Clerk's pre-built UI
+- Session tokens sent with API requests for authentication
+- See `CLERK_INTEGRATION.md` for setup instructions
 
 ### API Endpoints
 
@@ -63,18 +65,51 @@ The app integrates with the interviews.tools API (https://interviews.tools/api):
 - `APIService`: Actor-based API client with async/await
 - `APIModels`: Codable DTOs for API requests/responses
 - `SyncService`: @MainActor class that coordinates sync operations
-- `AuthenticationManager`: Manages auth tokens and keychain storage
+- `AuthenticationManager`: Manages Clerk authentication state
+- `ClerkConfiguration`: Stores Clerk publishable key and settings
+
+### Development Without Clerk
+
+For development/testing without Clerk setup:
+
+```swift
+// Use mock authentication
+AuthenticationManager.shared.mockSignIn(email: "test@example.com")
+```
+
+This allows offline development while Clerk integration is being set up.
 
 ## Project Structure
 
 - `Interviews/`: Main application source code
   - `InterviewsApp.swift`: App entry point with SwiftData ModelContainer setup
-  - `ContentView.swift`: Main UI view with navigation and list functionality
-  - `Item.swift`: SwiftData model definitions
+  - `ContentView.swift`: Main UI view with calendar and interview list
+  - `Models/`: SwiftData model definitions
+    - `Interview.swift`: Core interview model
+    - `Company.swift`: Company model
+    - `Stage.swift`: Interview stage model
+    - `StageMethod.swift`: Interview method model
+    - `InterviewOutcome.swift`: Outcome enum
+  - `Views/`: UI components
+    - `CalendarView.swift`: Monthly calendar view
+    - `InterviewListView.swift`: List of upcoming interviews
+    - `AddInterviewView.swift`: Form to add new interviews
+    - `SettingsView.swift`: Settings and authentication UI
+  - `Services/`: API and business logic
+    - `APIService.swift`: HTTP client for interviews.tools API
+    - `APIModels.swift`: API request/response models
+    - `SyncService.swift`: Bidirectional sync between local and remote
+    - `AuthenticationManager.swift`: Clerk authentication wrapper
+  - `DataSeeder.swift`: Seeds default stages and methods
+  - `ClerkConfiguration.swift`: Clerk API keys and settings
   - `Assets.xcassets/`: App assets and icons
 - `InterviewsTests/`: Unit tests
+  - `Models/`: Tests for SwiftData models
+  - `Views/`: Tests for UI logic
+  - `Services/`: Tests for API integration
 - `InterviewsUITests/`: UI tests
 - `Interviews.xcodeproj/`: Xcode project configuration
+- `CLERK_INTEGRATION.md`: Step-by-step Clerk setup guide
 
 ## Data Architecture
 
@@ -119,6 +154,27 @@ When implementing SwiftData models, mirror this structure for proper sync compat
 
 ## Development Commands
 
+### Initial Setup
+
+**Important:** Before running the app with API integration:
+
+1. **Add Clerk iOS SDK** (Required for authentication):
+   ```bash
+   # In Xcode:
+   # File → Add Package Dependencies → https://github.com/clerk/clerk-ios
+   ```
+
+2. **Configure Clerk credentials** in `ClerkConfiguration.swift`:
+   - Get publishable key from Clerk Dashboard
+   - Update `publishableKey` constant
+
+3. **For development without Clerk**, use mock authentication:
+   ```swift
+   AuthenticationManager.shared.mockSignIn(email: "test@example.com")
+   ```
+
+See `CLERK_INTEGRATION.md` for complete setup instructions.
+
 ### Building and Running
 ```bash
 # Open in Xcode
@@ -128,7 +184,7 @@ open Interviews.xcodeproj
 xcodebuild -project Interviews.xcodeproj -scheme Interviews build
 
 # Run tests
-xcodebuild test -project Interviews.xcodeproj -scheme Interviews -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -project Interviews.xcodeproj -scheme Interviews -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
 ### Running Tests
@@ -136,8 +192,11 @@ The project uses the **Swift Testing framework** (not XCTest):
 - Tests use `@Test` attribute instead of `func testExample()`
 - Use `#expect(...)` for assertions instead of `XCTAssert...`
 - Tests can be async with `async throws`
+- Tests using ModelContext need `@MainActor` attribute
 
 To run a single test in Xcode: Click the diamond icon next to the test function.
+
+**Important:** Always run tests with `Cmd+U` before marking tasks complete.
 
 ## Key Patterns
 

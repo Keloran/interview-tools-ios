@@ -7,6 +7,9 @@
 
 import Foundation
 
+// Empty body type for requests without a body
+private struct EmptyBody: Encodable, Sendable {}
+
 actor APIService {
     static let shared = APIService()
 
@@ -101,10 +104,25 @@ actor APIService {
 
     // MARK: - Private Helpers
 
-    private func performRequest<T: Decodable>(
+    private func performRequest<T: Decodable & Sendable>(
+        url: URL,
+        method: String
+    ) async throws -> T {
+        try await performRequestWithBody(url: url, method: method, body: Optional<EmptyBody>.none)
+    }
+
+    private func performRequest<T: Decodable & Sendable, Body: Encodable & Sendable>(
         url: URL,
         method: String,
-        body: Encodable? = nil
+        body: Body
+    ) async throws -> T {
+        try await performRequestWithBody(url: url, method: method, body: body)
+    }
+
+    private func performRequestWithBody<T: Decodable & Sendable, Body: Encodable & Sendable>(
+        url: URL,
+        method: String,
+        body: Body?
     ) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = method

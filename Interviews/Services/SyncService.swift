@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import SwiftData
 
 @MainActor
@@ -50,8 +51,11 @@ class SyncService: ObservableObject {
 
         for apiCompany in apiCompanies {
             // Find or create company
+            let companyId = apiCompany.id
             let descriptor = FetchDescriptor<Company>(
-                predicate: #Predicate { $0.id == apiCompany.id }
+                predicate: #Predicate { company in
+                    company.id == companyId
+                }
             )
 
             let existing = try modelContext.fetch(descriptor).first
@@ -75,8 +79,12 @@ class SyncService: ObservableObject {
         let apiStages = try await apiService.fetchStages()
 
         for apiStage in apiStages {
+            // Capture the ID in a local variable to use in predicate
+            let stageId = apiStage.id
             let descriptor = FetchDescriptor<Stage>(
-                predicate: #Predicate { $0.id == apiStage.id }
+                predicate: #Predicate { stage in
+                    stage.id == stageId
+                }
             )
 
             let existing = try modelContext.fetch(descriptor).first
@@ -98,8 +106,12 @@ class SyncService: ObservableObject {
         let apiMethods = try await apiService.fetchStageMethods()
 
         for apiMethod in apiMethods {
+            // Capture the ID in a local variable to use in predicate
+            let methodId = apiMethod.id
             let descriptor = FetchDescriptor<StageMethod>(
-                predicate: #Predicate { $0.id == apiMethod.id }
+                predicate: #Predicate { method in
+                    method.id == methodId
+                }
             )
 
             let existing = try modelContext.fetch(descriptor).first
@@ -122,8 +134,11 @@ class SyncService: ObservableObject {
 
         for apiInterview in apiInterviews {
             // Find or create company
+            let companyId = apiInterview.company.id
             let companyDescriptor = FetchDescriptor<Company>(
-                predicate: #Predicate { $0.id == apiInterview.company.id }
+                predicate: #Predicate { company in
+                    company.id == companyId
+                }
             )
             guard let company = try modelContext.fetch(companyDescriptor).first else {
                 continue
@@ -132,8 +147,11 @@ class SyncService: ObservableObject {
             // Find stage
             var stage: Stage?
             if let apiStage = apiInterview.stage {
+                let stageId = apiStage.id
                 let stageDescriptor = FetchDescriptor<Stage>(
-                    predicate: #Predicate { $0.id == apiStage.id }
+                    predicate: #Predicate { stage in
+                        stage.id == stageId
+                    }
                 )
                 stage = try modelContext.fetch(stageDescriptor).first
             }
@@ -141,8 +159,11 @@ class SyncService: ObservableObject {
             // Find stage method
             var stageMethod: StageMethod?
             if let apiMethod = apiInterview.stageMethod {
+                let methodId = apiMethod.id
                 let methodDescriptor = FetchDescriptor<StageMethod>(
-                    predicate: #Predicate { $0.id == apiMethod.id }
+                    predicate: #Predicate { method in
+                        method.id == methodId
+                    }
                 )
                 stageMethod = try modelContext.fetch(methodDescriptor).first
             }
@@ -162,8 +183,11 @@ class SyncService: ObservableObject {
             }
 
             // Find existing interview
+            let interviewId = apiInterview.id
             let interviewDescriptor = FetchDescriptor<Interview>(
-                predicate: #Predicate { $0.id == apiInterview.id }
+                predicate: #Predicate { interview in
+                    interview.id == interviewId
+                }
             )
 
             let existing = try modelContext.fetch(interviewDescriptor).first

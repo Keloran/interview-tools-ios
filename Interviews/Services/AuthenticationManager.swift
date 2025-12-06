@@ -6,97 +6,111 @@
 //
 
 import Foundation
-import Security
+import Combine
+// TODO: Uncomment when Clerk package is added
+// import Clerk
 
 @MainActor
 class AuthenticationManager: ObservableObject {
     static let shared = AuthenticationManager()
 
     @Published var isAuthenticated = false
-    @Published var authToken: String?
-
-    private let keychainService = "com.interviews.app"
-    private let keychainAccount = "auth-token"
+    @Published var sessionToken: String?
+    @Published var userId: String?
+    @Published var userEmail: String?
 
     private init() {
-        loadToken()
+        // TODO: Initialize Clerk when SDK is added
+        // Task {
+        //     await checkAuthStatus()
+        // }
     }
 
     // MARK: - Public Methods
 
-    func setToken(_ token: String) {
-        authToken = token
-        isAuthenticated = true
-        saveTokenToKeychain(token)
+    func signIn() async throws {
+        // TODO: Implement Clerk sign-in
+        // This will show Clerk's pre-built sign-in UI
+        // Example:
+        // try await Clerk.shared.signIn()
+        // await updateAuthState()
 
-        Task {
-            await APIService.shared.setAuthToken(token)
-        }
+        // Temporary placeholder
+        throw NSError(domain: "AuthenticationManager", code: -1, userInfo: [
+            NSLocalizedDescriptionKey: "Clerk SDK not yet integrated. Add the Clerk package first."
+        ])
     }
 
-    func signOut() {
-        authToken = nil
+    func signOut() async {
+        // TODO: Implement Clerk sign-out
+        // Example:
+        // await Clerk.shared.signOut()
+
         isAuthenticated = false
-        deleteTokenFromKeychain()
+        sessionToken = nil
+        userId = nil
+        userEmail = nil
 
         Task {
             await APIService.shared.setAuthToken(nil)
         }
     }
 
-    // MARK: - Keychain Helpers
+    func getSessionToken() async -> String? {
+        // TODO: Get fresh session token from Clerk
+        // Example:
+        // let session = await Clerk.shared.session
+        // return session?.getToken()
 
-    private func saveTokenToKeychain(_ token: String) {
-        guard let data = token.data(using: .utf8) else { return }
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
-            kSecValueData as String: data
-        ]
-
-        // Delete any existing item
-        SecItemDelete(query as CFDictionary)
-
-        // Add new item
-        let status = SecItemAdd(query as CFDictionary, nil)
-
-        if status != errSecSuccess {
-            print("Failed to save token to keychain: \(status)")
-        }
+        return sessionToken
     }
 
-    private func loadToken() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
-            kSecReturnData as String: true
-        ]
+    // MARK: - Private Methods
 
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        if status == errSecSuccess,
-           let data = result as? Data,
-           let token = String(data: data, encoding: .utf8) {
-            authToken = token
-            isAuthenticated = true
-
-            Task {
-                await APIService.shared.setAuthToken(token)
-            }
-        }
+    private func checkAuthStatus() async {
+        // TODO: Check if user is already signed in
+        // Example:
+        // if let session = await Clerk.shared.session,
+        //    let user = await Clerk.shared.user {
+        //     isAuthenticated = true
+        //     userId = user.id
+        //     userEmail = user.primaryEmailAddress?.emailAddress
+        //     sessionToken = session.getToken()
+        //
+        //     await APIService.shared.setAuthToken(sessionToken)
+        // }
     }
 
-    private func deleteTokenFromKeychain() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount
-        ]
+    private func updateAuthState() async {
+        // TODO: Update state from Clerk session
+        // Example:
+        // guard let session = await Clerk.shared.session,
+        //       let user = await Clerk.shared.user else {
+        //     isAuthenticated = false
+        //     return
+        // }
+        //
+        // isAuthenticated = true
+        // userId = user.id
+        // userEmail = user.primaryEmailAddress?.emailAddress
+        // sessionToken = session.getToken()
+        //
+        // await APIService.shared.setAuthToken(sessionToken)
+    }
+}
 
-        SecItemDelete(query as CFDictionary)
+// MARK: - Temporary Mock for Development
+
+extension AuthenticationManager {
+    /// Temporary method for development/testing without Clerk
+    func mockSignIn(email: String) {
+        isAuthenticated = true
+        userId = "mock_user_id"
+        userEmail = email
+        sessionToken = "mock_session_token"
+
+        Task {
+            await APIService.shared.setAuthToken(sessionToken)
+        }
     }
 }
