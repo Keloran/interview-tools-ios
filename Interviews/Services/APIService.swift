@@ -8,7 +8,14 @@
 import Foundation
 
 // Empty body type for requests without a body
-private struct EmptyBody: Encodable, Sendable {}
+private struct EmptyBody: Encodable, Sendable {
+    nonisolated func encode(to encoder: Encoder) throws {
+        // Empty body, nothing to encode
+        _ = encoder.container(keyedBy: _CodingKeys.self)
+    }
+
+    private enum _CodingKeys: CodingKey {}
+}
 
 actor APIService {
     static let shared = APIService()
