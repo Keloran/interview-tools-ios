@@ -135,7 +135,7 @@ struct SettingsView: View {
     }
 
     private func performSync() async {
-        if let session = await clerk.session,
+        if let session = clerk.session,
            let token = try? await session.getToken() {
             await APIService.shared.setAuthToken(token.jwt)
             await syncService.syncAll()

@@ -216,7 +216,7 @@ final class ContentViewUITests: XCTestCase {
         nextMonthButton.tap()
         
         // Month should change
-        sleep(1) // Brief pause for animation
+        Thread.sleep(forTimeInterval: 1.0) // Brief pause for animation
         let newMonth = monthYearLabel.label
         XCTAssertNotEqual(currentMonth, newMonth, "Month should change after tapping next")
         
@@ -225,7 +225,7 @@ final class ContentViewUITests: XCTestCase {
         XCTAssertTrue(previousMonthButton.exists, "Previous month button should exist")
         previousMonthButton.tap()
         
-        sleep(1)
+        Thread.sleep(forTimeInterval: 1.0)
         let returnedMonth = monthYearLabel.label
         XCTAssertEqual(currentMonth, returnedMonth, "Should return to original month")
     }
@@ -280,7 +280,7 @@ final class ContentViewUITests: XCTestCase {
         // Go several months ahead
         for _ in 0..<6 {
             nextMonthButton.tap()
-            sleep(1)
+            Thread.sleep(forTimeInterval: 1.0)
         }
         
         // Tap a date
@@ -306,7 +306,7 @@ final class ContentViewUITests: XCTestCase {
         // Settings sheet should appear
         // Look for typical settings elements (this depends on your SettingsView implementation)
         // For now, just check that something modal appears
-        sleep(1)
+        Thread.sleep(forTimeInterval: 1.0)
         
         // Settings view should be visible
         // You may need to adjust this based on your actual SettingsView content
@@ -332,7 +332,7 @@ final class ContentViewUITests: XCTestCase {
             searchField.typeText("A")
             
             // Wait for results to load
-            sleep(1)
+            Thread.sleep(forTimeInterval: 1.0)
             
             // Clear search
             if app.buttons["Cancel"].exists {
@@ -348,13 +348,13 @@ final class ContentViewUITests: XCTestCase {
             
             for _ in 0..<5 {
                 nextButton.tap()
-                sleep(0.5)
+                Thread.sleep(forTimeInterval: 0.5)
             }
             
             let prevButton = app.buttons["chevron.left"]
             for _ in 0..<5 {
                 prevButton.tap()
-                sleep(0.5)
+                Thread.sleep(forTimeInterval: 0.5)
             }
         }
     }

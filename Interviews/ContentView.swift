@@ -91,7 +91,7 @@ struct ContentView: View {
     private func performInitialSyncIfNeeded() async {
         // Only sync once per app launch and only if user is authenticated
         guard !hasPerformedInitialSync,
-              let session = await clerk.session else {
+              let session = clerk.session else {
             return
         }
         
@@ -106,7 +106,7 @@ struct ContentView: View {
                 return
             }
             
-            APIService.shared.setAuthToken(token.jwt)
+            await APIService.shared.setAuthToken(token.jwt)
             
             // Create sync service and sync all data
             let syncService = SyncService(modelContext: modelContext)
