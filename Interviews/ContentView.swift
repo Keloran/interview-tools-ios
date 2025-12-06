@@ -12,6 +12,8 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var interviews: [Interview]
 
+    @State private var showingSettings = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -23,6 +25,18 @@ struct ContentView: View {
                 InterviewListView()
             }
             .navigationTitle("Interviews")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView(modelContext: modelContext)
+            }
         }
     }
 }

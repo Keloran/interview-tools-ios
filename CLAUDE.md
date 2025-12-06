@@ -9,16 +9,61 @@ This is an iOS interview tracker application that integrates with interviews.too
 - Add new interviews
 - Manage interview pipeline and status
 - View interview history and progress
+- Sync data with interviews.tools API (optional)
 
 Built with SwiftUI and SwiftData using Xcode's default project structure.
+
+### Modes of Operation
+
+1. **Offline Mode** (Default): All data stored locally in SwiftData
+2. **Online Mode**: Sync with interviews.tools API when authenticated
 
 ## Technology Stack
 
 - **Language**: Swift
 - **UI Framework**: SwiftUI
 - **Data Persistence**: SwiftData (Apple's modern data persistence framework)
+- **API Integration**: URLSession with async/await
+- **Authentication**: Keychain storage for API tokens
 - **Testing Framework**: Swift Testing (using the new Testing framework, not XCTest)
 - **Build System**: Xcode project
+
+## API Integration
+
+The app integrates with the interviews.tools API (https://interviews.tools/api):
+
+### Authentication
+- Uses Clerk-based authentication tokens from the web app
+- Tokens stored securely in iOS Keychain
+- Users must obtain token from interviews.tools website
+
+### API Endpoints
+
+**GET /api/companies** - Fetch user's companies
+**GET /api/stages** - Fetch all interview stages
+**GET /api/stage-methods** - Fetch all interview methods
+**GET /api/interviews** - Fetch interviews with optional filters:
+- `date`, `dateFrom`, `dateTo` - Date filtering
+- `includePast` - Include past interviews
+- `companyId`, `company` - Company filtering
+- `outcome` - Filter by outcome
+
+**POST /api/interview** - Create new interview
+**PUT /api/interview/[id]** - Update existing interview
+
+### Sync Service
+
+`SyncService` handles bidirectional sync between local SwiftData and remote API:
+- Pull: Fetches data from API and updates local database
+- Push: Creates new interviews on API when user adds them
+- Conflict resolution: API is source of truth for synced data
+
+### Service Architecture
+
+- `APIService`: Actor-based API client with async/await
+- `APIModels`: Codable DTOs for API requests/responses
+- `SyncService`: @MainActor class that coordinates sync operations
+- `AuthenticationManager`: Manages auth tokens and keychain storage
 
 ## Project Structure
 
