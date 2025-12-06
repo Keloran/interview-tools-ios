@@ -11,9 +11,10 @@ import SwiftData
 struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var interviews: [Interview]
+    
+    @Binding var selectedDate: Date?
 
     @State private var currentDate = Date()
-    @State private var selectedDate: Date?
     @State private var showingAddInterview = false
 
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
@@ -274,6 +275,6 @@ struct CalendarDayCell: View {
 }
 
 #Preview {
-    CalendarView()
+    CalendarView(selectedDate: .constant(nil))
         .modelContainer(for: [Interview.self, Company.self, Stage.self, StageMethod.self], inMemory: true)
 }

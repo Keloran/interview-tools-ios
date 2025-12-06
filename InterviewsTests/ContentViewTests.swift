@@ -327,4 +327,412 @@ struct ContentViewTests {
         
         #expect(shouldTriggerSync == false, "No sync when user remains signed in")
     }
+    
+    // MARK: - Date Filtering Tests
+    
+    @Test("Selected date filters interviews to that date only")
+    func testDateFiltering() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        let calendar = Calendar.current
+        let today = Date()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        let nextWeek = calendar.date(byAdding: .day, value: 7, to: today)!
+        
+        // Create company
+        let company = Company(name: "Test Company")
+        context.insert(company)
+        
+        // Create interviews on different dates
+        let todayInterview = Interview(
+            company: company,
+            jobTitle: "Today Interview",
+            applicationDate: today,
+            date: today
+        )
+        
+        let tomorrowInterview = Interview(
+            company: company,
+            jobTitle: "Tomorrow Interview",
+            applicationDate: today,
+            date: tomorrow
+        )
+        
+        let nextWeekInterview = Interview(
+            company: company,
+            jobTitle: "Next Week Interview",
+            applicationDate: today,
+            date: nextWeek
+        )
+        
+        context.insert(todayInterview)
+        context.insert(tomorrowInterview)
+        context.insert(nextWeekInterview)
+        
+        try context.save()
+        
+        // Simulate date filtering logic
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        
+        // Filter for today
+        let todayFiltered = allInterviews.filter { interview in
+            guard let displayDate = interview.displayDate else { return false }
+            return calendar.isDate(displayDate, inSameDayAs: today)
+        }
+        
+        #expect(todayFiltered.count == 1, "Should show only today's interview")
+        #expect(todayFiltered.first?.jobTitle == "Today Interview")
+        
+        // Filter for tomorrow
+        let tomorrowFiltered = allInterviews.filter { interview in
+            guard let displayDate = interview.displayDate else { return false }
+            return calendar.isDate(displayDate, inSameDayAs: tomorrow)
+        }
+        
+        #expect(tomorrowFiltered.count == 1, "Should show only tomorrow's interview")
+        #expect(tomorrowFiltered.first?.jobTitle == "Tomorrow Interview")
+    }
+    
+    @Test("No selected date shows only future interviews")
+    func testFutureInterviewsFiltering() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: now)!
+        
+        // Create company
+        let company = Company(name: "Test Company")
+        context.insert(company)
+        
+        // Create past and future interviews
+        let pastInterview = Interview(
+            company: company,
+            jobTitle: "Past Interview",
+            applicationDate: yesterday,
+            date: yesterday
+        )
+        
+        let futureInterview = Interview(
+            company: company,
+            jobTitle: "Future Interview",
+            applicationDate: now,
+            date: tomorrow
+        )
+        
+        context.insert(pastInterview)
+        context.insert(futureInterview)
+        
+        try context.save()
+        
+        // Simulate future filtering logic (when no date selected)
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        let futureOnly = allInterviews.filter {
+            guard let displayDate = $0.displayDate else { return false }
+            return displayDate >= now
+        }
+        
+        #expect(futureOnly.count == 1, "Should show only future interviews")
+        #expect(futureOnly.first?.jobTitle == "Future Interview")
+    }
+    
+    // MARK: - Company Search Tests
+    
+    @Test("Search filters interviews by company name")
+    func testCompanySearch() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        // Create companies
+        let apple = Company(name: "Apple")
+        let google = Company(name: "Google")
+        let microsoft = Company(name: "Microsoft")
+        
+        context.insert(apple)
+        context.insert(google)
+        context.insert(microsoft)
+        
+        // Create interviews
+        let appleInterview = Interview(
+            company: apple,
+            jobTitle: "iOS Engineer",
+            applicationDate: Date()
+        )
+        
+        let googleInterview = Interview(
+            company: google,
+            jobTitle: "Android Engineer",
+            applicationDate: Date()
+        )
+        
+        let microsoftInterview = Interview(
+            company: microsoft,
+            jobTitle: "Cloud Engineer",
+            applicationDate: Date()
+        )
+        
+        context.insert(appleInterview)
+        context.insert(googleInterview)
+        context.insert(microsoftInterview)
+        
+        try context.save()
+        
+        // Search for "apple"
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        let searchText = "apple"
+        let filtered = allInterviews.filter { interview in
+            if let companyName = interview.company?.name {
+                return companyName.localizedCaseInsensitiveContains(searchText)
+            }
+            return false
+        }
+        
+        #expect(filtered.count == 1, "Should find Apple interview")
+        #expect(filtered.first?.company?.name == "Apple")
+    }
+    
+    @Test("Search is case-insensitive")
+    func testCaseInsensitiveSearch() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        let company = Company(name: "Apple Inc")
+        context.insert(company)
+        
+        let interview = Interview(
+            company: company,
+            jobTitle: "iOS Engineer",
+            applicationDate: Date()
+        )
+        context.insert(interview)
+        
+        try context.save()
+        
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        
+        // Test various case combinations
+        let searches = ["apple", "APPLE", "ApPle", "Apple"]
+        
+        for searchText in searches {
+            let filtered = allInterviews.filter { interview in
+                if let companyName = interview.company?.name {
+                    return companyName.localizedCaseInsensitiveContains(searchText)
+                }
+                return false
+            }
+            
+            #expect(filtered.count == 1, "Search '\(searchText)' should find the interview")
+        }
+    }
+    
+    @Test("Search with partial company name")
+    func testPartialCompanyNameSearch() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        let company = Company(name: "Apple Inc")
+        context.insert(company)
+        
+        let interview = Interview(
+            company: company,
+            jobTitle: "iOS Engineer",
+            applicationDate: Date()
+        )
+        context.insert(interview)
+        
+        try context.save()
+        
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        
+        // Partial search should work
+        let searchText = "App"
+        let filtered = allInterviews.filter { interview in
+            if let companyName = interview.company?.name {
+                return companyName.localizedCaseInsensitiveContains(searchText)
+            }
+            return false
+        }
+        
+        #expect(filtered.count == 1, "Partial search 'App' should find Apple Inc")
+    }
+    
+    @Test("Search detects duplicate company applications")
+    func testDuplicateCompanyDetection() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        let company = Company(name: "Google")
+        context.insert(company)
+        
+        // Create multiple interviews with same company
+        let interview1 = Interview(
+            company: company,
+            jobTitle: "Software Engineer I",
+            applicationDate: Date()
+        )
+        
+        let interview2 = Interview(
+            company: company,
+            jobTitle: "Software Engineer II",
+            applicationDate: Date()
+        )
+        
+        let interview3 = Interview(
+            company: company,
+            jobTitle: "Senior Software Engineer",
+            applicationDate: Date()
+        )
+        
+        context.insert(interview1)
+        context.insert(interview2)
+        context.insert(interview3)
+        
+        try context.save()
+        
+        // Search should reveal all interviews with Google
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        let searchText = "google"
+        let filtered = allInterviews.filter { interview in
+            if let companyName = interview.company?.name {
+                return companyName.localizedCaseInsensitiveContains(searchText)
+            }
+            return false
+        }
+        
+        #expect(filtered.count == 3, "Should find all 3 Google interviews")
+        #expect(filtered.allSatisfy { $0.company?.name == "Google" })
+    }
+    
+    @Test("Search returns empty for non-existent company")
+    func testSearchNoResults() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        let company = Company(name: "Apple")
+        context.insert(company)
+        
+        let interview = Interview(
+            company: company,
+            jobTitle: "iOS Engineer",
+            applicationDate: Date()
+        )
+        context.insert(interview)
+        
+        try context.save()
+        
+        // Search for non-existent company
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        let searchText = "Netflix"
+        let filtered = allInterviews.filter { interview in
+            if let companyName = interview.company?.name {
+                return companyName.localizedCaseInsensitiveContains(searchText)
+            }
+            return false
+        }
+        
+        #expect(filtered.isEmpty, "Should return empty results for non-existent company")
+    }
+    
+    // MARK: - Combined Filter Tests
+    
+    @Test("Date filter and search work together")
+    func testCombinedDateAndSearch() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        let calendar = Calendar.current
+        let today = Date()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        
+        // Create companies
+        let apple = Company(name: "Apple")
+        let google = Company(name: "Google")
+        
+        context.insert(apple)
+        context.insert(google)
+        
+        // Create interviews
+        let appleTodayInterview = Interview(
+            company: apple,
+            jobTitle: "iOS Engineer",
+            applicationDate: today,
+            date: today
+        )
+        
+        let appleTomorrowInterview = Interview(
+            company: apple,
+            jobTitle: "Senior iOS Engineer",
+            applicationDate: today,
+            date: tomorrow
+        )
+        
+        let googleTodayInterview = Interview(
+            company: google,
+            jobTitle: "Android Engineer",
+            applicationDate: today,
+            date: today
+        )
+        
+        context.insert(appleTodayInterview)
+        context.insert(appleTomorrowInterview)
+        context.insert(googleTodayInterview)
+        
+        try context.save()
+        
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        
+        // First apply search filter
+        let searchText = "apple"
+        var filtered = allInterviews.filter { interview in
+            if let companyName = interview.company?.name {
+                return companyName.localizedCaseInsensitiveContains(searchText)
+            }
+            return false
+        }
+        
+        // Then apply date filter
+        filtered = filtered.filter { interview in
+            guard let displayDate = interview.displayDate else { return false }
+            return calendar.isDate(displayDate, inSameDayAs: today)
+        }
+        
+        #expect(filtered.count == 1, "Should find only Apple interview today")
+        #expect(filtered.first?.jobTitle == "iOS Engineer")
+        #expect(filtered.first?.company?.name == "Apple")
+    }
 }

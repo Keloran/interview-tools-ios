@@ -11,22 +11,37 @@ import SwiftData
 struct InterviewListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var interviews: [Interview]
+    
+    @Binding var selectedDate: Date?
+    var searchText: String
 
     @State private var selectedInterview: Interview?
     @State private var showingDetail = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Upcoming Interviews")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .padding(.horizontal)
+            HStack {
+                Text(headerTitle)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                if selectedDate != nil {
+                    Button(action: { selectedDate = nil }) {
+                        Text("Clear")
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
+                    }
+                }
+            }
+            .padding(.horizontal)
 
             if sortedInterviews.isEmpty {
                 ContentUnavailableView(
-                    "No Interviews Scheduled",
+                    emptyStateTitle,
                     systemImage: "calendar",
-                    description: Text("Click the + button on a date to add an interview")
+                    description: Text(emptyStateDescription)
                 )
                 .padding()
             } else {
@@ -61,11 +76,70 @@ struct InterviewListView: View {
             }
         }
     }
+    
+    private var headerTitle: String {
+        if !searchText.isEmpty {
+            return "Search Results"
+        } else if selectedDate != nil {
+            return "Interviews on \(selectedDate!.formatted(date: .abbreviated, time: .omitted))"
+        } else {
+            return "Upcoming Interviews"
+        }
+    }
+    
+    private var emptyStateTitle: String {
+        if !searchText.isEmpty {
+            return "No Companies Found"
+        } else if selectedDate != nil {
+            return "No Interviews This Day"
+        } else {
+            return "No Interviews Scheduled"
+        }
+    }
+    
+    private var emptyStateDescription: String {
+        if !searchText.isEmpty {
+            return "No interviews found with companies matching '\(searchText)'"
+        } else if selectedDate != nil {
+            return "Click the + button on the calendar to add an interview for this date"
+        } else {
+            return "Click the + button on a date to add an interview"
+        }
+    }
 
     private var sortedInterviews: [Interview] {
-        interviews
-            .filter { $0.displayDate != nil }
-            .sorted { ($0.displayDate ?? Date()) < ($1.displayDate ?? Date()) }
+        let now = Date()
+        let calendar = Calendar.current
+        
+        var filtered = interviews
+        
+        // Apply search filter first
+        if !searchText.isEmpty {
+            filtered = filtered.filter { interview in
+                if let companyName = interview.company?.name {
+                    return companyName.localizedCaseInsensitiveContains(searchText)
+                }
+                return false
+            }
+        }
+        
+        // Then apply date filter
+        if let selectedDate = selectedDate {
+            // Show interviews for the selected date
+            filtered = filtered.filter { interview in
+                guard let displayDate = interview.displayDate else { return false }
+                return calendar.isDate(displayDate, inSameDayAs: selectedDate)
+            }
+            // Sort by time
+            return filtered.sorted { ($0.displayDate ?? Date()) < ($1.displayDate ?? Date()) }
+        } else {
+            // Show only future interviews when no date is selected
+            filtered = filtered.filter {
+                guard let displayDate = $0.displayDate else { return false }
+                return displayDate >= now
+            }
+            return filtered.sorted { ($0.displayDate ?? Date()) < ($1.displayDate ?? Date()) }
+        }
     }
 }
 
@@ -280,6 +354,6 @@ struct InterviewDetailSheet: View {
 }
 
 #Preview {
-    InterviewListView()
+    InterviewListView(selectedDate: .constant(nil), searchText: "")
         .modelContainer(for: [Interview.self, Company.self, Stage.self, StageMethod.self], inMemory: true)
 }

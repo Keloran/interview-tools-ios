@@ -18,17 +18,22 @@ struct ContentView: View {
     @State private var hasPerformedInitialSync = false
     @State private var isSyncing = false
 
+    @State private var selectedDate: Date?
+    @State private var searchText = ""
+    @State private var showingSearch = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                CalendarView()
+                CalendarView(selectedDate: $selectedDate)
                     .frame(maxHeight: 400)
 
                 Divider()
 
-                InterviewListView()
+                InterviewListView(selectedDate: $selectedDate, searchText: searchText)
             }
             .navigationTitle("Interviews")
+            .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
             .overlay {
                 if isSyncing {
                     VStack {
@@ -43,6 +48,14 @@ struct ContentView: View {
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingSearch.toggle()
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingSettings = true
