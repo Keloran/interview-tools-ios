@@ -196,7 +196,7 @@ The project uses the **Swift Testing framework** (not XCTest):
 
 To run a single test in Xcode: Click the diamond icon next to the test function.
 
-**Important:** Always run tests with `Cmd+U` before marking tasks complete.
+**Important:** Always run tests with before marking tasks complete.
 
 ## Key Patterns
 

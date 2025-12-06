@@ -26,7 +26,8 @@ struct CompanyTests {
         #expect(company.id == nil)
         #expect(company.name == "Google")
         #expect(company.userId == nil)
-        #expect(company.createdAt != nil)
+        // createdAt is set to Date() by default, so just verify it exists
+        #expect(company.createdAt <= Date())
     }
 
     @Test @MainActor func testCompanyWithInterviews() async throws {

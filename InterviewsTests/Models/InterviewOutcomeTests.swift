@@ -10,7 +10,7 @@ import Testing
 @testable import Interviews
 
 struct InterviewOutcomeTests {
-    @Test func testDisplayNames() async throws {
+    @Test @MainActor func testDisplayNames() async throws {
         #expect(InterviewOutcome.scheduled.displayName == "Scheduled")
         #expect(InterviewOutcome.passed.displayName == "Passed")
         #expect(InterviewOutcome.rejected.displayName == "Rejected")
@@ -32,7 +32,7 @@ struct InterviewOutcomeTests {
         #expect(InterviewOutcome.withdrew.rawValue == "WITHDREW")
     }
 
-    @Test func testColors() async throws {
+    @Test @MainActor func testColors() async throws {
         #expect(InterviewOutcome.scheduled.color == "blue")
         #expect(InterviewOutcome.passed.color == "green")
         #expect(InterviewOutcome.rejected.color == "red")
