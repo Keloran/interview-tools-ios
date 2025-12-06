@@ -41,7 +41,13 @@ struct ContentView: View {
             }
             .environment(\.clerk, clerk)
             .task {
-                clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
+                let settings = Clerk.Settings(
+                    redirectConfig: .init(redirectUrl: ClerkConfiguration.redirectURL)
+                )
+                clerk.configure(
+                    publishableKey: ClerkConfiguration.publishableKey,
+                    settings: settings
+                )
                 try? await clerk.load()
             }
         }

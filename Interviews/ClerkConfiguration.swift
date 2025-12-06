@@ -14,4 +14,7 @@ struct ClerkConfiguration {
 
     // This should match the domain where interviews.tools is hosted
     static let frontendAPI = "interviews.tools"
+
+    // Use the same OAuth callback URL as the web app
+    static let redirectURL = "https://clerk.interviews.tools/v1/oauth_callback"
 }
