@@ -34,6 +34,7 @@ struct AddInterviewView: View {
 
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var hasInitialized = false
 
     // Computed properties to match React logic
     private var selectedStageName: String {
@@ -47,15 +48,93 @@ struct AddInterviewView: View {
     private var requiresScheduling: Bool {
         selectedStageName != "Applied" && selectedStageName != "Offer"
     }
+    
+    // Deduplicate and sort stages
+    private var sortedUniqueStages: [Stage] {
+        // Group stages by name and keep only the first occurrence
+        var seenNames = Set<String>()
+        let uniqueStages = stages.filter { stage in
+            let name = stage.stage
+            if seenNames.contains(name) {
+                return false
+            }
+            seenNames.insert(name)
+            return true
+        }
+        
+        // Define the preferred order for known stages
+        let knownStageOrder = [
+            "Applied",
+            "Phone Screen", 
+            "First Stage",
+            "Second Stage",
+            "Third Stage",
+            "Fourth Stage",
+            "Technical Test",
+            "Technical Interview",
+            "Final Stage",
+            "Onsite",
+            "Offer"
+        ]
+        
+        return uniqueStages.sorted { stage1, stage2 in
+            let index1 = knownStageOrder.firstIndex(of: stage1.stage) ?? Int.max
+            let index2 = knownStageOrder.firstIndex(of: stage2.stage) ?? Int.max
+            
+            // If both stages are in known order, sort by position
+            if index1 != Int.max && index2 != Int.max {
+                return index1 < index2
+            }
+            
+            // If only one is in known order, it comes first
+            if index1 != Int.max {
+                return true
+            }
+            if index2 != Int.max {
+                return false
+            }
+            
+            // If neither is in known order, sort alphabetically
+            return stage1.stage < stage2.stage
+        }
+    }
+    
+    // Deduplicate and sort stage methods
+    private var sortedUniqueStageMethods: [StageMethod] {
+        // Group methods by name and keep only the first occurrence
+        var seenMethods = Set<String>()
+        let uniqueMethods = stageMethods.filter { method in
+            let name = method.method
+            if seenMethods.contains(name) {
+                return false
+            }
+            seenMethods.insert(name)
+            return true
+        }
+        
+        // Sort alphabetically
+        return uniqueMethods.sorted { $0.method < $1.method }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Interview Stage") {
-                    Picker("Stage", selection: $selectedStage) {
-                        Text("Select Stage").tag(nil as Stage?)
-                        ForEach(stages, id: \.id) { stage in
-                            Text(stage.stage).tag(stage as Stage?)
+                    if sortedUniqueStages.isEmpty {
+                        Text("No stages available. Please sync first.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker("Stage", selection: $selectedStage) {
+                            ForEach(sortedUniqueStages, id: \.stage) { stage in
+                                Text(stage.stage).tag(stage as Stage?)
+                            }
+                        }
+                        
+                        // Debug info
+                        if sortedUniqueStages.count == 1 {
+                            Text("⚠️ Only \(sortedUniqueStages.count) stage available. Database may need sync.")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
                         }
                     }
                 }
@@ -109,8 +188,7 @@ struct AddInterviewView: View {
                                 .textContentType(.name)
 
                             Picker("Method", selection: $selectedStageMethod) {
-                                Text("Select Method").tag(nil as StageMethod?)
-                                ForEach(stageMethods, id: \.id) { method in
+                                ForEach(sortedUniqueStageMethods, id: \.method) { method in
                                     Text(method.method).tag(method as StageMethod?)
                                 }
                             }
@@ -145,6 +223,36 @@ struct AddInterviewView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
+            }
+            .onAppear {
+                initializeDefaults()
+            }
+        }
+    }
+    
+    private func initializeDefaults() {
+        // Only set defaults once
+        guard !hasInitialized else { return }
+        hasInitialized = true
+        
+        // Debug: Log what stages we have
+        print("📊 Total stages in database: \(stages.count)")
+        print("📊 Unique stages after deduplication: \(sortedUniqueStages.count)")
+        if !sortedUniqueStages.isEmpty {
+            print("📊 Available stages: \(sortedUniqueStages.map { $0.stage }.joined(separator: ", "))")
+        }
+        
+        // Set default stage to "Applied"
+        if selectedStage == nil {
+            if let appliedStage = sortedUniqueStages.first(where: { $0.stage == "Applied" }) {
+                selectedStage = appliedStage
+                print("✅ Default stage set to: Applied")
+            } else if let firstStage = sortedUniqueStages.first {
+                // Fallback to first available stage
+                selectedStage = firstStage
+                print("⚠️ 'Applied' not found, defaulting to: \(firstStage.stage)")
+            } else {
+                print("❌ No stages available!")
             }
         }
     }

@@ -80,6 +80,7 @@ struct SettingsView: View {
                 }
             } else {
                 syncButton
+                debugInfoButton
                 lastSyncText
                 syncErrorText
             }
@@ -93,6 +94,14 @@ struct SettingsView: View {
             }
         }
         .disabled(clerk.user == nil)
+    }
+    
+    private var debugInfoButton: some View {
+        Button("Show Database Info") {
+            Task {
+                await showDatabaseInfo()
+            }
+        }
     }
 
     @ViewBuilder
@@ -139,6 +148,53 @@ struct SettingsView: View {
            let token = try? await session.getToken() {
             await APIService.shared.setAuthToken(token.jwt)
             await syncService.syncAll()
+            
+            // Automatically clean up duplicates after sync
+            try? DatabaseCleanup.cleanupAll(context: modelContext)
+        }
+    }
+    
+    private func showDatabaseInfo() async {
+        do {
+            let stages = try modelContext.fetch(FetchDescriptor<Stage>())
+            let methods = try modelContext.fetch(FetchDescriptor<StageMethod>())
+            let companies = try modelContext.fetch(FetchDescriptor<Company>())
+            let interviews = try modelContext.fetch(FetchDescriptor<Interview>())
+            
+            var info = """
+            📊 Database Contents:
+            
+            Stages (\(stages.count)):
+            """
+            
+            // Group stages by name
+            let stageGroups = Dictionary(grouping: stages, by: { $0.stage })
+            for (name, group) in stageGroups.sorted(by: { $0.key < $1.key }) {
+                info += "\n  • \(name): \(group.count) item(s)"
+                if group.count > 1 {
+                    info += " ⚠️ DUPLICATE"
+                }
+            }
+            
+            info += "\n\nStage Methods (\(methods.count)):"
+            let methodGroups = Dictionary(grouping: methods, by: { $0.method })
+            for (name, group) in methodGroups.sorted(by: { $0.key < $1.key }) {
+                info += "\n  • \(name): \(group.count) item(s)"
+                if group.count > 1 {
+                    info += " ⚠️ DUPLICATE"
+                }
+            }
+            
+            info += "\n\nCompanies: \(companies.count)"
+            info += "\nInterviews: \(interviews.count)"
+            
+            print(info)
+            
+            errorMessage = info
+            showingError = true
+        } catch {
+            errorMessage = "Failed to fetch database info: \(error.localizedDescription)"
+            showingError = true
         }
     }
 }

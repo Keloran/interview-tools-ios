@@ -112,6 +112,9 @@ struct ContentView: View {
             let syncService = SyncService(modelContext: modelContext)
             await syncService.syncAll()
             
+            // Clean up any duplicates that may have been created
+            try? DatabaseCleanup.cleanupAll(context: modelContext)
+            
             // Log summary
             let descriptor = FetchDescriptor<Interview>()
             if let allInterviews = try? modelContext.fetch(descriptor) {

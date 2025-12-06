@@ -11,6 +11,8 @@ import Clerk
 
 @main
 struct InterviewsApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Interview.self,
@@ -44,5 +46,16 @@ struct InterviewsApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
+    }
+}
+
+// MARK: - App Delegate for Orientation Lock
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        // Lock to portrait orientation only
+        return .portrait
     }
 }
