@@ -666,8 +666,8 @@ struct ContentViewTests {
     
     // MARK: - Combined Filter Tests
     
-    @Test("Date filter and search work together")
-    func testCombinedDateAndSearch() async throws {
+    @Test("Search ignores date filters and shows all results")
+    func testSearchIgnoresDateFilter() async throws {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
@@ -677,62 +677,89 @@ struct ContentViewTests {
         
         let calendar = Calendar.current
         let today = Date()
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        let pastDate = calendar.date(byAdding: .day, value: -30, to: today)!
+        let futureDate = calendar.date(byAdding: .day, value: 30, to: today)!
         
-        // Create companies
+        // Create company
         let apple = Company(name: "Apple")
-        let google = Company(name: "Google")
-        
         context.insert(apple)
-        context.insert(google)
         
-        // Create interviews
-        let appleTodayInterview = Interview(
+        // Create interviews on different dates (past and future)
+        let pastInterview = Interview(
             company: apple,
-            jobTitle: "iOS Engineer",
-            applicationDate: today,
-            date: today
+            jobTitle: "iOS Engineer (Past)",
+            applicationDate: pastDate,
+            date: pastDate
         )
         
-        let appleTomorrowInterview = Interview(
+        let futureInterview = Interview(
             company: apple,
-            jobTitle: "Senior iOS Engineer",
+            jobTitle: "Senior iOS Engineer (Future)",
             applicationDate: today,
-            date: tomorrow
+            date: futureDate
         )
         
-        let googleTodayInterview = Interview(
-            company: google,
-            jobTitle: "Android Engineer",
-            applicationDate: today,
-            date: today
-        )
-        
-        context.insert(appleTodayInterview)
-        context.insert(appleTomorrowInterview)
-        context.insert(googleTodayInterview)
+        context.insert(pastInterview)
+        context.insert(futureInterview)
         
         try context.save()
         
         let allInterviews = try context.fetch(FetchDescriptor<Interview>())
         
-        // First apply search filter
+        // When searching, ALL interviews should be returned (past and future)
         let searchText = "apple"
-        var filtered = allInterviews.filter { interview in
+        let filtered = allInterviews.filter { interview in
             if let companyName = interview.company?.name {
                 return companyName.localizedCaseInsensitiveContains(searchText)
             }
             return false
         }
         
-        // Then apply date filter
-        filtered = filtered.filter { interview in
-            guard let displayDate = interview.displayDate else { return false }
-            return calendar.isDate(displayDate, inSameDayAs: today)
+        #expect(filtered.count == 2, "Search should find ALL Apple interviews (past and future)")
+        #expect(filtered.contains(where: { $0.jobTitle.contains("Past") }), "Should include past interview")
+        #expect(filtered.contains(where: { $0.jobTitle.contains("Future") }), "Should include future interview")
+    }
+    
+    @Test("Search shows past interviews to detect duplicates")
+    func testSearchShowsPastInterviews() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        
+        let calendar = Calendar.current
+        let today = Date()
+        let lastYear = calendar.date(byAdding: .year, value: -1, to: today)!
+        
+        let company = Company(name: "Google")
+        context.insert(company)
+        
+        // Create an old interview (last year)
+        let oldInterview = Interview(
+            company: company,
+            jobTitle: "Software Engineer (2024)",
+            applicationDate: lastYear,
+            date: lastYear,
+            outcome: .rejected
+        )
+        
+        context.insert(oldInterview)
+        try context.save()
+        
+        let allInterviews = try context.fetch(FetchDescriptor<Interview>())
+        
+        // Search should find the old interview
+        let searchText = "google"
+        let filtered = allInterviews.filter { interview in
+            if let companyName = interview.company?.name {
+                return companyName.localizedCaseInsensitiveContains(searchText)
+            }
+            return false
         }
         
-        #expect(filtered.count == 1, "Should find only Apple interview today")
-        #expect(filtered.first?.jobTitle == "iOS Engineer")
-        #expect(filtered.first?.company?.name == "Apple")
+        #expect(filtered.count == 1, "Should find past Google interview")
+        #expect(filtered.first?.outcome == .rejected, "Should show the rejection from last year")
     }
 }

@@ -134,13 +134,19 @@ struct InterviewDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                // Job Title (Always shown)
                 Text(interview.jobTitle)
                     .font(.title)
                     .fontWeight(.bold)
 
+                // Company (Always shown, with fallback)
                 if let company = interview.company {
                     Label(company.name, systemImage: "building.2")
                         .font(.headline)
+                } else {
+                    Label("No company information", systemImage: "building.2")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
                 }
 
                 if let clientCompany = interview.clientCompany {
@@ -151,13 +157,25 @@ struct InterviewDetailView: View {
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 8) {
+                // Interview Details Section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Interview Details")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    
                     if let stage = interview.stage {
                         HStack {
                             Text("Stage:")
                                 .foregroundStyle(.secondary)
                             Text(stage.stage)
                                 .fontWeight(.medium)
+                        }
+                    } else {
+                        HStack {
+                            Text("Stage:")
+                                .foregroundStyle(.secondary)
+                            Text("Not specified")
+                                .foregroundStyle(.tertiary)
                         }
                     }
 
@@ -167,6 +185,13 @@ struct InterviewDetailView: View {
                                 .foregroundStyle(.secondary)
                             Text(method.method)
                                 .fontWeight(.medium)
+                        }
+                    } else {
+                        HStack {
+                            Text("Method:")
+                                .foregroundStyle(.secondary)
+                            Text("Not specified")
+                                .foregroundStyle(.tertiary)
                         }
                     }
 
@@ -178,24 +203,43 @@ struct InterviewDetailView: View {
                                 .fontWeight(.medium)
                                 .foregroundStyle(colorForOutcome(outcome))
                         }
+                    } else {
+                        HStack {
+                            Text("Outcome:")
+                                .foregroundStyle(.secondary)
+                            Text("Pending")
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                 }
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 8) {
+                // Dates Section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Important Dates")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    
                     Label(
-                        interview.applicationDate.formatted(date: .long, time: .omitted),
+                        "Applied: \(interview.applicationDate.formatted(date: .long, time: .omitted))",
                         systemImage: "calendar.badge.plus"
                     )
                     .font(.subheadline)
 
                     if let date = interview.date {
                         Label(
-                            date.formatted(date: .long, time: .shortened),
+                            "Interview: \(date.formatted(date: .long, time: .shortened))",
                             systemImage: "calendar"
                         )
                         .font(.subheadline)
+                    } else {
+                        Label(
+                            "Interview: Not scheduled",
+                            systemImage: "calendar"
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
                     }
 
                     if let deadline = interview.deadline {
@@ -207,33 +251,55 @@ struct InterviewDetailView: View {
                     }
                 }
 
-                if let interviewer = interview.interviewer {
+                // Additional Information (only show if present)
+                if interview.interviewer != nil || interview.link != nil || interview.notes != nil {
                     Divider()
-                    Label(interviewer, systemImage: "person")
-                        .font(.subheadline)
-                }
-
-                if let link = interview.link {
-                    Divider()
-                    Link(destination: URL(string: link) ?? URL(string: "https://")!) {
-                        Label("Join Meeting", systemImage: "video")
-                            .font(.subheadline)
-                    }
-                }
-
-                if let notes = interview.notes {
-                    Divider()
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Notes")
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Additional Information")
                             .font(.headline)
-                        Text(notes)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
+                        
+                        if let interviewer = interview.interviewer {
+                            Label(interviewer, systemImage: "person")
+                                .font(.subheadline)
+                        }
+
+                        if let link = interview.link {
+                            Link(destination: URL(string: link) ?? URL(string: "https://")!) {
+                                Label("Join Meeting", systemImage: "video")
+                                    .font(.subheadline)
+                            }
+                        }
+
+                        if let notes = interview.notes {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label("Notes", systemImage: "note.text")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text(notes)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.top, 4)
+                            }
+                        }
                     }
+                } else {
+                    Divider()
+                    
+                    ContentUnavailableView(
+                        "No Additional Details",
+                        systemImage: "info.circle",
+                        description: Text("Add notes, interviewer name, or meeting link for this interview")
+                    )
+                    .padding(.vertical)
                 }
+                
+                Spacer(minLength: 20)
             }
             .padding()
         }
+        .background(Color(.systemGroupedBackground))
     }
 
     private func colorForOutcome(_ outcome: InterviewOutcome) -> Color {

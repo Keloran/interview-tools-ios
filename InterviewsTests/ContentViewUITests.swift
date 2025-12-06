@@ -247,13 +247,20 @@ final class ContentViewUITests: XCTestCase {
     // MARK: - Combined Feature Tests
     
     @MainActor
-    func testSearchAndDateFilterCanWorkTogether() throws {
+    func testSearchIgnoresDateFilter() throws {
+        // When searching, date filter should be ignored
+        // This allows users to see ALL past interviews with a company
+        
         // Select a date first
         let dateCell = app.staticTexts["15"]
         if dateCell.exists {
             dateCell.tap()
             
-            // Then activate search
+            // Verify date is selected
+            let clearButton = app.buttons["Clear"]
+            XCTAssertTrue(clearButton.waitForExistence(timeout: 2))
+            
+            // Now activate search
             let searchButton = app.buttons["magnifyingglass"]
             searchButton.tap()
             
@@ -262,14 +269,32 @@ final class ContentViewUITests: XCTestCase {
             searchField.tap()
             searchField.typeText("Apple")
             
-            // Both filters should be active
-            // Header should still show date
-            let dateHeader = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Interviews on'")).element
-            XCTAssertTrue(dateHeader.exists, "Date filter should still be active")
-            
-            // Search should also be active
-            XCTAssertEqual(searchField.value as? String, "Apple", "Search should be active")
+            // Search should show ALL Apple interviews, not just on selected date
+            // Header should change to "Search Results" (not date-specific)
+            let searchResultsHeader = app.staticTexts["Search Results"]
+            XCTAssertTrue(searchResultsHeader.waitForExistence(timeout: 2), "Search should override date filter")
         }
+    }
+    
+    @MainActor
+    func testSearchShowsPastInterviewsForDuplicateDetection() throws {
+        // The whole point of search is to check if you've interviewed with a company before
+        // So it MUST show past interviews
+        
+        let searchButton = app.buttons["magnifyingglass"]
+        searchButton.tap()
+        
+        let searchField = app.searchFields["Search companies..."]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        searchField.tap()
+        searchField.typeText("Google")
+        
+        // Should show ALL Google interviews (past, present, future)
+        let searchResultsHeader = app.staticTexts["Search Results"]
+        XCTAssertTrue(searchResultsHeader.waitForExistence(timeout: 2))
+        
+        // Note: In real usage, this would show past rejected interviews
+        // to warn user they already applied to this company
     }
     
     @MainActor
