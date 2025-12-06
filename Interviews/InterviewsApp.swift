@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Clerk
 
 @main
 struct InterviewsApp: App {
@@ -34,6 +35,13 @@ struct InterviewsApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    // Log the callback URL for debugging
+                    print("Received URL callback: \(url)")
+
+                    // Clerk should handle the OAuth callback automatically
+                    // when it detects the matching URL scheme
+                }
         }
         .modelContainer(sharedModelContainer)
     }

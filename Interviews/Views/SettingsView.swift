@@ -41,6 +41,12 @@ struct SettingsView: View {
                       .sheet(isPresented: $authIsPresented) {
                         AuthView()
                       }
+                      .onChange(of: clerk.user) { oldValue, newValue in
+                          // Dismiss auth sheet when user successfully signs in
+                          if newValue != nil {
+                              authIsPresented = false
+                          }
+                      }
                 }
 
                 

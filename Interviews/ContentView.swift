@@ -41,13 +41,9 @@ struct ContentView: View {
             }
             .environment(\.clerk, clerk)
             .task {
-                let settings = Clerk.Settings(
-                    redirectConfig: .init(redirectUrl: ClerkConfiguration.redirectURL)
-                )
-                clerk.configure(
-                    publishableKey: ClerkConfiguration.publishableKey,
-                    settings: settings
-                )
+                // Let Clerk use the default redirect URL (bundle ID based)
+                // This will use: tools.interviews.Interviews://callback
+                clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
                 try? await clerk.load()
             }
         }
