@@ -26,7 +26,7 @@ struct LaunchScreenView: View {
             VStack(spacing: 24) {
                 Spacer()
                 
-                // Logo/Icon
+                // Logo/Icon - Using App Icon
                 ZStack {
                     // Background circle with subtle glow
                     Circle()
@@ -35,26 +35,37 @@ struct LaunchScreenView: View {
                         .blur(radius: 20)
                         .scaleEffect(isAnimating ? 1.2 : 1.0)
                     
-                    // Main icon circle
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.accentColor,
-                                    Color.accentColor.opacity(0.8)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 120, height: 120)
-                        .shadow(color: Color.accentColor.opacity(0.3), radius: 20, y: 10)
-                    
-                    // Icon
-                    Image(systemName: "calendar.badge.checkmark")
-                        .font(.system(size: 50, weight: .medium))
-                        .foregroundStyle(.white)
+                    // App Icon
+                    if let appIcon = Bundle.main.icon {
+                        Image(uiImage: appIcon)
+                            .resizable()
+                            .frame(width: 120, height: 120)
+                            .clipShape(RoundedRectangle(cornerRadius: 26.4, style: .continuous))
+                            .shadow(color: Color.accentColor.opacity(0.3), radius: 20, y: 10)
+                            .scaleEffect(isAnimating ? 1.0 : 0.8)
+                    } else {
+                        // Fallback to styled circle with icon
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.accentColor,
+                                            Color.accentColor.opacity(0.8)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 120, height: 120)
+                                .shadow(color: Color.accentColor.opacity(0.3), radius: 20, y: 10)
+                            
+                            Image(systemName: "calendar.badge.checkmark")
+                                .font(.system(size: 50, weight: .medium))
+                                .foregroundStyle(.white)
+                        }
                         .scaleEffect(isAnimating ? 1.0 : 0.8)
+                    }
                 }
                 
                 // App name
@@ -93,6 +104,21 @@ struct LaunchScreenView: View {
                 isAnimating = true
             }
         }
+    }
+}
+
+// MARK: - Bundle Extension for App Icon
+extension Bundle {
+    var icon: UIImage? {
+        // Try to get the app icon from the Info.plist
+        guard let icons = infoDictionary?["CFBundleIcons"] as? [String: Any],
+              let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any],
+              let iconFiles = primaryIcon["CFBundleIconFiles"] as? [String],
+              let lastIcon = iconFiles.last else {
+            return nil
+        }
+        
+        return UIImage(named: lastIcon)
     }
 }
 

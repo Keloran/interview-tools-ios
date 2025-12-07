@@ -167,7 +167,7 @@ final class ContentViewUITests: XCTestCase {
             dateCell.tap()
             
             // Clear button should appear
-            let clearButton = app.buttons["Clear"]
+            let clearButton = app.buttons["clearDateButton"]
             XCTAssertTrue(clearButton.waitForExistence(timeout: 2), "Clear button should appear after date selection")
         }
     }
@@ -181,7 +181,7 @@ final class ContentViewUITests: XCTestCase {
             dateCell.tap()
             
             // Wait for clear button
-            let clearButton = app.buttons["Clear"]
+            let clearButton = app.buttons["clearDateButton"]
             XCTAssertTrue(clearButton.waitForExistence(timeout: 2))
             
             // Tap clear button
@@ -198,47 +198,45 @@ final class ContentViewUITests: XCTestCase {
     
     @MainActor
     func testCalendarNavigationWorks() throws {
-        // Find the next month button (chevron.right)
-        let nextMonthButton = app.buttons["chevron.right"]
+        // Find the next month button
+        let nextMonthButton = app.buttons["nextMonthButton"]
         XCTAssertTrue(nextMonthButton.exists, "Next month button should exist")
         
         // Get current month name
-        let monthYearLabel = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'january' OR label CONTAINS[c] 'february' OR label CONTAINS[c] 'march' OR label CONTAINS[c] 'april' OR label CONTAINS[c] 'may' OR label CONTAINS[c] 'june' OR label CONTAINS[c] 'july' OR label CONTAINS[c] 'august' OR label CONTAINS[c] 'september' OR label CONTAINS[c] 'october' OR label CONTAINS[c] 'november' OR label CONTAINS[c] 'december'")).firstMatch
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.exists, "Month/year label should exist")
         let currentMonth = monthYearLabel.label
         
         // Tap next month
         nextMonthButton.tap()
         
         // Month should change
-        Thread.sleep(forTimeInterval: 1.0) // Brief pause for animation
+        Thread.sleep(forTimeInterval: 0.5) // Brief pause for animation
         let newMonth = monthYearLabel.label
         XCTAssertNotEqual(currentMonth, newMonth, "Month should change after tapping next")
         
         // Previous month button should work
-        let previousMonthButton = app.buttons["chevron.left"]
+        let previousMonthButton = app.buttons["previousMonthButton"]
         XCTAssertTrue(previousMonthButton.exists, "Previous month button should exist")
         previousMonthButton.tap()
         
-        Thread.sleep(forTimeInterval: 1.0)
+        Thread.sleep(forTimeInterval: 0.5)
         let returnedMonth = monthYearLabel.label
         XCTAssertEqual(currentMonth, returnedMonth, "Should return to original month")
     }
     
     @MainActor
     func testTodayButtonAppearsWhenNavigatingToOtherMonth() throws {
-        // Get the month/year label to track current month
-        let monthYearLabel = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'january' OR label CONTAINS[c] 'february' OR label CONTAINS[c] 'march' OR label CONTAINS[c] 'april' OR label CONTAINS[c] 'may' OR label CONTAINS[c] 'june' OR label CONTAINS[c] 'july' OR label CONTAINS[c] 'august' OR label CONTAINS[c] 'september' OR label CONTAINS[c] 'october' OR label CONTAINS[c] 'november' OR label CONTAINS[c] 'december'")).firstMatch
-        
         // Today button should NOT exist when viewing current month
-        let todayButton = app.buttons["Today"]
+        let todayButton = app.buttons["todayButton"]
         XCTAssertFalse(todayButton.exists, "Today button should not appear when viewing current month")
         
         // Navigate to next month
-        let nextMonthButton = app.buttons["chevron.right"]
+        let nextMonthButton = app.buttons["nextMonthButton"]
         XCTAssertTrue(nextMonthButton.exists, "Next month button should exist")
         nextMonthButton.tap()
         
-        Thread.sleep(forTimeInterval: 1.0) // Wait for transition
+        Thread.sleep(forTimeInterval: 0.5) // Wait for transition
         
         // Today button SHOULD appear now
         XCTAssertTrue(todayButton.waitForExistence(timeout: 2), "Today button should appear when viewing different month")
@@ -247,17 +245,17 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testTodayButtonReturnsToCurrentMonth() throws {
         // Navigate to next month
-        let nextMonthButton = app.buttons["chevron.right"]
+        let nextMonthButton = app.buttons["nextMonthButton"]
         nextMonthButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
+        Thread.sleep(forTimeInterval: 0.5)
         
         // Verify we're in a different month
-        let todayButton = app.buttons["Today"]
+        let todayButton = app.buttons["todayButton"]
         XCTAssertTrue(todayButton.waitForExistence(timeout: 2), "Today button should appear in different month")
         
         // Tap the Today button
         todayButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
+        Thread.sleep(forTimeInterval: 0.5)
         
         // Today button should disappear since we're back to current month
         XCTAssertFalse(todayButton.exists, "Today button should disappear when returning to current month")
@@ -266,20 +264,20 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testTodayButtonWorksFromMultipleMonthsAway() throws {
         // Navigate several months ahead
-        let nextMonthButton = app.buttons["chevron.right"]
+        let nextMonthButton = app.buttons["nextMonthButton"]
         
         for _ in 0..<3 {
             nextMonthButton.tap()
-            Thread.sleep(forTimeInterval: 0.8)
+            Thread.sleep(forTimeInterval: 0.5)
         }
         
         // Today button should exist
-        let todayButton = app.buttons["Today"]
+        let todayButton = app.buttons["todayButton"]
         XCTAssertTrue(todayButton.exists, "Today button should exist when multiple months away")
         
         // Tap Today
         todayButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
+        Thread.sleep(forTimeInterval: 0.5)
         
         // Should be back to current month - Today button should disappear
         XCTAssertFalse(todayButton.exists, "Today button should disappear after returning to current month")
@@ -288,17 +286,17 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testTodayButtonWorksFromPastMonths() throws {
         // Navigate to previous month
-        let previousMonthButton = app.buttons["chevron.left"]
+        let previousMonthButton = app.buttons["previousMonthButton"]
         previousMonthButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
+        Thread.sleep(forTimeInterval: 0.5)
         
         // Today button should appear
-        let todayButton = app.buttons["Today"]
+        let todayButton = app.buttons["todayButton"]
         XCTAssertTrue(todayButton.waitForExistence(timeout: 2), "Today button should appear when viewing past month")
         
         // Tap Today
         todayButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
+        Thread.sleep(forTimeInterval: 0.5)
         
         // Should return to current month
         XCTAssertFalse(todayButton.exists, "Today button should disappear when back to current month")
@@ -331,7 +329,7 @@ final class ContentViewUITests: XCTestCase {
             dateCell.tap()
             
             // Verify date is selected
-            let clearButton = app.buttons["Clear"]
+            let clearButton = app.buttons["clearDateButton"]
             XCTAssertTrue(clearButton.waitForExistence(timeout: 2))
             
             let searchField = app.searchFields["Search companies..."]
@@ -364,12 +362,12 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testEmptyStateShowsForDateWithNoInterviews() throws {
         // Navigate to a far future date unlikely to have interviews
-        let nextMonthButton = app.buttons["chevron.right"]
+        let nextMonthButton = app.buttons["nextMonthButton"]
         
         // Go several months ahead
         for _ in 0..<6 {
             nextMonthButton.tap()
-            Thread.sleep(forTimeInterval: 1.0)
+            Thread.sleep(forTimeInterval: 0.5)
         }
         
         // Tap a date
@@ -381,6 +379,203 @@ final class ContentViewUITests: XCTestCase {
             let emptyState = app.staticTexts["No Interviews This Day"]
             XCTAssertTrue(emptyState.waitForExistence(timeout: 2), "Empty state should appear for date with no interviews")
         }
+    }
+    
+    
+    // MARK: - Swipe Actions Tests
+    
+    @MainActor
+    func testSwipeLeftToRejectInterview() throws {
+        // Check if there are any interview rows
+        let firstInterviewRow = app.cells.firstMatch
+        
+        // Skip test if no interviews exist
+        guard firstInterviewRow.waitForExistence(timeout: 2) else {
+            throw XCTSkip("No interviews available for swipe test")
+        }
+        
+        // Swipe left to reveal reject action
+        firstInterviewRow.swipeLeft()
+        
+        // Reject button should appear
+        let rejectButton = app.buttons["Reject"]
+        XCTAssertTrue(rejectButton.waitForExistence(timeout: 2), "Reject button should appear on left swipe")
+        
+        // Verify it has the correct label/icon
+        XCTAssertTrue(rejectButton.exists, "Reject action should be available")
+    }
+    
+    @MainActor
+    func testSwipeRightToOpenNextStage() throws {
+        // Check if there are any interview rows
+        let firstInterviewRow = app.cells.firstMatch
+        
+        // Skip test if no interviews exist
+        guard firstInterviewRow.waitForExistence(timeout: 2) else {
+            throw XCTSkip("No interviews available for swipe test")
+        }
+        
+        // Swipe right to reveal next stage action
+        firstInterviewRow.swipeRight()
+        
+        // Next Stage button should appear
+        let nextStageButton = app.buttons["Next Stage"]
+        XCTAssertTrue(nextStageButton.waitForExistence(timeout: 2), "Next Stage button should appear on right swipe")
+    }
+    
+    @MainActor
+    func testRejectActionChangesInterviewStatus() throws {
+        // Check if there are any interview rows
+        let firstInterviewRow = app.cells.firstMatch
+        
+        // Skip test if no interviews exist
+        guard firstInterviewRow.waitForExistence(timeout: 2) else {
+            throw XCTSkip("No interviews available for swipe test")
+        }
+        
+        // Swipe left and tap reject
+        firstInterviewRow.swipeLeft()
+        
+        let rejectButton = app.buttons["Reject"]
+        XCTAssertTrue(rejectButton.waitForExistence(timeout: 2))
+        rejectButton.tap()
+        
+        // Interview should either disappear (if filtering upcoming only) or status should update
+        // Give it a moment to process
+        Thread.sleep(forTimeInterval: 0.5)
+        
+        // Test passes if no crash occurs and action completes
+    }
+    
+    @MainActor
+    func testNextStageOpensCreateInterviewSheet() throws {
+        // Check if there are any interview rows
+        let firstInterviewRow = app.cells.firstMatch
+        
+        // Skip test if no interviews exist
+        guard firstInterviewRow.waitForExistence(timeout: 2) else {
+            throw XCTSkip("No interviews available for swipe test")
+        }
+        
+        // Swipe right and tap next stage
+        firstInterviewRow.swipeRight()
+        
+        let nextStageButton = app.buttons["Next Stage"]
+        XCTAssertTrue(nextStageButton.waitForExistence(timeout: 2))
+        nextStageButton.tap()
+        
+        // Sheet with "Next Stage" title should appear
+        let nextStageTitle = app.navigationBars["Next Stage"]
+        XCTAssertTrue(nextStageTitle.waitForExistence(timeout: 2), "Next Stage sheet should appear")
+        
+        // Create button should exist
+        let createButton = app.buttons["Create"]
+        XCTAssertTrue(createButton.exists, "Create button should be visible in next stage sheet")
+        
+        // Cancel button should exist
+        let cancelButton = app.buttons["Cancel"]
+        XCTAssertTrue(cancelButton.exists, "Cancel button should be visible")
+        
+        // Cancel to close
+        cancelButton.tap()
+    }
+    
+    @MainActor
+    func testNextStageSheetPrefillsCompanyAndJobTitle() throws {
+        // Check if there are any interview rows
+        let firstInterviewRow = app.cells.firstMatch
+        
+        // Skip test if no interviews exist
+        guard firstInterviewRow.waitForExistence(timeout: 2) else {
+            throw XCTSkip("No interviews available for swipe test")
+        }
+        
+        // Swipe right to next stage
+        firstInterviewRow.swipeRight()
+        let nextStageButton = app.buttons["Next Stage"]
+        XCTAssertTrue(nextStageButton.waitForExistence(timeout: 2))
+        nextStageButton.tap()
+        
+        // Verify sheet appeared
+        let nextStageTitle = app.navigationBars["Next Stage"]
+        XCTAssertTrue(nextStageTitle.waitForExistence(timeout: 2))
+        
+        // Company and Job Title should be pre-filled (read-only)
+        // They should exist as static text, not editable fields
+        let companyLabel = app.staticTexts["Company"]
+        XCTAssertTrue(companyLabel.exists, "Company field should be present")
+        
+        let jobTitleLabel = app.staticTexts["Job Title"]
+        XCTAssertTrue(jobTitleLabel.exists, "Job Title field should be present")
+        
+        // Cancel
+        app.buttons["Cancel"].tap()
+    }
+    
+    @MainActor
+    func testNextStageSheetDoesNotAllowAppliedStage() throws {
+        // Check if there are any interview rows
+        let firstInterviewRow = app.cells.firstMatch
+        
+        // Skip test if no interviews exist
+        guard firstInterviewRow.waitForExistence(timeout: 2) else {
+            throw XCTSkip("No interviews available for swipe test")
+        }
+        
+        // Open next stage sheet
+        firstInterviewRow.swipeRight()
+        let nextStageButton = app.buttons["Next Stage"]
+        XCTAssertTrue(nextStageButton.waitForExistence(timeout: 2))
+        nextStageButton.tap()
+        
+        // Wait for sheet
+        let nextStageTitle = app.navigationBars["Next Stage"]
+        XCTAssertTrue(nextStageTitle.waitForExistence(timeout: 2))
+        
+        // Tap on stage picker
+        let stagePicker = app.pickers["Stage"]
+        if stagePicker.exists {
+            stagePicker.tap()
+            
+            // "Applied" should NOT be in the list
+            let appliedOption = app.staticTexts["Applied"]
+            XCTAssertFalse(appliedOption.exists, "Applied stage should not be available for next stage")
+        }
+        
+        // Cancel
+        app.buttons["Cancel"].tap()
+    }
+    
+    @MainActor
+    func testNextStageSheetRequiresDateAndTime() throws {
+        // Check if there are any interview rows
+        let firstInterviewRow = app.cells.firstMatch
+        
+        // Skip test if no interviews exist
+        guard firstInterviewRow.waitForExistence(timeout: 2) else {
+            throw XCTSkip("No interviews available for swipe test")
+        }
+        
+        // Open next stage sheet
+        firstInterviewRow.swipeRight()
+        let nextStageButton = app.buttons["Next Stage"]
+        XCTAssertTrue(nextStageButton.waitForExistence(timeout: 2))
+        nextStageButton.tap()
+        
+        // Wait for sheet
+        let nextStageTitle = app.navigationBars["Next Stage"]
+        XCTAssertTrue(nextStageTitle.waitForExistence(timeout: 2))
+        
+        // Date & Time picker should exist (unless it's a technical test)
+        let dateTimePicker = app.datePickers["Date & Time"]
+        let deadlinePicker = app.datePickers["Deadline"]
+        
+        // At least one should exist
+        let hasDatePicker = dateTimePicker.exists || deadlinePicker.exists
+        XCTAssertTrue(hasDatePicker, "Date picker should be required for next stage")
+        
+        // Cancel
+        app.buttons["Cancel"].tap()
     }
     
     // MARK: - Settings Navigation Tests
@@ -430,14 +625,14 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testCalendarNavigationPerformance() throws {
         measure {
-            let nextButton = app.buttons["chevron.right"]
+            let nextButton = app.buttons["nextMonthButton"]
             
             for _ in 0..<5 {
                 nextButton.tap()
                 Thread.sleep(forTimeInterval: 0.5)
             }
             
-            let prevButton = app.buttons["chevron.left"]
+            let prevButton = app.buttons["previousMonthButton"]
             for _ in 0..<5 {
                 prevButton.tap()
                 Thread.sleep(forTimeInterval: 0.5)

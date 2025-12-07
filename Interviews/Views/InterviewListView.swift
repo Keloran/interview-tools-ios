@@ -16,6 +16,8 @@ struct InterviewListView: View {
     var searchText: String
 
     @State private var selectedInterview: Interview?
+    @State private var showingNextStageSheet = false
+    @State private var interviewForNextStage: Interview?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -32,6 +34,7 @@ struct InterviewListView: View {
                             .font(.subheadline)
                             .foregroundStyle(.blue)
                     }
+                    .accessibilityIdentifier("clearDateButton")
                 }
             }
             .padding(.horizontal)
@@ -44,17 +47,34 @@ struct InterviewListView: View {
                 )
                 .padding()
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(sortedInterviews, id: \.id) { interview in
-                            InterviewListRow(interview: interview)
-                                .onTapGesture {
-                                    selectedInterview = interview
+                List {
+                    ForEach(sortedInterviews, id: \.id) { interview in
+                        InterviewListRow(interview: interview)
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                Button {
+                                    // Open next stage sheet for this interview
+                                    interviewForNextStage = interview
+                                    showingNextStageSheet = true
+                                } label: {
+                                    Label("Next Stage", systemImage: "arrow.right.circle")
                                 }
-                        }
+                                .tint(.green)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    rejectInterview(interview)
+                                } label: {
+                                    Label("Reject", systemImage: "xmark.circle")
+                                }
+                            }
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                            .listRowSeparator(.hidden)
+                            .onTapGesture {
+                                selectedInterview = interview
+                            }
                     }
-                    .padding(.horizontal)
                 }
+                .listStyle(.plain)
             }
         }
         .sheet(item: $selectedInterview) { interview in
@@ -71,6 +91,17 @@ struct InterviewListView: View {
                     }
             }
         }
+        .sheet(isPresented: $showingNextStageSheet) {
+            if let interview = interviewForNextStage {
+                CreateNextStageView(interview: interview)
+            }
+        }
+    }
+    
+    private func rejectInterview(_ interview: Interview) {
+        interview.outcome = .rejected
+        interview.updatedAt = Date()
+        try? modelContext.save()
     }
     
     private var headerTitle: String {
@@ -142,8 +173,6 @@ struct InterviewListView: View {
 
 struct InterviewListRow: View {
     let interview: Interview
-    @Environment(\.modelContext) private var modelContext
-    @State private var showingNextStageSheet = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -212,32 +241,8 @@ struct InterviewListRow: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color(.separator), lineWidth: 1)
         )
-        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-            Button {
-                showingNextStageSheet = true
-            } label: {
-                Label("Next Stage", systemImage: "arrow.right.circle")
-            }
-            .tint(.green)
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) {
-                rejectInterview()
-            } label: {
-                Label("Reject", systemImage: "xmark.circle")
-            }
-        }
-        .sheet(isPresented: $showingNextStageSheet) {
-            CreateNextStageView(interview: interview)
-        }
     }
     
-    private func rejectInterview() {
-        interview.outcome = .rejected
-        interview.updatedAt = Date()
-        try? modelContext.save()
-    }
-
     private var outcomeColor: Color {
         // If no outcome is set and stage is "Applied", show as awaiting response
         if interview.outcome == nil && interview.stage?.stage == "Applied" {

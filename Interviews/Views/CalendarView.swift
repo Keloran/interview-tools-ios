@@ -30,6 +30,7 @@ struct CalendarView: View {
                     Text("\(monthNames[calendar.component(.month, from: currentDate) - 1]) \(String(calendar.component(.year, from: currentDate)))")
                         .font(.title2)
                         .fontWeight(.semibold)
+                        .accessibilityIdentifier("monthYearLabel")
 
                     Spacer()
 
@@ -47,6 +48,7 @@ struct CalendarView: View {
                                     .cornerRadius(8)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("todayButton")
                         }
                         
                         Button(action: previousMonth) {
@@ -54,12 +56,14 @@ struct CalendarView: View {
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("previousMonthButton")
 
                         Button(action: nextMonth) {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("nextMonthButton")
                     }
                 }
                 .padding(.horizontal)
@@ -271,6 +275,9 @@ struct CalendarDayCell: View {
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
         )
         .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Day \(day)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .onTapGesture(perform: onTap)
         .contextMenu {
             Button(action: onAddInterview) {
