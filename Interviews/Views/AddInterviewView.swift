@@ -49,6 +49,14 @@ struct AddInterviewView: View {
         selectedStageName != "Applied" && selectedStageName != "Offer"
     }
     
+    // Determine if link field should be shown
+    private var shouldShowLinkField: Bool {
+        guard let method = selectedStageMethod?.method else { return false }
+        let lowercased = method.lowercased()
+        // Don't show for "In Person" or "Phone"
+        return !lowercased.contains("in person") && !lowercased.contains("phone")
+    }
+    
     // Deduplicate and sort stages
     private var sortedUniqueStages: [Stage] {
         // Group stages by name and keep only the first occurrence
@@ -129,6 +137,12 @@ struct AddInterviewView: View {
                                 Text(stage.stage).tag(stage as Stage?)
                             }
                         }
+                        .onChange(of: selectedStage) { oldValue, newValue in
+                            // Clear stage method if moving back to Applied or Offer
+                            if newValue?.stage == "Applied" || newValue?.stage == "Offer" {
+                                selectedStageMethod = nil
+                            }
+                        }
                         
                         // Debug info
                         if sortedUniqueStages.count == 1 {
@@ -187,18 +201,36 @@ struct AddInterviewView: View {
                             TextField("Interviewer", text: $interviewer)
                                 .textContentType(.name)
 
-                            Picker("Method", selection: $selectedStageMethod) {
-                                ForEach(sortedUniqueStageMethods, id: \.method) { method in
-                                    Text(method.method).tag(method as StageMethod?)
+                            if sortedUniqueStageMethods.isEmpty {
+                                Text("No interview methods available. Please sync first.")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Picker("Method", selection: $selectedStageMethod) {
+                                    Text("Select Method").tag(nil as StageMethod?)
+                                    ForEach(sortedUniqueStageMethods, id: \.method) { method in
+                                        Text(method.method).tag(method as StageMethod?)
+                                    }
                                 }
                             }
 
-                            if selectedStageMethod?.method.lowercased().contains("video") == true ||
-                               selectedStageMethod?.method.lowercased().contains("call") == true {
-                                TextField("Meeting Link (Optional)", text: $link)
+                            // Show link field for all methods except "In Person" and "Phone"
+                            if shouldShowLinkField {
+                                TextField("Meeting Link", text: $link)
                                     .textContentType(.URL)
                                     .keyboardType(.URL)
                                     .autocapitalization(.none)
+                                    .onChange(of: link) { oldValue, newValue in
+                                        // Auto-detect method from link
+                                        if !newValue.isEmpty {
+                                            autoDetectStageMethod(from: newValue)
+                                        }
+                                    }
+                                
+                                if !link.isEmpty, let detectedMethod = inferStageMethodName(from: link) {
+                                    Text("Detected: \(detectedMethod)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -404,6 +436,71 @@ struct AddInterviewView: View {
         } catch {
             print("❌ Failed to push interview to API: \(error)")
             // Note: Interview is still saved locally, will sync later
+        }
+    }
+    
+    // MARK: - Link Inference
+    
+    /// Infer the stage method name from a meeting link
+    private func inferStageMethodName(from link: String) -> String? {
+        guard !link.isEmpty else { return nil }
+        
+        let candidates: [(regex: String, name: String)] = [
+            (#"zoom\.us|zoom\.com"#, "Zoom"),
+            (#"zoomgov\.com"#, "ZoomGov"),
+            (#"teams\.microsoft\.com|microsoft\.teams|live\.com/meet"#, "Teams"),
+            (#"meet\.google\.com|hangouts\.google\.com|google\.com/hangouts|workspace\.google\.com/products/meet"#, "Google Meet"),
+            (#"webex\.com|webex"#, "Webex"),
+            (#"skype\.com"#, "Skype"),
+            (#"bluejeans\.com"#, "BlueJeans"),
+            (#"whereby\.com"#, "Whereby"),
+            (#"jitsi\.org|meet\.jit\.si"#, "Jitsi"),
+            (#"gotomeet|gotowebinar|goto\.com"#, "GoToMeeting"),
+            (#"chime\.aws|amazonchime\.com"#, "Amazon Chime"),
+            (#"slack\.com"#, "Slack"),
+            (#"discord\.(gg|com)"#, "Discord"),
+            (#"facetime|apple\.com/facetime"#, "FaceTime"),
+            (#"whatsapp\.com"#, "WhatsApp"),
+            (#"(^|\.)8x8\.vc"#, "8x8"),
+            (#"telegram\.(me|org)|(^|/)t\.me/"#, "Telegram"),
+            (#"signal\.org"#, "Signal"),
+        ]
+        
+        // Try to extract hostname
+        var host = ""
+        if let url = URL(string: link) {
+            host = url.host ?? ""
+        } else if let url = URL(string: "https://\(link)") {
+            host = url.host ?? ""
+        }
+        
+        // Remove www. prefix
+        let normalizedHost = host.replacingOccurrences(of: "^www\\.", with: "", options: .regularExpression)
+        
+        // Check each candidate
+        for (pattern, name) in candidates {
+            if link.range(of: pattern, options: .regularExpression) != nil ||
+               normalizedHost.range(of: pattern, options: .regularExpression) != nil {
+                return name
+            }
+        }
+        
+        return "Link"
+    }
+    
+    /// Auto-detect and select stage method from link
+    private func autoDetectStageMethod(from link: String) {
+        guard let detectedName = inferStageMethodName(from: link) else { return }
+        
+        // Try to find a matching stage method
+        if let matchingMethod = stageMethods.first(where: { method in
+            method.method.lowercased() == detectedName.lowercased()
+        }) {
+            selectedStageMethod = matchingMethod
+            print("✅ Auto-detected stage method: \(detectedName)")
+        } else {
+            // If no exact match found, keep current selection or default to generic video call
+            print("⚠️ Detected \(detectedName) but no matching stage method in database")
         }
     }
 }

@@ -50,6 +50,12 @@ struct EditInterviewView: View {
                     TextField("Interview Link (optional)", text: $link)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
+                    
+                    if !link.isEmpty, let detectedPlatform = inferStageMethodName(from: link) {
+                        Text("Platform: \(detectedPlatform)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 
                 Section("Dates") {
@@ -106,6 +112,55 @@ struct EditInterviewView: View {
         
         try? modelContext.save()
         dismiss()
+    }
+    
+    // MARK: - Link Inference
+    
+    /// Infer the stage method name from a meeting link
+    private func inferStageMethodName(from link: String) -> String? {
+        guard !link.isEmpty else { return nil }
+        
+        let candidates: [(regex: String, name: String)] = [
+            (#"zoom\.us|zoom\.com"#, "Zoom"),
+            (#"zoomgov\.com"#, "ZoomGov"),
+            (#"teams\.microsoft\.com|microsoft\.teams|live\.com/meet"#, "Teams"),
+            (#"meet\.google\.com|hangouts\.google\.com|google\.com/hangouts|workspace\.google\.com/products/meet"#, "Google Meet"),
+            (#"webex\.com|webex"#, "Webex"),
+            (#"skype\.com"#, "Skype"),
+            (#"bluejeans\.com"#, "BlueJeans"),
+            (#"whereby\.com"#, "Whereby"),
+            (#"jitsi\.org|meet\.jit\.si"#, "Jitsi"),
+            (#"gotomeet|gotowebinar|goto\.com"#, "GoToMeeting"),
+            (#"chime\.aws|amazonchime\.com"#, "Amazon Chime"),
+            (#"slack\.com"#, "Slack"),
+            (#"discord\.(gg|com)"#, "Discord"),
+            (#"facetime|apple\.com/facetime"#, "FaceTime"),
+            (#"whatsapp\.com"#, "WhatsApp"),
+            (#"(^|\.)8x8\.vc"#, "8x8"),
+            (#"telegram\.(me|org)|(^|/)t\.me/"#, "Telegram"),
+            (#"signal\.org"#, "Signal"),
+        ]
+        
+        // Try to extract hostname
+        var host = ""
+        if let url = URL(string: link) {
+            host = url.host ?? ""
+        } else if let url = URL(string: "https://\(link)") {
+            host = url.host ?? ""
+        }
+        
+        // Remove www. prefix
+        let normalizedHost = host.replacingOccurrences(of: "^www\\.", with: "", options: .regularExpression)
+        
+        // Check each candidate
+        for (pattern, name) in candidates {
+            if link.range(of: pattern, options: .regularExpression) != nil ||
+               normalizedHost.range(of: pattern, options: .regularExpression) != nil {
+                return name
+            }
+        }
+        
+        return "Link"
     }
 }
 
