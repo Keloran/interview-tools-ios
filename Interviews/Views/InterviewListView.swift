@@ -16,7 +16,6 @@ struct InterviewListView: View {
     var searchText: String
 
     @State private var selectedInterview: Interview?
-    @State private var showingDetail = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -51,7 +50,6 @@ struct InterviewListView: View {
                             InterviewListRow(interview: interview)
                                 .onTapGesture {
                                     selectedInterview = interview
-                                    showingDetail = true
                                 }
                         }
                     }
@@ -59,20 +57,18 @@ struct InterviewListView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingDetail) {
-            if let interview = selectedInterview {
-                NavigationStack {
-                    InterviewDetailSheet(interview: interview)
-                        .navigationTitle(interview.jobTitle)
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") {
-                                    showingDetail = false
-                                }
+        .sheet(item: $selectedInterview) { interview in
+            NavigationStack {
+                InterviewDetailSheet(interview: interview)
+                    .navigationTitle(interview.jobTitle)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                selectedInterview = nil
                             }
                         }
-                }
+                    }
             }
         }
     }
