@@ -46,6 +46,20 @@ struct CreateNextStageView: View {
                     }
                 }
                 
+                // Debug: Show if data is empty
+                if allStages.isEmpty || allMethods.isEmpty {
+                    Section {
+                        if allStages.isEmpty {
+                            Text("⚠️ No stages available. Please sync with server.")
+                                .foregroundStyle(.orange)
+                        }
+                        if allMethods.isEmpty {
+                            Text("⚠️ No methods available. Please sync with server.")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                }
+                
                 Section("New Interview Stage") {
                     Picker("Stage", selection: $selectedStage) {
                         Text("Select Stage").tag(nil as Stage?)

@@ -52,21 +52,35 @@ class SyncService: ObservableObject {
         for apiCompany in apiCompanies {
             // Find or create company
             let companyId = apiCompany.id
-            let descriptor = FetchDescriptor<Company>(
+            
+            // First, try to find by server ID
+            let idDescriptor = FetchDescriptor<Company>(
                 predicate: #Predicate { company in
                     company.id == companyId
                 }
             )
 
-            let existing = try modelContext.fetch(descriptor).first
-
-            if let existing = existing {
-                // Update existing
+            if let existing = try modelContext.fetch(idDescriptor).first {
+                // Update existing record with server data
                 existing.name = apiCompany.name
+                existing.id = apiCompany.id // Ensure server ID is set
             } else {
-                // Create new
-                let company = Company(id: apiCompany.id, name: apiCompany.name)
-                modelContext.insert(company)
+                // Check if there's a local-only record (nil ID) with same name
+                let nameDescriptor = FetchDescriptor<Company>(
+                    predicate: #Predicate { company in
+                        company.name == apiCompany.name && company.id == nil
+                    }
+                )
+                
+                if let localRecord = try modelContext.fetch(nameDescriptor).first {
+                    // Update the local record with server ID (merge)
+                    localRecord.id = apiCompany.id
+                    print("🔄 Merged local Company '\(apiCompany.name)' with server ID \(apiCompany.id)")
+                } else {
+                    // Create new record
+                    let company = Company(id: apiCompany.id, name: apiCompany.name)
+                    modelContext.insert(company)
+                }
             }
         }
 
@@ -81,19 +95,35 @@ class SyncService: ObservableObject {
         for apiStage in apiStages {
             // Capture the ID in a local variable to use in predicate
             let stageId = apiStage.id
-            let descriptor = FetchDescriptor<Stage>(
+            
+            // First, try to find by server ID
+            let idDescriptor = FetchDescriptor<Stage>(
                 predicate: #Predicate { stage in
                     stage.id == stageId
                 }
             )
 
-            let existing = try modelContext.fetch(descriptor).first
-
-            if let existing = existing {
+            if let existing = try modelContext.fetch(idDescriptor).first {
+                // Update existing record with server data
                 existing.stage = apiStage.stage
+                existing.id = apiStage.id // Ensure server ID is set
             } else {
-                let stage = Stage(id: apiStage.id, stage: apiStage.stage)
-                modelContext.insert(stage)
+                // Check if there's a local-only record (nil ID) with same name
+                let nameDescriptor = FetchDescriptor<Stage>(
+                    predicate: #Predicate { stage in
+                        stage.stage == apiStage.stage && stage.id == nil
+                    }
+                )
+                
+                if let localRecord = try modelContext.fetch(nameDescriptor).first {
+                    // Update the local record with server ID (merge)
+                    localRecord.id = apiStage.id
+                    print("🔄 Merged local Stage '\(apiStage.stage)' with server ID \(apiStage.id)")
+                } else {
+                    // Create new record
+                    let stage = Stage(id: apiStage.id, stage: apiStage.stage)
+                    modelContext.insert(stage)
+                }
             }
         }
 
@@ -108,19 +138,35 @@ class SyncService: ObservableObject {
         for apiMethod in apiMethods {
             // Capture the ID in a local variable to use in predicate
             let methodId = apiMethod.id
-            let descriptor = FetchDescriptor<StageMethod>(
+            
+            // First, try to find by server ID
+            let idDescriptor = FetchDescriptor<StageMethod>(
                 predicate: #Predicate { method in
                     method.id == methodId
                 }
             )
-
-            let existing = try modelContext.fetch(descriptor).first
-
-            if let existing = existing {
+            
+            if let existing = try modelContext.fetch(idDescriptor).first {
+                // Update existing record with server ID
                 existing.method = apiMethod.method
+                existing.id = apiMethod.id // Ensure server ID is set
             } else {
-                let method = StageMethod(id: apiMethod.id, method: apiMethod.method)
-                modelContext.insert(method)
+                // Check if there's a local-only record (nil ID) with same name
+                let nameDescriptor = FetchDescriptor<StageMethod>(
+                    predicate: #Predicate { method in
+                        method.method == apiMethod.method && method.id == nil
+                    }
+                )
+                
+                if let localRecord = try modelContext.fetch(nameDescriptor).first {
+                    // Update the local record with server ID (merge)
+                    localRecord.id = apiMethod.id
+                    print("🔄 Merged local StageMethod '\(apiMethod.method)' with server ID \(apiMethod.id)")
+                } else {
+                    // Create new record
+                    let method = StageMethod(id: apiMethod.id, method: apiMethod.method)
+                    modelContext.insert(method)
+                }
             }
         }
 

@@ -81,6 +81,7 @@ class DatabaseCleanup {
         let interviewDescriptor = FetchDescriptor<Interview>()
         let allInterviews = try context.fetch(interviewDescriptor)
         
+        var reassignCount = 0
         for interview in allInterviews {
             guard let currentStage = interview.stage else { continue }
             
@@ -89,9 +90,13 @@ class DatabaseCleanup {
                 // Find the replacement stage (the one we're keeping with the same name)
                 if let replacement = stagesToKeep.first(where: { $0.stage == currentStage.stage }) {
                     interview.stage = replacement
-                    print("🔗 Reassigned interview '\(interview.jobTitle)' from stage ID \(currentStage.id ?? -1) to \(replacement.id ?? -1)")
+                    reassignCount += 1
                 }
             }
+        }
+        
+        if reassignCount > 0 {
+            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated stages")
         }
         
         // Delete duplicates
@@ -141,6 +146,7 @@ class DatabaseCleanup {
         let interviewDescriptor = FetchDescriptor<Interview>()
         let allInterviews = try context.fetch(interviewDescriptor)
         
+        var reassignCount = 0
         for interview in allInterviews {
             guard let currentMethod = interview.stageMethod else { continue }
             
@@ -149,9 +155,13 @@ class DatabaseCleanup {
                 // Find the replacement method (the one we're keeping with the same name)
                 if let replacement = seenNames[currentMethod.method] {
                     interview.stageMethod = replacement
-                    print("🔗 Reassigned interview '\(interview.jobTitle)' from method ID \(currentMethod.id ?? -1) to \(replacement.id ?? -1)")
+                    reassignCount += 1
                 }
             }
+        }
+        
+        if reassignCount > 0 {
+            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated methods")
         }
         
         // Delete duplicates
@@ -192,6 +202,7 @@ class DatabaseCleanup {
         let interviewDescriptor = FetchDescriptor<Interview>()
         let allInterviews = try context.fetch(interviewDescriptor)
         
+        var reassignCount = 0
         for interview in allInterviews {
             guard let currentCompany = interview.company else { continue }
             
@@ -200,9 +211,13 @@ class DatabaseCleanup {
                 // Find the replacement company (the one we're keeping with the same name)
                 if let replacement = seenNames[currentCompany.name] {
                     interview.company = replacement
-                    print("🔗 Reassigned interview '\(interview.jobTitle)' from company ID \(currentCompany.id ?? -1) to \(replacement.id ?? -1)")
+                    reassignCount += 1
                 }
             }
+        }
+        
+        if reassignCount > 0 {
+            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated companies")
         }
         
         // Delete duplicates
