@@ -25,56 +25,61 @@ struct CreateNextStageView: View {
     @State private var notes: String = ""
     @State private var interviewer: String = ""
     @State private var link: String = ""
+    @State private var hasInitialized = false
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Current Interview") {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(interview.jobTitle)
-                            .font(.headline)
-                        if let company = interview.company {
-                            Text(company.name)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        if let stage = interview.stage {
-                            Text("Current Stage: \(stage.stage)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+            if allStages.isEmpty && allMethods.isEmpty {
+                // Show loading state if data isn't ready yet
+                VStack(spacing: 16) {
+                    ProgressView()
+                    Text("Loading interview data...")
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .navigationTitle("Create Next Stage")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            dismiss()
                         }
                     }
                 }
-                
-                // Debug: Show if data is empty
-                if allStages.isEmpty || allMethods.isEmpty {
-                    Section {
-                        if allStages.isEmpty {
-                            Text("⚠️ No stages available. Please sync with server.")
-                                .foregroundStyle(.orange)
-                        }
-                        if allMethods.isEmpty {
-                            Text("⚠️ No methods available. Please sync with server.")
-                                .foregroundStyle(.orange)
-                        }
-                    }
-                }
-                
-                Section("New Interview Stage") {
-                    Picker("Stage", selection: $selectedStage) {
-                        Text("Select Stage").tag(nil as Stage?)
-                        ForEach(nextStages, id: \.id) { stage in
-                            Text(stage.stage).tag(stage as Stage?)
+            } else {
+                Form {
+                    Section("Current Interview") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(interview.jobTitle)
+                                .font(.headline)
+                            if let company = interview.company {
+                                Text(company.name)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            if let stage = interview.stage {
+                                Text("Current Stage: \(stage.stage)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                     
-                    Picker("Method", selection: $selectedMethod) {
-                        Text("Select Method").tag(nil as StageMethod?)
-                        ForEach(allMethods, id: \.id) { method in
-                            Text(method.method).tag(method as StageMethod?)
+                    Section("New Interview Stage") {
+                        Picker("Stage", selection: $selectedStage) {
+                            Text("Select Stage").tag(nil as Stage?)
+                            ForEach(nextStages, id: \.id) { stage in
+                                Text(stage.stage).tag(stage as Stage?)
+                            }
+                        }
+                        
+                        Picker("Method", selection: $selectedMethod) {
+                            Text("Select Method").tag(nil as StageMethod?)
+                            ForEach(allMethods, id: \.id) { method in
+                                Text(method.method).tag(method as StageMethod?)
+                            }
                         }
                     }
-                }
                 
                 Section("Interview Details") {
                     Toggle("Has Specific Date", isOn: $hasSpecificDate)
@@ -121,6 +126,21 @@ struct CreateNextStageView: View {
                     }
                 }
             }
+            .onAppear {
+                ensureDataExists()
+            }
+            } // End of else
+        }
+    }
+    
+    private func ensureDataExists() {
+        guard !hasInitialized else { return }
+        hasInitialized = true
+        
+        // Trigger seeding if data is missing (fallback)
+        if allStages.isEmpty || allMethods.isEmpty {
+            print("⚠️ CreateNextStageView: No stages/methods found - triggering fallback seeding")
+            DataSeeder.seedDefaultData(context: modelContext)
         }
     }
     

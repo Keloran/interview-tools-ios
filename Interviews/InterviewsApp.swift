@@ -72,12 +72,10 @@ struct InterviewsApp: App {
             // Set the container - this will show the main UI
             self.modelContainer = container
             
-            // Seed default data in the background - fire and forget
-            // ContentView will handle its own data syncing
-            Task.detached(priority: .medium) {
-                let backgroundContext = ModelContext(container)
-                await DataSeeder.seedDefaultData(context: backgroundContext)
-            }
+            // Seed default data synchronously before showing UI
+            // This ensures stages and methods are available immediately
+            let mainContext = container.mainContext
+            await DataSeeder.seedDefaultData(context: mainContext)
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

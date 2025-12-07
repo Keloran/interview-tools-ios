@@ -235,6 +235,12 @@ struct AddInterviewView: View {
         guard !hasInitialized else { return }
         hasInitialized = true
         
+        // Check if we need to seed default data (fallback if app init didn't complete)
+        if stages.isEmpty || stageMethods.isEmpty {
+            print("⚠️ No stages/methods found - triggering fallback seeding")
+            DataSeeder.seedDefaultData(context: modelContext)
+        }
+        
         // Debug: Log what stages we have
         print("📊 Total stages in database: \(stages.count)")
         print("📊 Unique stages after deduplication: \(sortedUniqueStages.count)")

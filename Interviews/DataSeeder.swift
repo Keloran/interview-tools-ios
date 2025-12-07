@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 
 struct DataSeeder {
+    @MainActor
     static func seedDefaultData(context: ModelContext) {
         // Check if data already exists
         let stageDescriptor = FetchDescriptor<Stage>()
@@ -20,16 +21,23 @@ struct DataSeeder {
 
             // Only seed if no data exists
             if existingStages.isEmpty {
+                print("📦 Seeding default stages...")
                 seedStages(context: context)
+            } else {
+                print("✅ Stages already exist, skipping seed")
             }
 
             if existingMethods.isEmpty {
+                print("📦 Seeding default methods...")
                 seedStageMethods(context: context)
+            } else {
+                print("✅ Methods already exist, skipping seed")
             }
 
             try context.save()
+            print("✅ Default data seeding complete")
         } catch {
-            print("Error seeding data: \(error)")
+            print("❌ Error seeding data: \(error)")
         }
     }
 
