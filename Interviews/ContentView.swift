@@ -17,7 +17,6 @@ struct ContentView: View {
     @State private var clerk = Clerk.shared
     @State private var hasPerformedInitialSync = false
     @State private var isSyncing = false
-    @State private var isInitializing = true
 
     @State private var selectedDate: Date?
     @State private var searchText = ""
@@ -36,16 +35,27 @@ struct ContentView: View {
             .navigationTitle("Interviews")
             .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
             .overlay {
+                // Show sync indicator in the corner while syncing in background
                 if isSyncing {
                     VStack {
-                        ProgressView()
-                        Text("Syncing interviews...")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Syncing...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.regularMaterial)
+                            .cornerRadius(20)
+                            .shadow(radius: 2)
+                            .padding()
+                        }
                     }
-                    .padding()
-                    .background(.regularMaterial)
-                    .cornerRadius(12)
                 }
             }
             .toolbar {
@@ -61,17 +71,18 @@ struct ContentView: View {
                 SettingsView(modelContext: modelContext)
             }
             .environment(\.clerk, clerk)
-            .task {
-                // Let Clerk use the default redirect URL (bundle ID based)
-                // This will use: tools.interviews.Interviews://callback
+            .onAppear {
+                // Configure Clerk synchronously (this should be instant)
                 clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
-                try? await clerk.load()
                 
-                // Perform initial sync if user is authenticated
-                await performInitialSyncIfNeeded()
+                // Load Clerk and sync in the background - fire and forget
+                Task {
+                    try? await clerk.load()
+                    await performInitialSyncIfNeeded()
+                }
             }
             .onChange(of: clerk.user) { oldValue, newValue in
-                // Sync when user signs in
+                // Sync when user signs in (in background)
                 if oldValue == nil && newValue != nil {
                     Task {
                         await performInitialSyncIfNeeded()
