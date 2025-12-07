@@ -30,10 +30,6 @@ final class ContentViewUITests: XCTestCase {
         // Verify main navigation elements are present
         XCTAssertTrue(app.navigationBars["Interviews"].exists, "Main navigation bar should exist")
         
-        // Verify search button exists in toolbar
-        let searchButton = app.buttons["magnifyingglass"]
-        XCTAssertTrue(searchButton.exists, "Search button should be visible")
-        
         // Verify settings button exists in toolbar
         let settingsButton = app.buttons["gear"]
         XCTAssertTrue(settingsButton.exists, "Settings button should be visible")
@@ -55,26 +51,8 @@ final class ContentViewUITests: XCTestCase {
     }
     
     // MARK: - Search Feature UI Tests
-    
-    @MainActor
-    func testSearchButtonTogglesBehavior() throws {
-        let searchButton = app.buttons["magnifyingglass"]
-        XCTAssertTrue(searchButton.exists, "Search button should exist")
-        
-        // Tap search button
-        searchButton.tap()
-        
-        // Search field should appear
-        let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2), "Search field should appear after tapping search button")
-    }
-    
     @MainActor
     func testSearchFieldAcceptsText() throws {
-        // Open search
-        let searchButton = app.buttons["magnifyingglass"]
-        searchButton.tap()
-        
         // Find and tap search field
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
@@ -89,12 +67,6 @@ final class ContentViewUITests: XCTestCase {
     
     @MainActor
     func testSearchShowsResults() throws {
-        // This test assumes there's test data with Apple as a company
-        // You may need to set up test data or mock it
-        
-        let searchButton = app.buttons["magnifyingglass"]
-        searchButton.tap()
-        
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -107,9 +79,6 @@ final class ContentViewUITests: XCTestCase {
     
     @MainActor
     func testSearchCanBeCancelled() throws {
-        let searchButton = app.buttons["magnifyingglass"]
-        searchButton.tap()
-        
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -127,9 +96,6 @@ final class ContentViewUITests: XCTestCase {
     
     @MainActor
     func testSearchEmptyStateAppears() throws {
-        let searchButton = app.buttons["magnifyingglass"]
-        searchButton.tap()
-        
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -260,10 +226,6 @@ final class ContentViewUITests: XCTestCase {
             let clearButton = app.buttons["Clear"]
             XCTAssertTrue(clearButton.waitForExistence(timeout: 2))
             
-            // Now activate search
-            let searchButton = app.buttons["magnifyingglass"]
-            searchButton.tap()
-            
             let searchField = app.searchFields["Search companies..."]
             XCTAssertTrue(searchField.waitForExistence(timeout: 2))
             searchField.tap()
@@ -278,12 +240,6 @@ final class ContentViewUITests: XCTestCase {
     
     @MainActor
     func testSearchShowsPastInterviewsForDuplicateDetection() throws {
-        // The whole point of search is to check if you've interviewed with a company before
-        // So it MUST show past interviews
-        
-        let searchButton = app.buttons["magnifyingglass"]
-        searchButton.tap()
-        
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -349,9 +305,6 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testSearchPerformance() throws {
         measure {
-            let searchButton = app.buttons["magnifyingglass"]
-            searchButton.tap()
-            
             let searchField = app.searchFields["Search companies..."]
             searchField.tap()
             searchField.typeText("A")

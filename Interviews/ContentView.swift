@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var clerk = Clerk.shared
     @State private var hasPerformedInitialSync = false
     @State private var isSyncing = false
+    @State private var isInitializing = true
 
     @State private var selectedDate: Date?
     @State private var searchText = ""
@@ -48,14 +49,6 @@ struct ContentView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingSearch.toggle()
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                }
-                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingSettings = true
@@ -128,194 +121,6 @@ struct ContentView: View {
         }
         
         isSyncing = false
-    }
-}
-
-struct InterviewDetailView: View {
-    let interview: Interview
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Job Title (Always shown)
-                Text(interview.jobTitle)
-                    .font(.title)
-                    .fontWeight(.bold)
-
-                // Company (Always shown, with fallback)
-                if let company = interview.company {
-                    Label(company.name, systemImage: "building.2")
-                        .font(.headline)
-                } else {
-                    Label("No company information", systemImage: "building.2")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let clientCompany = interview.clientCompany {
-                    Label("Client: \(clientCompany)", systemImage: "briefcase")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Divider()
-
-                // Interview Details Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Interview Details")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    
-                    if let stage = interview.stage {
-                        HStack {
-                            Text("Stage:")
-                                .foregroundStyle(.secondary)
-                            Text(stage.stage)
-                                .fontWeight(.medium)
-                        }
-                    } else {
-                        HStack {
-                            Text("Stage:")
-                                .foregroundStyle(.secondary)
-                            Text("Not specified")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-
-                    if let method = interview.stageMethod {
-                        HStack {
-                            Text("Method:")
-                                .foregroundStyle(.secondary)
-                            Text(method.method)
-                                .fontWeight(.medium)
-                        }
-                    } else {
-                        HStack {
-                            Text("Method:")
-                                .foregroundStyle(.secondary)
-                            Text("Not specified")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-
-                    if let outcome = interview.outcome {
-                        HStack {
-                            Text("Outcome:")
-                                .foregroundStyle(.secondary)
-                            Text(outcome.displayName)
-                                .fontWeight(.medium)
-                                .foregroundStyle(colorForOutcome(outcome))
-                        }
-                    } else {
-                        HStack {
-                            Text("Outcome:")
-                                .foregroundStyle(.secondary)
-                            Text("Pending")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                }
-
-                Divider()
-
-                // Dates Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Important Dates")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    
-                    Label(
-                        "Applied: \(interview.applicationDate.formatted(date: .long, time: .omitted))",
-                        systemImage: "calendar.badge.plus"
-                    )
-                    .font(.subheadline)
-
-                    if let date = interview.date {
-                        Label(
-                            "Interview: \(date.formatted(date: .long, time: .shortened))",
-                            systemImage: "calendar"
-                        )
-                        .font(.subheadline)
-                    } else {
-                        Label(
-                            "Interview: Not scheduled",
-                            systemImage: "calendar"
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(.tertiary)
-                    }
-
-                    if let deadline = interview.deadline {
-                        Label(
-                            "Deadline: \(deadline.formatted(date: .long, time: .omitted))",
-                            systemImage: "clock"
-                        )
-                        .font(.subheadline)
-                    }
-                }
-
-                // Additional Information (only show if present)
-                if interview.interviewer != nil || interview.link != nil || interview.notes != nil {
-                    Divider()
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Additional Information")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        
-                        if let interviewer = interview.interviewer {
-                            Label(interviewer, systemImage: "person")
-                                .font(.subheadline)
-                        }
-
-                        if let link = interview.link {
-                            Link(destination: URL(string: link) ?? URL(string: "https://")!) {
-                                Label("Join Meeting", systemImage: "video")
-                                    .font(.subheadline)
-                            }
-                        }
-
-                        if let notes = interview.notes {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Label("Notes", systemImage: "note.text")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                Text(notes)
-                                    .font(.body)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.top, 4)
-                            }
-                        }
-                    }
-                } else {
-                    Divider()
-                    
-                    ContentUnavailableView(
-                        "No Additional Details",
-                        systemImage: "info.circle",
-                        description: Text("Add notes, interviewer name, or meeting link for this interview")
-                    )
-                    .padding(.vertical)
-                }
-                
-                Spacer(minLength: 20)
-            }
-            .padding()
-        }
-        .background(Color(.systemGroupedBackground))
-    }
-
-    private func colorForOutcome(_ outcome: InterviewOutcome) -> Color {
-        switch outcome {
-        case .scheduled: return .blue
-        case .passed: return .green
-        case .rejected: return .red
-        case .awaitingResponse: return .yellow
-        case .offerReceived: return .purple
-        case .offerAccepted: return .green
-        case .offerDeclined: return .orange
-        case .withdrew: return .gray
-        }
     }
 }
 

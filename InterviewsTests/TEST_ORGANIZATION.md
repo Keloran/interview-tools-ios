@@ -63,7 +63,6 @@ This project now has properly organized tests across **two test targets**:
 ✅ Performance of UI operations
 
 **Example tests from ContentViewUITests.swift:**
-- `testSearchButtonTogglesBehavior()` - Tests tapping search button shows search field
 - `testSearchFieldAcceptsText()` - Tests typing in search field
 - `testCalendarDateCanBeSelected()` - Tests tapping calendar dates
 - `testClearButtonAppearsAfterDateSelection()` - Tests clear button appears
