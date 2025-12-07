@@ -82,15 +82,15 @@ struct CalendarView: View {
 
             // Calendar grid
             LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(calendarDays, id: \.self) { day in
-                    if day > 0 {
+                ForEach(calendarCells) { cell in
+                    if cell.day > 0 {
                         CalendarDayCell(
-                            day: day,
-                            interviews: getInterviewsForDay(day),
-                            isToday: isToday(day),
-                            isSelected: isSelected(day),
-                            onTap: { handleDateClick(day) },
-                            onAddInterview: { handleAddInterview(day) }
+                            day: cell.day,
+                            interviews: getInterviewsForDay(cell.day),
+                            isToday: isToday(cell.day),
+                            isSelected: isSelected(cell.day),
+                            onTap: { handleDateClick(cell.day) },
+                            onAddInterview: { handleAddInterview(cell.day) }
                         )
                     } else {
                         Color.clear
@@ -130,8 +130,14 @@ struct CalendarView: View {
         cal.firstWeekday = 2 // Monday
         return cal
     }
-
-    private var calendarDays: [Int] {
+    
+    // Struct to represent each calendar cell with a unique ID
+    private struct CalendarCell: Identifiable {
+        let id: Int // Position in grid (0-based index)
+        let day: Int // Day number (0 for empty cells)
+    }
+    
+    private var calendarCells: [CalendarCell] {
         let year = calendar.component(.year, from: currentDate)
         let month = calendar.component(.month, from: currentDate)
 
@@ -142,14 +148,22 @@ struct CalendarView: View {
         var startingDayOfWeek = calendar.component(.weekday, from: firstDayOfMonth)
         startingDayOfWeek = (startingDayOfWeek + 5) % 7 // Convert to 0 = Monday, 6 = Sunday
 
-        var days: [Int] = []
+        var cells: [CalendarCell] = []
+        var index = 0
+        
+        // Empty cells before month starts
         for _ in 0..<startingDayOfWeek {
-            days.append(0) // Empty cells
+            cells.append(CalendarCell(id: index, day: 0))
+            index += 1
         }
+        
+        // Actual days of the month
         for day in 1...daysInMonth {
-            days.append(day)
+            cells.append(CalendarCell(id: index, day: day))
+            index += 1
         }
-        return days
+        
+        return cells
     }
 
     private func previousMonth() {
