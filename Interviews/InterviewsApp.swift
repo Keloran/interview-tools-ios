@@ -13,11 +13,12 @@ import Clerk
 struct InterviewsApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var modelContainer: ModelContainer?
+    @State private var isInitialized = false
     
     var body: some Scene {
         WindowGroup {
             Group {
-                if let modelContainer {
+                if isInitialized, let modelContainer {
                     ContentView()
                         .modelContainer(modelContainer)
                         .onOpenURL { url in
@@ -27,21 +28,18 @@ struct InterviewsApp: App {
                             // Clerk should handle the OAuth callback automatically
                             // when it detects the matching URL scheme
                         }
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 } else {
-                    // Show loading screen while model container initializes
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text("Loading...")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .task {
-                        // Create container on background thread to avoid blocking UI
-                        await initializeModelContainer()
-                    }
+                    // Show beautiful launch screen while initializing
+                    LaunchScreenView()
+                        .transition(.opacity)
+                        .task {
+                            // Create container on background thread to avoid blocking UI
+                            await initializeModelContainer()
+                        }
                 }
             }
+            .animation(.easeInOut(duration: 0.4), value: isInitialized)
         }
     }
     
@@ -60,13 +58,22 @@ struct InterviewsApp: App {
                 try ModelContainer(for: schema, configurations: [modelConfiguration])
             }.value
 
-            // Set the container immediately so UI can show
+            // Set the container
             self.modelContainer = container
             
             // Seed default data in the background using a background context
-            Task.detached(priority: .medium) {
+            await Task.detached(priority: .medium) {
                 let backgroundContext = ModelContext(container)
                 await DataSeeder.seedDefaultData(context: backgroundContext)
+            }.value
+            
+            // Add a minimum display time for the launch screen (feels more polished)
+            // and ensures the animation is visible
+            try? await Task.sleep(for: .milliseconds(800))
+            
+            // Mark as initialized - this will trigger the transition to ContentView
+            withAnimation {
+                isInitialized = true
             }
         } catch {
             fatalError("Could not create ModelContainer: \(error)")

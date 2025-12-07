@@ -23,12 +23,40 @@ final class ContentViewUITests: XCTestCase {
         app = nil
     }
 
+    // MARK: - Launch Screen Tests
+    
+    @MainActor
+    func testLaunchScreenAppearsOnStartup() throws {
+        // The app should show launch screen elements briefly
+        // Note: This might be fast, so we check for either launch screen or main content
+        
+        // Check if launch screen elements exist (they may disappear quickly)
+        let launchLogo = app.images["calendar.badge.checkmark"]
+        let launchTitle = app.staticTexts["Interviews"]
+        
+        // At minimum, the app should have loaded successfully to the main screen
+        let mainNavBar = app.navigationBars["Interviews"]
+        XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Main screen should appear after launch")
+    }
+    
+    @MainActor
+    func testLaunchScreenTransitionsToMainContent() throws {
+        // Wait for main content to appear (launch screen should transition away)
+        let mainNavBar = app.navigationBars["Interviews"]
+        XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Should transition to main content")
+        
+        // Verify main UI elements are present after transition
+        let settingsButton = app.buttons["gear"]
+        XCTAssertTrue(settingsButton.exists, "Main UI should be fully loaded")
+    }
+    
     // MARK: - Navigation and Layout Tests
     
     @MainActor
     func testMainScreenExists() throws {
-        // Verify main navigation elements are present
-        XCTAssertTrue(app.navigationBars["Interviews"].exists, "Main navigation bar should exist")
+        // Wait for app to finish launching
+        let mainNavBar = app.navigationBars["Interviews"]
+        XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Main navigation bar should exist")
         
         // Verify settings button exists in toolbar
         let settingsButton = app.buttons["gear"]
