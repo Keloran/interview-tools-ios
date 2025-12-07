@@ -61,10 +61,13 @@ struct InterviewListView: View {
                                 .tint(.green)
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    rejectInterview(interview)
-                                } label: {
-                                    Label("Reject", systemImage: "xmark.circle")
+                                // Only show reject if not already rejected
+                                if interview.outcome != .rejected {
+                                    Button(role: .destructive) {
+                                        rejectInterview(interview)
+                                    } label: {
+                                        Label("Reject", systemImage: "xmark.circle")
+                                    }
                                 }
                             }
                             .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
