@@ -12,6 +12,7 @@ import SwiftData
 class DatabaseCleanup {
     
     /// Remove duplicate stages from the database, keeping only the first occurrence of each unique name
+    /// In guest mode, keeps stages without IDs. After sign-in, server IDs will be assigned during sync.
     static func removeDuplicateStages(context: ModelContext) throws {
         let descriptor = FetchDescriptor<Stage>(
             sortBy: [SortDescriptor(\.id)]

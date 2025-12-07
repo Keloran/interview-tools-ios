@@ -12,7 +12,7 @@ import SwiftData
 @MainActor
 class SyncService: ObservableObject {
     private let apiService = APIService.shared
-    private let modelContext: ModelContext
+    let modelContext: ModelContext
 
     @Published var isSyncing = false
     @Published var lastSyncDate: Date?

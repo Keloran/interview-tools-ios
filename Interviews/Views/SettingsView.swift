@@ -48,23 +48,20 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
     private var authSection: some View {
-        Section("Authentication") {
-            VStack {
-                if clerk.user != nil {
+        if clerk.user != nil {
+            Section("Authentication") {
+                VStack {
                     UserButton()
                         .frame(width: 36, height: 36)
-                } else {
-                    Button("Sign in") {
-                        authIsPresented = true
-                    }
                 }
-            }
-            .sheet(isPresented: $authIsPresented) {
-                AuthView()
-            }
-            .onChange(of: clerk.user) { oldValue, newValue in
-                handleAuthChange(oldValue: oldValue, newValue: newValue)
+                .sheet(isPresented: $authIsPresented) {
+                    AuthView()
+                }
+                .onChange(of: clerk.user) { oldValue, newValue in
+                    handleAuthChange(oldValue: oldValue, newValue: newValue)
+                }
             }
         }
     }
@@ -87,13 +84,15 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
     private var syncButton: some View {
-        Button("Sync Now") {
-            Task {
-                await performSync()
+        if clerk.user != nil {
+            Button("Sync Now") {
+                Task {
+                    await performSync()
+                }
             }
         }
-        .disabled(clerk.user == nil)
     }
     
     private var debugInfoButton: some View {

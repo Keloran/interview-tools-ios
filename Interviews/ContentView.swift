@@ -27,6 +27,9 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // Show guest mode banner if not authenticated
+                GuestModeBanner()
+                
                 CalendarView(selectedDate: $selectedDate)
                     .frame(maxHeight: 400)
 
@@ -111,10 +114,21 @@ struct ContentView: View {
                 }
             }
             .onChange(of: clerk.user) { oldValue, newValue in
-                // Sync when user signs in
+                // When user signs in, sync data
                 if oldValue == nil && newValue != nil {
                     Task {
-                        await performInitialSyncIfNeeded()
+                        // User just signed in
+                        if let session = clerk.session,
+                           let token = try? await session.getToken() {
+                            await APIService.shared.setAuthToken(token.jwt)
+                            await performInitialSyncIfNeeded()
+                        }
+                    }
+                } else if oldValue != nil && newValue == nil {
+                    // User signed out
+                    Task {
+                        await APIService.shared.setAuthToken(nil)
+                        hasPerformedInitialSync = false // Allow sync on next sign in
                     }
                 }
             }
@@ -122,6 +136,17 @@ struct ContentView: View {
     }
     
     private func performInitialSyncIfNeeded() async {
+        // In guest mode (no user), just finish loading without syncing
+        guard clerk.user != nil else {
+            await MainActor.run {
+                withAnimation {
+                    isInitialLoad = false
+                }
+            }
+            print("👋 Running in guest mode - no sync needed")
+            return
+        }
+        
         // Only sync once per app launch and only if user is authenticated
         guard !hasPerformedInitialSync,
               let session = clerk.session else {
@@ -155,7 +180,7 @@ struct ContentView: View {
             
             await APIService.shared.setAuthToken(token.jwt)
             
-            // Create sync service and sync all data
+            // Create sync service and sync all data from server (source of truth)
             let syncService = SyncService(modelContext: modelContext)
             await syncService.syncAll()
             
