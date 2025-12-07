@@ -34,6 +34,21 @@ struct CalendarView: View {
                     Spacer()
 
                     HStack(spacing: 8) {
+                        // Show "Today" button only when viewing a different month
+                        if !isCurrentMonth {
+                            Button(action: returnToToday) {
+                                Text("Today")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.accentColor.opacity(0.1))
+                                    .foregroundStyle(Color.accentColor)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        
                         Button(action: previousMonth) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
@@ -143,6 +158,20 @@ struct CalendarView: View {
         if let newDate = calendar.date(byAdding: .month, value: 1, to: currentDate) {
             currentDate = newDate
         }
+    }
+    
+    private func returnToToday() {
+        currentDate = Date()
+    }
+    
+    private var isCurrentMonth: Bool {
+        let today = Date()
+        let currentYear = calendar.component(.year, from: currentDate)
+        let currentMonth = calendar.component(.month, from: currentDate)
+        let todayYear = calendar.component(.year, from: today)
+        let todayMonth = calendar.component(.month, from: today)
+        
+        return currentYear == todayYear && currentMonth == todayMonth
     }
 
     private func isToday(_ day: Int) -> Bool {

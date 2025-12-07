@@ -197,6 +197,86 @@ final class ContentViewUITests: XCTestCase {
     }
     
     @MainActor
+    func testTodayButtonAppearsWhenNavigatingToOtherMonth() throws {
+        // Get the month/year label to track current month
+        let monthYearLabel = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'january' OR label CONTAINS[c] 'february' OR label CONTAINS[c] 'march' OR label CONTAINS[c] 'april' OR label CONTAINS[c] 'may' OR label CONTAINS[c] 'june' OR label CONTAINS[c] 'july' OR label CONTAINS[c] 'august' OR label CONTAINS[c] 'september' OR label CONTAINS[c] 'october' OR label CONTAINS[c] 'november' OR label CONTAINS[c] 'december'")).firstMatch
+        
+        // Today button should NOT exist when viewing current month
+        let todayButton = app.buttons["Today"]
+        XCTAssertFalse(todayButton.exists, "Today button should not appear when viewing current month")
+        
+        // Navigate to next month
+        let nextMonthButton = app.buttons["chevron.right"]
+        XCTAssertTrue(nextMonthButton.exists, "Next month button should exist")
+        nextMonthButton.tap()
+        
+        Thread.sleep(forTimeInterval: 1.0) // Wait for transition
+        
+        // Today button SHOULD appear now
+        XCTAssertTrue(todayButton.waitForExistence(timeout: 2), "Today button should appear when viewing different month")
+    }
+    
+    @MainActor
+    func testTodayButtonReturnsToCurrentMonth() throws {
+        // Navigate to next month
+        let nextMonthButton = app.buttons["chevron.right"]
+        nextMonthButton.tap()
+        Thread.sleep(forTimeInterval: 1.0)
+        
+        // Verify we're in a different month
+        let todayButton = app.buttons["Today"]
+        XCTAssertTrue(todayButton.waitForExistence(timeout: 2), "Today button should appear in different month")
+        
+        // Tap the Today button
+        todayButton.tap()
+        Thread.sleep(forTimeInterval: 1.0)
+        
+        // Today button should disappear since we're back to current month
+        XCTAssertFalse(todayButton.exists, "Today button should disappear when returning to current month")
+    }
+    
+    @MainActor
+    func testTodayButtonWorksFromMultipleMonthsAway() throws {
+        // Navigate several months ahead
+        let nextMonthButton = app.buttons["chevron.right"]
+        
+        for _ in 0..<3 {
+            nextMonthButton.tap()
+            Thread.sleep(forTimeInterval: 0.8)
+        }
+        
+        // Today button should exist
+        let todayButton = app.buttons["Today"]
+        XCTAssertTrue(todayButton.exists, "Today button should exist when multiple months away")
+        
+        // Tap Today
+        todayButton.tap()
+        Thread.sleep(forTimeInterval: 1.0)
+        
+        // Should be back to current month - Today button should disappear
+        XCTAssertFalse(todayButton.exists, "Today button should disappear after returning to current month")
+    }
+    
+    @MainActor
+    func testTodayButtonWorksFromPastMonths() throws {
+        // Navigate to previous month
+        let previousMonthButton = app.buttons["chevron.left"]
+        previousMonthButton.tap()
+        Thread.sleep(forTimeInterval: 1.0)
+        
+        // Today button should appear
+        let todayButton = app.buttons["Today"]
+        XCTAssertTrue(todayButton.waitForExistence(timeout: 2), "Today button should appear when viewing past month")
+        
+        // Tap Today
+        todayButton.tap()
+        Thread.sleep(forTimeInterval: 1.0)
+        
+        // Should return to current month
+        XCTAssertFalse(todayButton.exists, "Today button should disappear when back to current month")
+    }
+    
+    @MainActor
     func testDateSelectionShowsOnlyThatDaysInterviews() throws {
         // This assumes there's test data
         let dateCell = app.staticTexts["15"]
