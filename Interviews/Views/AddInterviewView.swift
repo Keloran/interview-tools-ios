@@ -282,26 +282,55 @@ struct AddInterviewView: View {
     }
 
     private func saveInterview() {
+        print("🔵 Starting save interview...")
+        
         // Get or create company
         let company: Company
         if let existing = selectedCompany {
             company = existing
+            print("✅ Using existing company: \(company.name)")
         } else {
             company = Company(name: companyName)
             modelContext.insert(company)
+            print("✅ Created new company: \(company.name)")
+            
+            // Save company immediately
+            do {
+                try modelContext.save()
+                print("✅ Company saved to database")
+            } catch {
+                print("❌ Failed to save company: \(error)")
+                errorMessage = "Failed to save company: \(error.localizedDescription)"
+                showError = true
+                return
+            }
         }
 
         // Default to "Applied" stage if none selected
         let stage: Stage
         if let selected = selectedStage {
             stage = selected
+            print("✅ Using selected stage: \(stage.stage)")
         } else {
             // Find or create "Applied" stage
             if let appliedStage = stages.first(where: { $0.stage == "Applied" }) {
                 stage = appliedStage
+                print("✅ Using existing Applied stage")
             } else {
                 stage = Stage(stage: "Applied")
                 modelContext.insert(stage)
+                print("✅ Created new Applied stage")
+                
+                // Save stage immediately
+                do {
+                    try modelContext.save()
+                    print("✅ Stage saved to database")
+                } catch {
+                    print("❌ Failed to save stage: \(error)")
+                    errorMessage = "Failed to save stage: \(error.localizedDescription)"
+                    showError = true
+                    return
+                }
             }
         }
 
@@ -326,14 +355,58 @@ struct AddInterviewView: View {
             interview.metadataJSON = "{\"jobListing\":\"\(jobPostingLink)\"}"
         }
 
+        print("✅ Created interview: \(company.name) - \(jobTitle)")
         modelContext.insert(interview)
 
         do {
+            // Save immediately to ensure SwiftUI picks up the change
             try modelContext.save()
+            print("✅ Successfully saved interview to local database")
+            print("   Company: \(company.name)")
+            print("   Job Title: \(jobTitle)")
+            print("   Stage: \(stage.stage)")
+            
+            // Push to API in background
+            Task.detached { [interview] in
+                await pushToAPI(interview)
+            }
+            
             dismiss()
         } catch {
+            print("❌ Failed to save interview: \(error)")
             errorMessage = "Failed to save interview: \(error.localizedDescription)"
             showError = true
+        }
+    }
+    
+    private func pushToAPI(_ interview: Interview) async {
+        // Create a background context for the API push
+        let container = modelContext.container
+        let backgroundContext = ModelContext(container)
+        
+        do {
+            // Fetch the interview in the background context
+            let interviewId = interview.id
+            let descriptor = FetchDescriptor<Interview>(
+                predicate: #Predicate { $0.id == interviewId }
+            )
+            
+            guard let bgInterview = try backgroundContext.fetch(descriptor).first else {
+                print("❌ Could not find interview in background context")
+                return
+            }
+            
+            let syncService = SyncService(modelContext: backgroundContext)
+            let apiInterview = try await syncService.pushInterview(bgInterview)
+            
+            // Update the interview with the server ID
+            bgInterview.id = apiInterview.id
+            try backgroundContext.save()
+            
+            print("✅ Successfully pushed interview to server with ID: \(apiInterview.id)")
+        } catch {
+            print("❌ Failed to push interview to API: \(error)")
+            // Note: Interview is still saved locally, will sync later
         }
     }
 }

@@ -22,6 +22,7 @@ struct ContentView: View {
     @State private var selectedDate: Date?
     @State private var searchText = ""
     @State private var showingSearch = false
+    @State private var showingAddInterview = false
 
     var body: some View {
         NavigationStack {
@@ -94,6 +95,9 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(modelContext: modelContext)
+            }
+            .sheet(isPresented: $showingAddInterview) {
+                AddInterviewView(initialDate: selectedDate ?? Date())
             }
             .environment(\.clerk, clerk)
             .onAppear {
