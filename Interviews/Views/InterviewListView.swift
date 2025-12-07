@@ -165,10 +165,11 @@ struct InterviewListView: View {
             return filtered.sorted { ($0.displayDate ?? Date()) < ($1.displayDate ?? Date()) }
         }
         
-        // Default: Show only future interviews
+        // Default: Show only future interviews (including today)
+        let startOfToday = calendar.startOfDay(for: now)
         filtered = filtered.filter {
             guard let displayDate = $0.displayDate else { return false }
-            return displayDate >= now
+            return displayDate >= startOfToday
         }
         return filtered.sorted { ($0.displayDate ?? Date()) < ($1.displayDate ?? Date()) }
     }
