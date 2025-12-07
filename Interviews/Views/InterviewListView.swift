@@ -16,7 +16,6 @@ struct InterviewListView: View {
     var searchText: String
 
     @State private var selectedInterview: Interview?
-    @State private var showingNextStageSheet = false
     @State private var interviewForNextStage: Interview?
 
     var body: some View {
@@ -52,9 +51,7 @@ struct InterviewListView: View {
                         InterviewListRow(interview: interview)
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                 Button {
-                                    // Open next stage sheet for this interview
                                     interviewForNextStage = interview
-                                    showingNextStageSheet = true
                                 } label: {
                                     Label("Next Stage", systemImage: "arrow.right.circle")
                                 }
@@ -94,10 +91,8 @@ struct InterviewListView: View {
                     }
             }
         }
-        .sheet(isPresented: $showingNextStageSheet) {
-            if let interview = interviewForNextStage {
-                CreateNextStageView(interview: interview)
-            }
+        .sheet(item: $interviewForNextStage) { interview in
+            CreateNextStageView(interview: interview)
         }
     }
     
