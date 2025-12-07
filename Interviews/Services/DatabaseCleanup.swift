@@ -123,7 +123,7 @@ class DatabaseCleanup {
         var methodsToDelete: [StageMethod] = []
         
         for method in allMethods {
-            if let existing = seenNames[method.method] {
+            if seenNames[method.method] !== nil {
                 // This is a duplicate, mark for deletion
                 methodsToDelete.append(method)
             } else {
@@ -174,7 +174,7 @@ class DatabaseCleanup {
         var companiesToDelete: [Company] = []
         
         for company in allCompanies {
-            if let existing = seenNames[company.name] {
+            if seenNames[company.name] !== nil {
                 // This is a duplicate, mark for deletion
                 companiesToDelete.append(company)
             } else {

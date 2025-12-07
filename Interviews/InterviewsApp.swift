@@ -66,7 +66,7 @@ struct InterviewsApp: App {
             // Seed default data in the background using a background context
             Task.detached(priority: .medium) {
                 let backgroundContext = ModelContext(container)
-                DataSeeder.seedDefaultData(context: backgroundContext)
+                await DataSeeder.seedDefaultData(context: backgroundContext)
             }
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
