@@ -372,9 +372,12 @@ struct AddInterviewView: View {
             print("   Job Title: \(jobTitle)")
             print("   Stage: \(stage.stage)")
             
+            // Keep a reference to the interview to update it after API push
+            let savedInterview = interview
+            
             // Push to API in background
-            Task.detached { [interview] in
-                await pushToAPI(interview)
+            Task { @MainActor in
+                await pushToAPI(savedInterview)
             }
             
             dismiss()
@@ -385,29 +388,17 @@ struct AddInterviewView: View {
         }
     }
     
+    @MainActor
     private func pushToAPI(_ interview: Interview) async {
-        // Create a background context for the API push
-        let container = modelContext.container
-        let backgroundContext = ModelContext(container)
-        
         do {
-            // Fetch the interview in the background context
-            let interviewId = interview.id
-            let descriptor = FetchDescriptor<Interview>(
-                predicate: #Predicate { $0.id == interviewId }
-            )
-            
-            guard let bgInterview = try backgroundContext.fetch(descriptor).first else {
-                print("❌ Could not find interview in background context")
-                return
-            }
-            
-            let syncService = SyncService(modelContext: backgroundContext)
-            let apiInterview = try await syncService.pushInterview(bgInterview)
+            let syncService = SyncService(modelContext: modelContext)
+            let apiInterview = try await syncService.pushInterview(interview)
             
             // Update the interview with the server ID
-            bgInterview.id = apiInterview.id
-            try backgroundContext.save()
+            // This happens on the main context, so SwiftUI will pick it up immediately
+            interview.id = apiInterview.id
+            interview.updatedAt = Date()
+            try modelContext.save()
             
             print("✅ Successfully pushed interview to server with ID: \(apiInterview.id)")
         } catch {
