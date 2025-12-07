@@ -142,6 +142,8 @@ struct InterviewListView: View {
 
 struct InterviewListRow: View {
     let interview: Interview
+    @Environment(\.modelContext) private var modelContext
+    @State private var showingNextStageSheet = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -210,9 +212,38 @@ struct InterviewListRow: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color(.separator), lineWidth: 1)
         )
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button {
+                showingNextStageSheet = true
+            } label: {
+                Label("Next Stage", systemImage: "arrow.right.circle")
+            }
+            .tint(.green)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                rejectInterview()
+            } label: {
+                Label("Reject", systemImage: "xmark.circle")
+            }
+        }
+        .sheet(isPresented: $showingNextStageSheet) {
+            CreateNextStageView(interview: interview)
+        }
+    }
+    
+    private func rejectInterview() {
+        interview.outcome = .rejected
+        interview.updatedAt = Date()
+        try? modelContext.save()
     }
 
     private var outcomeColor: Color {
+        // If no outcome is set and stage is "Applied", show as awaiting response
+        if interview.outcome == nil && interview.stage?.stage == "Applied" {
+            return .yellow
+        }
+        
         guard let outcome = interview.outcome else { return .blue }
 
         switch outcome {
@@ -230,6 +261,9 @@ struct InterviewListRow: View {
 
 struct InterviewDetailSheet: View {
     let interview: Interview
+    @Environment(\.modelContext) private var modelContext
+    @State private var showingEditSheet = false
+    @State private var showingOutcomeOptions = false
 
     var body: some View {
         ScrollView {
@@ -295,20 +329,37 @@ struct InterviewDetailSheet: View {
                         }
                     }
 
-                    if let outcome = interview.outcome {
-                        HStack {
-                            Text("Outcome:")
-                                .foregroundStyle(.secondary)
+                    HStack {
+                        Text("Outcome:")
+                            .foregroundStyle(.secondary)
+                        if let outcome = interview.outcome {
                             Text(outcome.displayName)
                                 .fontWeight(.medium)
                                 .foregroundStyle(colorForOutcome(outcome))
-                        }
-                    } else {
-                        HStack {
-                            Text("Outcome:")
-                                .foregroundStyle(.secondary)
+                        } else if interview.stage?.stage == "Applied" {
+                            // All "Applied" interviews are awaiting response
+                            Text("Awaiting Response")
+                                .fontWeight(.medium)
+                                .foregroundStyle(.yellow)
+                        } else {
                             Text("Pending")
                                 .foregroundStyle(.tertiary)
+                        }
+                        Spacer()
+                        
+                        // Add "Awaiting Outcome" button if interview is in the past and no outcome is set
+                        if shouldShowAwaitingOutcomeButton {
+                            Button {
+                                showingOutcomeOptions = true
+                            } label: {
+                                Text("Set Outcome")
+                                    .font(.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.blue)
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(6)
+                            }
                         }
                     }
                 }
@@ -352,7 +403,7 @@ struct InterviewDetailSheet: View {
                 }
 
                 // Additional Information (only show if present)
-                if interview.interviewer != nil || interview.link != nil || interview.notes != nil {
+                if interview.interviewer != nil || interview.link != nil || interview.jobPostingLink != nil || interview.notes != nil {
                     Divider()
                     
                     VStack(alignment: .leading, spacing: 12) {
@@ -367,7 +418,14 @@ struct InterviewDetailSheet: View {
 
                         if let link = interview.link {
                             Link(destination: URL(string: link) ?? URL(string: "https://")!) {
-                                Label("Join Meeting", systemImage: "video")
+                                Label("Join Interview", systemImage: "video")
+                                    .font(.subheadline)
+                            }
+                        }
+                        
+                        if let jobPostingLink = interview.jobPostingLink {
+                            Link(destination: URL(string: jobPostingLink) ?? URL(string: "https://")!) {
+                                Label("View Job Posting", systemImage: "doc.text")
                                     .font(.subheadline)
                             }
                         }
@@ -384,15 +442,6 @@ struct InterviewDetailSheet: View {
                             }
                         }
                     }
-                } else {
-                    Divider()
-                    
-                    ContentUnavailableView(
-                        "No Additional Details",
-                        systemImage: "info.circle",
-                        description: Text("Add notes, interviewer name, or meeting link for this interview")
-                    )
-                    .padding(.vertical)
                 }
                 
                 Spacer(minLength: 20)
@@ -400,6 +449,56 @@ struct InterviewDetailSheet: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingEditSheet = true
+                } label: {
+                    Text("Edit")
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            EditInterviewView(interview: interview)
+        }
+        .confirmationDialog("Set Interview Outcome", isPresented: $showingOutcomeOptions, titleVisibility: .visible) {
+            Button("Awaiting Response") {
+                setOutcome(.awaitingResponse)
+            }
+            Button("Passed") {
+                setOutcome(.passed)
+            }
+            Button("Rejected") {
+                setOutcome(.rejected)
+            }
+            Button("Offer Received") {
+                setOutcome(.offerReceived)
+            }
+            Button("Withdrew") {
+                setOutcome(.withdrew)
+            }
+            Button("Cancel", role: .cancel) { }
+        }
+    }
+    
+    private var shouldShowAwaitingOutcomeButton: Bool {
+        // Show button if:
+        // 1. Interview date has passed, AND
+        // 2. No outcome is set yet OR outcome is still "scheduled"
+        guard let interviewDate = interview.date else {
+            return false
+        }
+        
+        let hasPassed = interviewDate < Date()
+        let needsOutcome = interview.outcome == nil || interview.outcome == .scheduled
+        
+        return hasPassed && needsOutcome
+    }
+    
+    private func setOutcome(_ outcome: InterviewOutcome) {
+        interview.outcome = outcome
+        interview.updatedAt = Date()
+        try? modelContext.save()
     }
 
     private func colorForOutcome(_ outcome: InterviewOutcome) -> Color {

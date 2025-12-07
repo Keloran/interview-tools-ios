@@ -24,6 +24,7 @@ final class Interview {
     var createdAt: Date
     var updatedAt: Date
     var link: String?
+    var jobPostingLink: String?
 
     @Relationship(deleteRule: .nullify)
     var company: Company?
@@ -51,7 +52,8 @@ final class Interview {
         metadataJSON: String? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
-        link: String? = nil
+        link: String? = nil,
+        jobPostingLink: String? = nil
     ) {
         self.id = id
         self.company = company
@@ -70,6 +72,7 @@ final class Interview {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.link = link
+        self.jobPostingLink = jobPostingLink
     }
 
     // Helper to get display date (prefer date over deadline)
