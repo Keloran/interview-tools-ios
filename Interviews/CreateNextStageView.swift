@@ -169,29 +169,8 @@ struct CreateNextStageView: View {
     }
     
     private var nextStages: [Stage] {
-        // Filter stages to show logical next steps based on current stage
-        guard let currentStage = interview.stage else {
-            return allStages
-        }
-        
-        // Define stage progression logic
-        let stageProgression: [String: [String]] = [
-            "Applied": ["Phone Screen", "Technical Interview", "Take Home", "In-Person Interview"],
-            "Phone Screen": ["Technical Interview", "Take Home", "In-Person Interview", "Manager Interview"],
-            "Technical Interview": ["Take Home", "In-Person Interview", "Manager Interview", "Final Interview"],
-            "Take Home": ["Technical Interview", "In-Person Interview", "Manager Interview"],
-            "In-Person Interview": ["Manager Interview", "Final Interview", "HR Interview"],
-            "Manager Interview": ["Final Interview", "HR Interview"],
-            "HR Interview": ["Final Interview"],
-            "Final Interview": [] // Last stage
-        ]
-        
-        if let nextStageNames = stageProgression[currentStage.stage] {
-            return allStages.filter { nextStageNames.contains($0.stage) }
-        }
-        
-        // If no specific progression defined, show all stages except current
-        return allStages.filter { $0.id != currentStage.id }
+        // Show all stages except "Applied" (since they're moving past application)
+        return allStages.filter { $0.stage != "Applied" }
     }
     
     private func createNextStage() {
