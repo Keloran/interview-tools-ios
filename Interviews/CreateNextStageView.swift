@@ -68,14 +68,14 @@ struct CreateNextStageView: View {
                     Section("New Interview Stage") {
                         Picker("Stage", selection: $selectedStage) {
                             Text("Select Stage").tag(nil as Stage?)
-                            ForEach(nextStages, id: \.id) { stage in
+                            ForEach(nextStages, id: \.persistentModelID) { stage in
                                 Text(stage.stage).tag(stage as Stage?)
                             }
                         }
                         
                         Picker("Method", selection: $selectedMethod) {
                             Text("Select Method").tag(nil as StageMethod?)
-                            ForEach(allMethods, id: \.id) { method in
+                            ForEach(allMethods, id: \.persistentModelID) { method in
                                 Text(method.method).tag(method as StageMethod?)
                             }
                         }

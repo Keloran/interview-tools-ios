@@ -7,10 +7,12 @@
 
 import SwiftUI
 import SwiftData
+import Clerk
 
 struct AddInterviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.clerk) private var clerk
     @Query private var companies: [Company]
     @Query private var stages: [Stage]
     @Query private var stageMethods: [StageMethod]
@@ -159,7 +161,7 @@ struct AddInterviewView: View {
                     } else {
                         Picker("Company", selection: $selectedCompany) {
                             Text("New Company").tag(nil as Company?)
-                            ForEach(companies, id: \.id) { company in
+                            ForEach(companies, id: \.persistentModelID) { company in
                                 Text(company.name).tag(company as Company?)
                             }
                         }
@@ -404,12 +406,17 @@ struct AddInterviewView: View {
             print("   Job Title: \(jobTitle)")
             print("   Stage: \(stage.stage)")
             
-            // Keep a reference to the interview to update it after API push
-            let savedInterview = interview
-            
-            // Push to API in background
-            Task { @MainActor in
-                await pushToAPI(savedInterview)
+            // Only push to API if user is authenticated
+            if clerk.user != nil {
+                // Keep a reference to the interview to update it after API push
+                let savedInterview = interview
+                
+                // Push to API in background
+                Task { @MainActor in
+                    await pushToAPI(savedInterview)
+                }
+            } else {
+                print("👋 Guest mode: Interview saved locally only (will sync when user signs in)")
             }
             
             dismiss()

@@ -266,7 +266,7 @@ struct CalendarDayCell: View {
 
             if !interviews.isEmpty {
                 HStack(spacing: 2) {
-                    ForEach(interviews.prefix(2), id: \.id) { interview in
+                    ForEach(interviews.prefix(2), id: \.persistentModelID) { interview in
                         Circle()
                             .fill(colorForInterview(interview))
                             .frame(width: 4, height: 4)

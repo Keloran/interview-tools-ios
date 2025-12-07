@@ -47,7 +47,7 @@ struct InterviewListView: View {
                 .padding()
             } else {
                 List {
-                    ForEach(sortedInterviews, id: \.id) { interview in
+                    ForEach(sortedInterviews, id: \.persistentModelID) { interview in
                         InterviewListRow(interview: interview)
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                 Button {
@@ -147,26 +147,31 @@ struct InterviewListView: View {
                 return false
             }
             // Sort by date (most recent first) when searching
-            return filtered.sorted { ($0.displayDate ?? Date.distantPast) > ($1.displayDate ?? Date.distantPast) }
+            return filtered.sorted { ($0.displayDate ?? $0.applicationDate) > ($1.displayDate ?? $1.applicationDate) }
         }
         
         // If a date is selected, show interviews for that date only
         if let selectedDate = selectedDate {
             filtered = filtered.filter { interview in
-                guard let displayDate = interview.displayDate else { return false }
-                return calendar.isDate(displayDate, inSameDayAs: selectedDate)
+                // Check displayDate first, fallback to applicationDate
+                let dateToCheck = interview.displayDate ?? interview.applicationDate
+                return calendar.isDate(dateToCheck, inSameDayAs: selectedDate)
             }
             // Sort by time
-            return filtered.sorted { ($0.displayDate ?? Date()) < ($1.displayDate ?? Date()) }
+            return filtered.sorted { 
+                let date1 = $0.displayDate ?? $0.applicationDate
+                let date2 = $1.displayDate ?? $1.applicationDate
+                return date1 < date2
+            }
         }
         
-        // Default: Show only future interviews (including today)
-        let startOfToday = calendar.startOfDay(for: now)
-        filtered = filtered.filter {
-            guard let displayDate = $0.displayDate else { return false }
-            return displayDate >= startOfToday
+        // Default: Show all interviews (both scheduled and applications)
+        // Sort by date - scheduled interviews first (by date/deadline), then applications by applicationDate
+        return filtered.sorted { interview1, interview2 in
+            let date1 = interview1.displayDate ?? interview1.applicationDate
+            let date2 = interview2.displayDate ?? interview2.applicationDate
+            return date1 < date2
         }
-        return filtered.sorted { ($0.displayDate ?? Date()) < ($1.displayDate ?? Date()) }
     }
 }
 
