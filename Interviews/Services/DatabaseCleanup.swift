@@ -13,7 +13,9 @@ class DatabaseCleanup {
     
     /// Remove duplicate stages from the database, keeping only the first occurrence of each unique name
     static func removeDuplicateStages(context: ModelContext) throws {
-        let descriptor = FetchDescriptor<Stage>()
+        let descriptor = FetchDescriptor<Stage>(
+            sortBy: [SortDescriptor(\.id)]
+        )
         let allStages = try context.fetch(descriptor)
         
         guard !allStages.isEmpty else {
@@ -29,7 +31,7 @@ class DatabaseCleanup {
             print("⚠️ Warning: \(nilIdCount) stage(s) have nil ID - this can cause UI issues")
         }
         
-        // Group by name to find duplicates
+        // Group by name to find duplicates (maintaining sorted order by ID)
         var stagesByName: [String: [Stage]] = [:]
         for stage in allStages {
             stagesByName[stage.stage, default: []].append(stage)
@@ -37,41 +39,69 @@ class DatabaseCleanup {
         
         print("📊 Unique stage names: \(stagesByName.keys.sorted().joined(separator: ", "))")
         
-        var duplicates: [Stage] = []
+        var stagesToKeep: [Stage] = []
+        var stagesToDelete: [Stage] = []
         
-        // For each group, keep the one with an ID (if any), or the first one
+        // For each group, keep the first one (lowest ID) and mark the rest for deletion
         for (name, stages) in stagesByName {
             if stages.count > 1 {
                 print("🔍 Found \(stages.count) duplicates of '\(name)'")
                 
-                // Prefer keeping stages with IDs
-                let withIds = stages.filter { $0.id != nil }
-                let withoutIds = stages.filter { $0.id == nil }
+                // Sort by ID to ensure we keep the first one
+                let sorted = stages.sorted { (s1, s2) -> Bool in
+                    guard let id1 = s1.id, let id2 = s2.id else {
+                        // If either has nil ID, prefer the one with an ID
+                        if s1.id != nil { return true }
+                        if s2.id != nil { return false }
+                        return false // Both nil, doesn't matter
+                    }
+                    return id1 < id2
+                }
                 
-                if !withIds.isEmpty {
-                    // Keep the first one with an ID, delete the rest
-                    duplicates.append(contentsOf: withIds.dropFirst())
-                    duplicates.append(contentsOf: withoutIds) // Delete all without IDs
-                } else {
-                    // All have nil IDs, just keep the first
-                    duplicates.append(contentsOf: stages.dropFirst())
+                // Keep the first one, delete the rest
+                if let first = sorted.first {
+                    stagesToKeep.append(first)
+                }
+                stagesToDelete.append(contentsOf: sorted.dropFirst())
+            } else {
+                // No duplicates, keep it
+                if let stage = stages.first {
+                    stagesToKeep.append(stage)
                 }
             }
         }
         
-        guard !duplicates.isEmpty else {
+        guard !stagesToDelete.isEmpty else {
             print("✅ No duplicate stages found")
             return
         }
         
+        // IMPORTANT: Update any interviews that reference the stages we're about to delete
+        // to reference the stage we're keeping instead
+        let interviewDescriptor = FetchDescriptor<Interview>()
+        let allInterviews = try context.fetch(interviewDescriptor)
+        
+        for interview in allInterviews {
+            guard let currentStage = interview.stage else { continue }
+            
+            // If this interview references a stage we're about to delete, reassign it
+            if stagesToDelete.contains(where: { $0.persistentModelID == currentStage.persistentModelID }) {
+                // Find the replacement stage (the one we're keeping with the same name)
+                if let replacement = stagesToKeep.first(where: { $0.stage == currentStage.stage }) {
+                    interview.stage = replacement
+                    print("🔗 Reassigned interview '\(interview.jobTitle)' from stage ID \(currentStage.id ?? -1) to \(replacement.id ?? -1)")
+                }
+            }
+        }
+        
         // Delete duplicates
-        print("🗑️ Deleting \(duplicates.count) duplicate stage(s)")
-        for duplicate in duplicates {
+        print("🗑️ Deleting \(stagesToDelete.count) duplicate stage(s)")
+        for duplicate in stagesToDelete {
             context.delete(duplicate)
         }
         
         try context.save()
-        print("🧹 Cleaned up \(duplicates.count) duplicate stage(s)")
+        print("🧹 Cleaned up \(stagesToDelete.count) duplicate stage(s)")
         
         // Verify what's left
         let remaining = try context.fetch(FetchDescriptor<Stage>())
@@ -89,26 +119,48 @@ class DatabaseCleanup {
         )
         let allMethods = try context.fetch(descriptor)
         
-        var seenNames = Set<String>()
-        var duplicates: [StageMethod] = []
+        var seenNames: [String: StageMethod] = [:]
+        var methodsToDelete: [StageMethod] = []
         
         for method in allMethods {
-            if seenNames.contains(method.method) {
-                duplicates.append(method)
+            if let existing = seenNames[method.method] {
+                // This is a duplicate, mark for deletion
+                methodsToDelete.append(method)
             } else {
-                seenNames.insert(method.method)
+                // First occurrence, keep it
+                seenNames[method.method] = method
+            }
+        }
+        
+        guard !methodsToDelete.isEmpty else {
+            print("✅ No duplicate stage methods found")
+            return
+        }
+        
+        // IMPORTANT: Update any interviews that reference the methods we're about to delete
+        let interviewDescriptor = FetchDescriptor<Interview>()
+        let allInterviews = try context.fetch(interviewDescriptor)
+        
+        for interview in allInterviews {
+            guard let currentMethod = interview.stageMethod else { continue }
+            
+            // If this interview references a method we're about to delete, reassign it
+            if methodsToDelete.contains(where: { $0.persistentModelID == currentMethod.persistentModelID }) {
+                // Find the replacement method (the one we're keeping with the same name)
+                if let replacement = seenNames[currentMethod.method] {
+                    interview.stageMethod = replacement
+                    print("🔗 Reassigned interview '\(interview.jobTitle)' from method ID \(currentMethod.id ?? -1) to \(replacement.id ?? -1)")
+                }
             }
         }
         
         // Delete duplicates
-        for duplicate in duplicates {
+        for duplicate in methodsToDelete {
             context.delete(duplicate)
         }
         
-        if !duplicates.isEmpty {
-            try context.save()
-            print("🧹 Cleaned up \(duplicates.count) duplicate stage method(s)")
-        }
+        try context.save()
+        print("🧹 Cleaned up \(methodsToDelete.count) duplicate stage method(s)")
     }
     
     /// Remove duplicate companies from the database, keeping only the first occurrence of each unique name
@@ -118,26 +170,48 @@ class DatabaseCleanup {
         )
         let allCompanies = try context.fetch(descriptor)
         
-        var seenNames = Set<String>()
-        var duplicates: [Company] = []
+        var seenNames: [String: Company] = [:]
+        var companiesToDelete: [Company] = []
         
         for company in allCompanies {
-            if seenNames.contains(company.name) {
-                duplicates.append(company)
+            if let existing = seenNames[company.name] {
+                // This is a duplicate, mark for deletion
+                companiesToDelete.append(company)
             } else {
-                seenNames.insert(company.name)
+                // First occurrence, keep it
+                seenNames[company.name] = company
+            }
+        }
+        
+        guard !companiesToDelete.isEmpty else {
+            print("✅ No duplicate companies found")
+            return
+        }
+        
+        // IMPORTANT: Update any interviews that reference the companies we're about to delete
+        let interviewDescriptor = FetchDescriptor<Interview>()
+        let allInterviews = try context.fetch(interviewDescriptor)
+        
+        for interview in allInterviews {
+            guard let currentCompany = interview.company else { continue }
+            
+            // If this interview references a company we're about to delete, reassign it
+            if companiesToDelete.contains(where: { $0.persistentModelID == currentCompany.persistentModelID }) {
+                // Find the replacement company (the one we're keeping with the same name)
+                if let replacement = seenNames[currentCompany.name] {
+                    interview.company = replacement
+                    print("🔗 Reassigned interview '\(interview.jobTitle)' from company ID \(currentCompany.id ?? -1) to \(replacement.id ?? -1)")
+                }
             }
         }
         
         // Delete duplicates
-        for duplicate in duplicates {
+        for duplicate in companiesToDelete {
             context.delete(duplicate)
         }
         
-        if !duplicates.isEmpty {
-            try context.save()
-            print("🧹 Cleaned up \(duplicates.count) duplicate company(ies)")
-        }
+        try context.save()
+        print("🧹 Cleaned up \(companiesToDelete.count) duplicate company(ies)")
     }
     
     /// Run all cleanup operations
