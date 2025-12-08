@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL RULES
+
+**NEVER CREATE DOCUMENTATION FILES**
+- Do NOT create summary documents, README files, CHANGELOG files, or any documentation files
+- Summary documents are NEVER a goal and will NEVER be a goal
+- Only create files that are necessary for the application to function (source code, tests, configuration)
+- Only create documentation if the user EXPLICITLY requests a specific documentation file
+
 ## Project Overview
 
 This is an iOS interview tracker application that integrates with interviews.tools. It allows users to:
@@ -211,5 +219,3 @@ To run a single test in Xcode: Click the diamond icon next to the test function.
 - List-based navigation with SwiftUI's declarative syntax
 - State management via SwiftData's `@Query` for reactive updates
 - make sure we always add tests for any features, and run tests to make sure that the code worked before saying a task is finished
-
-**Important:** Don't add summary documentation
