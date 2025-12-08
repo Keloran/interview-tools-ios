@@ -70,7 +70,7 @@ struct InterviewListView: View {
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 // Only show reject if not already rejected
-                                if interview.outcome != .rejected {
+                                if interview.outcome != .rejected && interview.outcome != .passed {
                                     Button(role: .destructive) {
                                         rejectInterview(interview)
                                     } label: {
