@@ -270,8 +270,9 @@ struct CalendarDayCell: View {
 
                 Spacer()
 
-                if !interviews.isEmpty {
-                    HStack(spacing: 2) {
+                // Always reserve space for dots to maintain alignment
+                HStack(spacing: 2) {
+                    if !interviews.isEmpty {
                         ForEach(interviews.prefix(2), id: \.persistentModelID) { interview in
                             Circle()
                                 .fill(colorForInterview(interview))
@@ -284,6 +285,7 @@ struct CalendarDayCell: View {
                         }
                     }
                 }
+                .frame(height: 4) // Reserve consistent height for dot area
             }
             .padding(4)
             .frame(maxWidth: .infinity)

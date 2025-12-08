@@ -284,9 +284,9 @@ struct InterviewDetailSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Job Title (Always shown)
-                Text(interview.jobTitle)
-                    .font(.title)
-                    .fontWeight(.bold)
+//                Text(interview.jobTitle)
+//                    .font(.title)
+//                    .fontWeight(.bold)
 
                 // Company (Always shown, with fallback)
                 if let company = interview.company {
