@@ -57,7 +57,7 @@ extension XCUIApplication {
         }
         
         // Ensure main navigation is ready
-        let mainNavBar = navigationBars["Interviews"]
+        let mainNavBar = navigationBars["Interview Planner"]
         _ = mainNavBar.waitForExistence(timeout: timeout)
     }
 }

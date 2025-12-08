@@ -46,13 +46,13 @@ final class ContentViewUITests: XCTestCase {
         
         // The main elements we can check for are the app title and loading state
         // The icon is either the app icon image or a fallback system icon
-        let appTitle = app.staticTexts["Interviews"]
+        let appTitle = app.staticTexts["Interview Planner"]
         
         // Launch screen may have already transitioned away, so we check if either:
         // 1. Launch screen is still visible, OR
         // 2. Main screen has already appeared
         
-        let mainNavBar = app.navigationBars["Interviews"]
+        let mainNavBar = app.navigationBars["Interview Planner"]
         
         // At least one should be true: launch screen exists OR main screen exists
         let launchOrMainExists = appTitle.exists || mainNavBar.exists
@@ -65,7 +65,7 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testLaunchScreenTransitionsToMainContent() throws {
         // Wait for main content to appear (launch screen should transition away)
-        let mainNavBar = app.navigationBars["Interviews"]
+        let mainNavBar = app.navigationBars["Interview Planner"]
         XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Should transition to main content")
         
         // Verify main UI elements are present after transition
@@ -78,7 +78,7 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testMainScreenExists() throws {
         // Wait for app to finish launching
-        let mainNavBar = app.navigationBars["Interviews"]
+        let mainNavBar = app.navigationBars["Interview Planner"]
         XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Main navigation bar should exist")
         
         // Verify settings button exists in toolbar
@@ -189,14 +189,34 @@ final class ContentViewUITests: XCTestCase {
         // Tap the date
         dateCell.tap()
         
-        // Wait for clear button to appear (this indicates date was selected)
-        let clearButton = app.buttons["clearDateButton"]
-        XCTAssertTrue(clearButton.waitForExistence(timeout: 3), "Clear button should appear after selecting a date")
-        
-        // The header should change to show the selected date
-        // Look for "Interviews on" text pattern
+        // First, verify the date selection took effect by checking if the header changed
+        // The header should show "Interviews on [date]" when a date is selected
         let dateHeader = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Interviews on'")).element
-        XCTAssertTrue(dateHeader.waitForExistence(timeout: 3), "Header should show selected date")
+        
+        // Give more time for the binding to propagate and UI to update
+        if !dateHeader.waitForExistence(timeout: 5) {
+            print("Date header not found. Available static texts:")
+            let allTexts = app.staticTexts.allElementsBoundByIndex
+            for text in allTexts {
+                print("  - identifier: '\(text.identifier)', label: '\(text.label)'")
+            }
+        }
+        
+        XCTAssertTrue(dateHeader.exists, "Header should show selected date after tapping")
+        
+        // Now wait for clear button to appear (this indicates date was selected)
+        let clearButton = app.buttons["clearDateButton"]
+        
+        // Debug: Print all available buttons if clear button doesn't exist
+        if !clearButton.waitForExistence(timeout: 5) {
+            print("Clear button not found. Available buttons:")
+            let allButtons = app.buttons.allElementsBoundByIndex
+            for button in allButtons {
+                print("  - identifier: '\(button.identifier)', label: '\(button.label)'")
+            }
+        }
+        
+        XCTAssertTrue(clearButton.exists, "Clear button should appear after selecting a date")
     }
     
     @MainActor

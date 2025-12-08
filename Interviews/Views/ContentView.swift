@@ -23,7 +23,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var showingSearch = false
     @State private var showingAddInterview = false
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
 
     var body: some View {
         Group {
@@ -55,6 +55,7 @@ struct ContentView: View {
                             .navigationTitle("Interview Planner")
                             .navigationBarTitleDisplayMode(.inline)
                             .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
+                            .accessibilityIdentifier("interviewListView")
                     }
                 }
                 .navigationSplitViewStyle(.balanced)
@@ -88,6 +89,8 @@ struct ContentView: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityValue(selectedDate != nil ? "Date selected" : "No date selected")
         .overlay {
             // Full-screen loading overlay for initial sync
             if isInitialLoad && isSyncing {

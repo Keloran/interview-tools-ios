@@ -34,6 +34,7 @@ struct InterviewListView: View {
                             .foregroundStyle(.blue)
                     }
                     .accessibilityIdentifier("clearDateButton")
+                    .accessibilityLabel("Clear date selection")
                 }
             }
             .padding(.horizontal)
