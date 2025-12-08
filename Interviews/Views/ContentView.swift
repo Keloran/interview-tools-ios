@@ -11,6 +11,7 @@ import Clerk
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Query private var interviews: [Interview]
 
     @State private var showingSettings = false
@@ -23,113 +24,152 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var showingSearch = false
     @State private var showingAddInterview = false
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Show guest mode banner if not authenticated
-                GuestModeBanner()
-                
-                CalendarView(selectedDate: $selectedDate)
-                    .frame(maxHeight: 400)
-
-                Divider()
-
-                InterviewListView(selectedDate: $selectedDate, searchText: searchText)
-            }
-            .navigationTitle("Interviews")
-            .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
-            .overlay {
-                // Full-screen loading overlay for initial sync
-                if isInitialLoad && isSyncing {
-                    ZStack {
-                        Color(.systemBackground)
-                            .ignoresSafeArea()
+        Group {
+            if horizontalSizeClass == .regular {
+                // iPad layout: Calendar on left, interviews on right
+                NavigationSplitView(columnVisibility: $columnVisibility) {
+                    // Sidebar - Calendar
+                    VStack(spacing: 0) {
+                        GuestModeBanner()
                         
-                        VStack(spacing: 24) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .tint(Color.accentColor)
-                            
-                            VStack(spacing: 8) {
-                                Text("Loading Your Interviews")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
-                                
-                                Text("Syncing data from server...")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .transition(.opacity)
-                }
-                // Show small sync indicator in corner for subsequent syncs
-                else if isSyncing {
-                    VStack {
+                        CalendarView(selectedDate: $selectedDate)
+                            .padding(.top)
+                        
                         Spacer()
-                        HStack {
-                            Spacer()
-                            HStack(spacing: 8) {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                Text("Syncing...")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                    }
+                    .navigationTitle("Calendar")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                showingSettings = true
+                            } label: {
+                                Image(systemName: "gear")
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(.regularMaterial)
-                            .cornerRadius(20)
-                            .shadow(radius: 2)
-                            .padding()
+                        }
+                    }
+                } detail: {
+                    // Detail - Interview List
+                    NavigationStack {
+                        InterviewListView(selectedDate: $selectedDate, searchText: searchText)
+                            .navigationTitle("Interviews")
+                            .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
+                    }
+                }
+                .navigationSplitViewStyle(.balanced)
+            } else {
+                // iPhone layout: Stacked vertically
+                NavigationStack {
+                    VStack(spacing: 0) {
+                        // Show guest mode banner if not authenticated
+                        GuestModeBanner()
+                        
+                        CalendarView(selectedDate: $selectedDate)
+                            .frame(maxHeight: 400)
+
+                        Divider()
+                            .padding(.bottom, 20)
+
+                        InterviewListView(selectedDate: $selectedDate, searchText: searchText)
+                    }
+                    .navigationTitle("Interviews")
+                    .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                showingSettings = true
+                            } label: {
+                                Image(systemName: "gear")
+                            }
                         }
                     }
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gear")
+        }
+        .overlay {
+            // Full-screen loading overlay for initial sync
+            if isInitialLoad && isSyncing {
+                ZStack {
+                    Color(.systemBackground)
+                        .ignoresSafeArea()
+                    
+                    VStack(spacing: 24) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(Color.accentColor)
+                        
+                        VStack(spacing: 8) {
+                            Text("Loading Your Interviews")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                            
+                            Text("Syncing data from server...")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .transition(.opacity)
+            }
+            // Show small sync indicator in corner for subsequent syncs
+            else if isSyncing {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Syncing...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(.regularMaterial)
+                        .cornerRadius(20)
+                        .shadow(radius: 2)
+                        .padding()
                     }
                 }
             }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView(modelContext: modelContext)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(modelContext: modelContext)
+        }
+        .sheet(isPresented: $showingAddInterview) {
+            AddInterviewView(initialDate: selectedDate ?? Date())
+        }
+        .environment(\.clerk, clerk)
+        .onAppear {
+            // Configure Clerk synchronously (this should be instant)
+            clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
+            
+            // Load Clerk and sync in the background
+            Task {
+                try? await clerk.load()
+                await performInitialSyncIfNeeded()
             }
-            .sheet(isPresented: $showingAddInterview) {
-                AddInterviewView(initialDate: selectedDate ?? Date())
-            }
-            .environment(\.clerk, clerk)
-            .onAppear {
-                // Configure Clerk synchronously (this should be instant)
-                clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
-                
-                // Load Clerk and sync in the background
+        }
+        .onChange(of: clerk.user) { oldValue, newValue in
+            // When user signs in, sync data
+            if oldValue == nil && newValue != nil {
                 Task {
-                    try? await clerk.load()
-                    await performInitialSyncIfNeeded()
+                    // User just signed in
+                    if let session = clerk.session,
+                       let token = try? await session.getToken() {
+                        await APIService.shared.setAuthToken(token.jwt)
+                        await performInitialSyncIfNeeded()
+                    }
                 }
-            }
-            .onChange(of: clerk.user) { oldValue, newValue in
-                // When user signs in, sync data
-                if oldValue == nil && newValue != nil {
-                    Task {
-                        // User just signed in
-                        if let session = clerk.session,
-                           let token = try? await session.getToken() {
-                            await APIService.shared.setAuthToken(token.jwt)
-                            await performInitialSyncIfNeeded()
-                        }
-                    }
-                } else if oldValue != nil && newValue == nil {
-                    // User signed out
-                    Task {
-                        await APIService.shared.setAuthToken(nil)
-                        hasPerformedInitialSync = false // Allow sync on next sign in
-                    }
+            } else if oldValue != nil && newValue == nil {
+                // User signed out
+                Task {
+                    await APIService.shared.setAuthToken(nil)
+                    hasPerformedInitialSync = false // Allow sync on next sign in
                 }
             }
         }

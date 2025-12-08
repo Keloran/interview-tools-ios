@@ -10,6 +10,7 @@ import SwiftData
 
 struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Query private var interviews: [Interview]
     
     @Binding var selectedDate: Date?
@@ -106,18 +107,22 @@ struct CalendarView: View {
 
             // Floating action button
             if selectedDate != nil {
+                let heightWidth: CGFloat = horizontalSizeClass == .regular ? 52 : 28
+                let size: CGFloat = horizontalSizeClass == .regular ? 24 : 12
+                let padding: CGFloat = horizontalSizeClass == .regular ? 16 : 8
+                
                 Button(action: {
                     showingAddInterview = true
                 }) {
                     Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.system(size: size, weight: .semibold))
                         .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
+                        .frame(width: heightWidth, height: heightWidth)
                         .background(Color.accentColor)
                         .clipShape(Circle())
                         .shadow(radius: 4)
                 }
-                .padding(16)
+                .padding(padding)
             }
         }
         .sheet(isPresented: $showingAddInterview) {
