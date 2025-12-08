@@ -57,6 +57,14 @@ struct InterviewListView: View {
                                     Label("Next Stage", systemImage: "arrow.right.circle")
                                 }
                                 .tint(.green)
+                                
+                                if interview.outcome != .awaitingResponse && interview.outcome != .passed && interview.outcome != .rejected {
+                                    Button {
+                                        setAwaiting(interview)
+                                    } label: {
+                                        Label("Awaiting Response", systemImage: "timer.circle")
+                                    }.tint(.purple)
+                                }
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 // Only show reject if not already rejected
@@ -99,6 +107,12 @@ struct InterviewListView: View {
     
     private func rejectInterview(_ interview: Interview) {
         interview.outcome = .rejected
+        interview.updatedAt = Date()
+        try? modelContext.save()
+    }
+    
+    private func setAwaiting(_ interview: Interview) {
+        interview.outcome = .awaitingResponse
         interview.updatedAt = Date()
         try? modelContext.save()
     }
