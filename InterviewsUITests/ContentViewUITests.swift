@@ -42,14 +42,23 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testLaunchScreenAppearsOnStartup() throws {
         // The app should show launch screen elements briefly
-        // Note: This might be fast, so we check for either launch screen or main content
+        // Note: Launch screen transitions quickly, so we mainly verify the app loaded successfully
         
-        // Check if launch screen elements exist (they may disappear quickly)
-        let launchLogo = app.images["calendar.badge.checkmark"]
-        let launchTitle = app.staticTexts["Interviews"]
+        // The main elements we can check for are the app title and loading state
+        // The icon is either the app icon image or a fallback system icon
+        let appTitle = app.staticTexts["Interviews"]
         
-        // At minimum, the app should have loaded successfully to the main screen
+        // Launch screen may have already transitioned away, so we check if either:
+        // 1. Launch screen is still visible, OR
+        // 2. Main screen has already appeared
+        
         let mainNavBar = app.navigationBars["Interviews"]
+        
+        // At least one should be true: launch screen exists OR main screen exists
+        let launchOrMainExists = appTitle.exists || mainNavBar.exists
+        XCTAssertTrue(launchOrMainExists, "Either launch screen or main screen should be visible")
+        
+        // Ultimately, the app should reach the main screen
         XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Main screen should appear after launch")
     }
     
