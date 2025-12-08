@@ -254,47 +254,46 @@ struct CalendarDayCell: View {
     @State private var isHovering = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("\(day)")
-                    .font(.caption)
-                    .fontWeight(isToday ? .bold : .medium)
-                    .foregroundStyle(isToday ? .white : .primary)
-            }
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("\(day)")
+                        .font(.caption)
+                        .fontWeight(isToday ? .bold : .medium)
+                        .foregroundStyle(isToday ? .white : .primary)
+                }
 
-            Spacer()
+                Spacer()
 
-            if !interviews.isEmpty {
-                HStack(spacing: 2) {
-                    ForEach(interviews.prefix(2), id: \.persistentModelID) { interview in
-                        Circle()
-                            .fill(colorForInterview(interview))
-                            .frame(width: 4, height: 4)
-                    }
-                    if interviews.count > 2 {
-                        Text("+\(interviews.count - 2)")
-                            .font(.system(size: 6))
-                            .foregroundStyle(.secondary)
+                if !interviews.isEmpty {
+                    HStack(spacing: 2) {
+                        ForEach(interviews.prefix(2), id: \.persistentModelID) { interview in
+                            Circle()
+                                .fill(colorForInterview(interview))
+                                .frame(width: 4, height: 4)
+                        }
+                        if interviews.count > 2 {
+                            Text("+\(interviews.count - 2)")
+                                .font(.system(size: 6))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
+            .padding(4)
+            .frame(maxWidth: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+            .background(isToday ? Color.accentColor : (isSelected ? Color.accentColor.opacity(0.2) : Color.clear))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+            )
         }
-        .padding(4)
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
-        .background(isToday ? Color.accentColor : (isSelected ? Color.accentColor.opacity(0.2) : Color.clear))
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
-        )
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(day)")
-        .accessibilityValue(isSelected ? "selected" : "")
+        .buttonStyle(.plain)
         .accessibilityIdentifier("\(day)")
-        .accessibilityAddTraits([.isButton])
-        .onTapGesture(perform: onTap)
+        .accessibilityLabel("Day \(day)")
+        .accessibilityValue(isSelected ? "selected" : "")
         .contextMenu {
             Button(action: onAddInterview) {
                 Label("Add Interview", systemImage: "plus.circle")

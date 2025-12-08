@@ -28,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F382E7982EE6E15200AD1188 /* Interviews.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Interviews.xctestplan; sourceTree = "<group>"; };
 		F3F3C1872EE397CD0000102D /* Interviews.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Interviews.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3F3C1962EE397D50000102D /* InterviewsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InterviewsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3F3C1A02EE397D50000102D /* InterviewsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InterviewsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,6 +81,7 @@
 		F3F3C17E2EE397CD0000102D = {
 			isa = PBXGroup;
 			children = (
+				F382E7982EE6E15200AD1188 /* Interviews.xctestplan */,
 				F3F3C1892EE397CD0000102D /* Interviews */,
 				F3F3C1992EE397D50000102D /* InterviewsTests */,
 				F3F3C1A32EE397D50000102D /* InterviewsUITests */,
