@@ -67,14 +67,14 @@ struct InterviewListView: View {
                                     }
                                 }
                             }
-                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                            .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                             .listRowSeparator(.hidden)
                             .onTapGesture {
                                 selectedInterview = interview
                             }
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.inset)
             }
         }
         .sheet(item: $selectedInterview) { interview in
@@ -283,11 +283,6 @@ struct InterviewDetailSheet: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Job Title (Always shown)
-//                Text(interview.jobTitle)
-//                    .font(.title)
-//                    .fontWeight(.bold)
-
                 // Company (Always shown, with fallback)
                 if let company = interview.company {
                     Label(company.name, systemImage: "building.2")
