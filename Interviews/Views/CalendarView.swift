@@ -290,8 +290,10 @@ struct CalendarDayCell: View {
         )
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Day \(day)")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityLabel("\(day)")
+        .accessibilityValue(isSelected ? "selected" : "")
+        .accessibilityIdentifier("\(day)")
+        .accessibilityAddTraits([.isButton])
         .onTapGesture(perform: onTap)
         .contextMenu {
             Button(action: onAddInterview) {
