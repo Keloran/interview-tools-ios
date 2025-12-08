@@ -82,34 +82,37 @@ struct CreateNextStageView: View {
                     }
                 
                 Section("Interview Details") {
-                    Toggle("Has Specific Date", isOn: $hasSpecificDate)
-                    if hasSpecificDate {
-                        DatePicker("Interview Date", selection: $interviewDate, displayedComponents: [.date, .hourAndMinute])
-                    }
-                    
-                    Toggle("Has Deadline", isOn: $hasDeadline)
-                    if hasDeadline {
-                        DatePicker("Deadline", selection: $deadline, displayedComponents: [.date])
-                    }
-                    
-                    TextField("Interviewer (optional)", text: $interviewer)
-                    
-                    // Show link field for all methods except "In Person" and "Phone"
-                    if shouldShowLinkField {
-                        TextField("Interview Link", text: $link)
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
-                            .onChange(of: link) { oldValue, newValue in
-                                // Auto-detect method from link
-                                if !newValue.isEmpty {
-                                    autoDetectStageMethod(from: newValue)
-                                }
-                            }
+                    // Technical Test has a deadline, everything else has a scheduled date
+                    if selectedStage?.stage == "Technical Test" {
+                        Toggle("Has Deadline", isOn: $hasDeadline)
+                        if hasDeadline {
+                            DatePicker("Deadline", selection: $deadline, displayedComponents: [.date])
+                        }
+                    } else {
+                        Toggle("Has Specific Date", isOn: $hasSpecificDate)
+                        if hasSpecificDate {
+                            DatePicker("Interview Date", selection: $interviewDate, displayedComponents: [.date, .hourAndMinute])
+                        }
                         
-                        if !link.isEmpty, let detectedMethod = inferStageMethodName(from: link) {
-                            Text("Detected: \(detectedMethod)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        TextField("Interviewer (optional)", text: $interviewer)
+                        
+                        // Show link field for all methods except "In Person" and "Phone"
+                        if shouldShowLinkField {
+                            TextField("Interview Link", text: $link)
+                                .textInputAutocapitalization(.never)
+                                .keyboardType(.URL)
+                                .onChange(of: link) { oldValue, newValue in
+                                    // Auto-detect method from link
+                                    if !newValue.isEmpty {
+                                        autoDetectStageMethod(from: newValue)
+                                    }
+                                }
+                            
+                            if !link.isEmpty, let detectedMethod = inferStageMethodName(from: link) {
+                                Text("Detected: \(detectedMethod)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -130,7 +133,7 @@ struct CreateNextStageView: View {
                             Spacer()
                         }
                     }
-                    .disabled(selectedStage == nil || selectedMethod == nil)
+                    .disabled(!isFormValid)
                 }
             }
             .navigationTitle("Create Next Stage")
@@ -166,6 +169,19 @@ struct CreateNextStageView: View {
         let lowercased = method.lowercased()
         // Don't show for "In Person" or "Phone"
         return !lowercased.contains("in person") && !lowercased.contains("phone")
+    }
+    
+    private var isFormValid: Bool {
+        // Stage is always required
+        guard selectedStage != nil else { return false }
+        
+        // Technical Test doesn't require a method
+        if selectedStage?.stage == "Technical Test" {
+            return true
+        }
+        
+        // All other stages require a method
+        return selectedMethod != nil
     }
     
     private var nextStages: [Stage] {
