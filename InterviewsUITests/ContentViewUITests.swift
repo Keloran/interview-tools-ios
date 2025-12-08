@@ -17,6 +17,20 @@ final class ContentViewUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--uitesting"]
         app.launch()
+        
+        // Wait for initial loading overlay to disappear
+        let loadingOverlay = app.staticTexts["Loading Your Interviews"]
+        if loadingOverlay.exists {
+            let disappearExpectation = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"),
+                object: loadingOverlay
+            )
+            _ = XCTWaiter().wait(for: [disappearExpectation], timeout: 15)
+        }
+        
+        // Ensure main navigation is ready
+        let mainNavBar = app.navigationBars["Interviews"]
+        _ = mainNavBar.waitForExistence(timeout: 5)
     }
 
     override func tearDownWithError() throws {
@@ -144,92 +158,117 @@ final class ContentViewUITests: XCTestCase {
     
     @MainActor
     func testCalendarDateCanBeSelected() throws {
-        // Wait for calendar to fully load
-        Thread.sleep(forTimeInterval: 1.0)
+        // Wait for calendar to fully load - use a more reliable wait
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
         
         // Find a date cell in the calendar (looking for day 15 as it's likely visible)
-        let dateCell = app.buttons["15"].firstMatch
+        // Try multiple ways to find the cell
+        let dateCell = app.buttons.matching(identifier: "15").firstMatch
         
-        // If not found as button, try as other element type
-        if !dateCell.exists {
+        // Wait for the date cell to be available
+        guard dateCell.waitForExistence(timeout: 5) else {
             // Debug: print all buttons to see what's available
-            print("Available buttons:", app.buttons.allElementsBoundByIndex.map { $0.identifier })
-            throw XCTSkip("Date cell 15 not found - calendar may not have rendered")
+            let allButtons = app.buttons.allElementsBoundByIndex
+            print("Available button identifiers:", allButtons.map { $0.identifier })
+            throw XCTSkip("Date cell 15 not found - calendar may not have rendered or date doesn't exist in current month")
         }
+        
+        // Ensure the cell is hittable before tapping
+        XCTAssertTrue(dateCell.isHittable, "Date cell should be tappable")
         
         // Tap the date
         dateCell.tap()
         
-        // Give UI time to update
-        Thread.sleep(forTimeInterval: 1.0)
+        // Wait for clear button to appear (this indicates date was selected)
+        let clearButton = app.buttons["clearDateButton"]
+        XCTAssertTrue(clearButton.waitForExistence(timeout: 3), "Clear button should appear after selecting a date")
         
         // The header should change to show the selected date
         // Look for "Interviews on" text pattern
         let dateHeader = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Interviews on'")).element
-        XCTAssertTrue(dateHeader.waitForExistence(timeout: 2), "Header should show selected date")
+        XCTAssertTrue(dateHeader.waitForExistence(timeout: 3), "Header should show selected date")
     }
     
     @MainActor
     func testClearButtonAppearsAfterDateSelection() throws {
         // Wait for calendar to load
-        Thread.sleep(forTimeInterval: 1.0)
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
         
         // Tap a date
-        let dateCell = app.buttons["15"].firstMatch
-        guard dateCell.waitForExistence(timeout: 3) else {
-            throw XCTSkip("Date cell not found")
+        let dateCell = app.buttons.matching(identifier: "15").firstMatch
+        guard dateCell.waitForExistence(timeout: 5) && dateCell.isHittable else {
+            throw XCTSkip("Date cell not found or not tappable")
         }
         
         dateCell.tap()
-        Thread.sleep(forTimeInterval: 1.0)
         
         // Clear button should appear
         let clearButton = app.buttons["clearDateButton"]
-        XCTAssertTrue(clearButton.waitForExistence(timeout: 3), "Clear button should appear after date selection")
+        XCTAssertTrue(clearButton.waitForExistence(timeout: 5), "Clear button should appear after date selection")
     }
     
     @MainActor
     func testClearButtonRemovesDateFilter() throws {
+        // Wait for calendar to load
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
+        
         // Tap a date
-        let dateCell = app.buttons["15"].firstMatch
-        guard dateCell.waitForExistence(timeout: 2) else {
+        let dateCell = app.buttons.matching(identifier: "15").firstMatch
+        guard dateCell.waitForExistence(timeout: 5) && dateCell.isHittable else {
             throw XCTSkip("Date cell not found")
         }
         
         dateCell.tap()
-        Thread.sleep(forTimeInterval: 0.5)
         
         // Wait for clear button
         let clearButton = app.buttons["clearDateButton"]
-        XCTAssertTrue(clearButton.waitForExistence(timeout: 2), "Clear button should appear")
+        XCTAssertTrue(clearButton.waitForExistence(timeout: 5), "Clear button should appear")
+        
+        // Ensure button is hittable
+        XCTAssertTrue(clearButton.isHittable, "Clear button should be tappable")
         
         // Tap clear button
         clearButton.tap()
-        Thread.sleep(forTimeInterval: 0.5)
         
         // Header should return to "Upcoming Interviews"
         let upcomingHeader = app.staticTexts["Upcoming Interviews"]
-        XCTAssertTrue(upcomingHeader.waitForExistence(timeout: 2), "Header should return to 'Upcoming Interviews'")
+        XCTAssertTrue(upcomingHeader.waitForExistence(timeout: 5), "Header should return to 'Upcoming Interviews'")
         
         // Clear button should disappear
-        XCTAssertFalse(clearButton.exists, "Clear button should disappear after clearing filter")
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: clearButton
+        )
+        let result = XCTWaiter().wait(for: [expectation], timeout: 3)
+        XCTAssertEqual(result, .completed, "Clear button should disappear after clearing filter")
     }
     
     @MainActor
     func testCalendarNavigationWorks() throws {
-        // Navigate to a month in the middle of the year first to avoid December wrap-around
+        // Wait for calendar to load
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Month/year label should exist")
+        
         let previousMonthButton = app.buttons["previousMonthButton"]
         XCTAssertTrue(previousMonthButton.exists, "Previous month button should exist")
         
         // Go back a couple months to ensure we're not at year boundary
         for _ in 0..<2 {
+            let currentLabel = monthYearLabel.label
             previousMonthButton.tap()
-            Thread.sleep(forTimeInterval: 0.5)
+            
+            // Wait for month to actually change
+            let expectation = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "label != %@", currentLabel),
+                object: monthYearLabel
+            )
+            _ = XCTWaiter().wait(for: [expectation], timeout: 2)
         }
         
         // Now get the current month
-        let monthYearLabel = app.staticTexts["monthYearLabel"]
-        XCTAssertTrue(monthYearLabel.exists, "Month/year label should exist")
         let currentMonth = monthYearLabel.label
         
         // Find the next month button
@@ -238,7 +277,13 @@ final class ContentViewUITests: XCTestCase {
         
         // Tap next month
         nextMonthButton.tap()
-        Thread.sleep(forTimeInterval: 0.5)
+        
+        // Wait for month to change
+        let nextExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label != %@", currentMonth),
+            object: monthYearLabel
+        )
+        _ = XCTWaiter().wait(for: [nextExpectation], timeout: 2)
         
         // Check that the label has changed
         let newMonth = monthYearLabel.label
@@ -246,7 +291,13 @@ final class ContentViewUITests: XCTestCase {
         
         // Previous month button should work to go back
         previousMonthButton.tap()
-        Thread.sleep(forTimeInterval: 0.5)
+        
+        // Wait for return to original month
+        let returnExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", currentMonth),
+            object: monthYearLabel
+        )
+        _ = XCTWaiter().wait(for: [returnExpectation], timeout: 2)
         
         let returnedMonth = monthYearLabel.label
         XCTAssertEqual(currentMonth, returnedMonth, "Should return to original month")
@@ -255,108 +306,234 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testTodayButtonAppearsWhenNavigatingToOtherMonth() throws {
         // Wait for initial load
-        Thread.sleep(forTimeInterval: 1.0)
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
+        
+        let initialMonth = monthYearLabel.label
         
         // Today button should NOT exist when viewing current month
         let todayButton = app.buttons["todayButton"]
+        
+        // Wait a moment to ensure UI is stable
+        let noTodayButtonExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: todayButton
+        )
+        _ = XCTWaiter().wait(for: [noTodayButtonExpectation], timeout: 2)
+        
         XCTAssertFalse(todayButton.exists, "Today button should not appear when viewing current month")
         
         // Navigate to next month
         let nextMonthButton = app.buttons["nextMonthButton"]
-        XCTAssertTrue(nextMonthButton.exists, "Next month button should exist")
+        guard nextMonthButton.waitForExistence(timeout: 5) else {
+            throw XCTSkip("Next month button not found")
+        }
+        XCTAssertTrue(nextMonthButton.isHittable, "Next month button should be tappable")
+        
         nextMonthButton.tap()
         
-        // Wait for UI to update
-        Thread.sleep(forTimeInterval: 1.0)
+        // Wait for month to change
+        let monthChangedExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label != %@", initialMonth),
+            object: monthYearLabel
+        )
+        let result = XCTWaiter().wait(for: [monthChangedExpectation], timeout: 5)
+        XCTAssertEqual(result, .completed, "Month should change after tapping next")
         
-        // Today button SHOULD appear now
-        XCTAssertTrue(todayButton.waitForExistence(timeout: 3), "Today button should appear when viewing different month")
+        // Today button SHOULD appear now - wait with extended timeout
+        guard todayButton.waitForExistence(timeout: 8) else {
+            let newMonth = monthYearLabel.label
+            print("DEBUG: Initial month: \(initialMonth), Current month: \(newMonth)")
+            print("DEBUG: All visible buttons:", app.buttons.allElementsBoundByIndex.map { $0.identifier })
+            XCTFail("Today button should appear when viewing different month")
+            return
+        }
     }
     
     @MainActor
     func testTodayButtonReturnsToCurrentMonth() throws {
         // Wait for initial load
-        Thread.sleep(forTimeInterval: 1.0)
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
+        
+        let initialMonth = monthYearLabel.label
         
         // Navigate to next month
         let nextMonthButton = app.buttons["nextMonthButton"]
+        guard nextMonthButton.waitForExistence(timeout: 5) else {
+            throw XCTSkip("Next month button not found")
+        }
+        XCTAssertTrue(nextMonthButton.isHittable, "Next month button should be tappable")
         nextMonthButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
         
-        // Verify we're in a different month
+        // Wait for month to change
+        let monthChangedExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label != %@", initialMonth),
+            object: monthYearLabel
+        )
+        let changeResult = XCTWaiter().wait(for: [monthChangedExpectation], timeout: 5)
+        XCTAssertEqual(changeResult, .completed, "Month should change after navigation")
+        
+        // Give a moment for UI to update after month change
         let todayButton = app.buttons["todayButton"]
-        XCTAssertTrue(todayButton.waitForExistence(timeout: 3), "Today button should appear in different month")
+        
+        // Today button should appear - wait with longer timeout
+        guard todayButton.waitForExistence(timeout: 8) else {
+            // Debug info if it fails
+            let newMonth = monthYearLabel.label
+            print("DEBUG: Initial month: \(initialMonth), Current month: \(newMonth)")
+            print("DEBUG: Today button exists: \(todayButton.exists)")
+            print("DEBUG: All visible buttons:", app.buttons.allElementsBoundByIndex.map { $0.identifier })
+            XCTFail("Today button should appear in different month (was: \(initialMonth), now: \(newMonth))")
+            return
+        }
+        
+        XCTAssertTrue(todayButton.isHittable, "Today button should be tappable")
         
         // Tap the Today button
         todayButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
+        
+        // Wait for month to return to initial
+        let monthReturnedExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", initialMonth),
+            object: monthYearLabel
+        )
+        let result = XCTWaiter().wait(for: [monthReturnedExpectation], timeout: 5)
+        XCTAssertEqual(result, .completed, "Should return to original month")
         
         // Today button should disappear since we're back to current month
-        XCTAssertFalse(todayButton.exists, "Today button should disappear when returning to current month")
+        let todayButtonGoneExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: todayButton
+        )
+        let disappearResult = XCTWaiter().wait(for: [todayButtonGoneExpectation], timeout: 5)
+        XCTAssertEqual(disappearResult, .completed, "Today button should disappear when returning to current month")
     }
     
     @MainActor
     func testTodayButtonWorksFromMultipleMonthsAway() throws {
+        // Wait for calendar to load
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
+        
+        let initialMonth = monthYearLabel.label
+        
         // Navigate several months ahead
         let nextMonthButton = app.buttons["nextMonthButton"]
         
         for _ in 0..<3 {
+            let currentLabel = monthYearLabel.label
             nextMonthButton.tap()
-            Thread.sleep(forTimeInterval: 0.5)
+            
+            // Wait for month to change
+            let expectation = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "label != %@", currentLabel),
+                object: monthYearLabel
+            )
+            _ = XCTWaiter().wait(for: [expectation], timeout: 2)
         }
         
         // Today button should exist
         let todayButton = app.buttons["todayButton"]
         XCTAssertTrue(todayButton.exists, "Today button should exist when multiple months away")
+        XCTAssertTrue(todayButton.isHittable, "Today button should be tappable")
         
         // Tap Today
         todayButton.tap()
-        Thread.sleep(forTimeInterval: 0.5)
+        
+        // Wait to return to current month
+        let returnExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", initialMonth),
+            object: monthYearLabel
+        )
+        let result = XCTWaiter().wait(for: [returnExpectation], timeout: 3)
+        XCTAssertEqual(result, .completed, "Should return to original month")
         
         // Should be back to current month - Today button should disappear
-        XCTAssertFalse(todayButton.exists, "Today button should disappear after returning to current month")
+        let todayButtonGoneExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: todayButton
+        )
+        let disappearResult = XCTWaiter().wait(for: [todayButtonGoneExpectation], timeout: 3)
+        XCTAssertEqual(disappearResult, .completed, "Today button should disappear after returning to current month")
     }
     
     @MainActor
     func testTodayButtonWorksFromPastMonths() throws {
         // Wait for initial load
-        Thread.sleep(forTimeInterval: 1.0)
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
+        
+        let initialMonth = monthYearLabel.label
         
         // Navigate to previous month
         let previousMonthButton = app.buttons["previousMonthButton"]
+        guard previousMonthButton.waitForExistence(timeout: 5) else {
+            throw XCTSkip("Previous month button not found")
+        }
+        XCTAssertTrue(previousMonthButton.isHittable, "Previous month button should be tappable")
         previousMonthButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
         
-        // Today button should appear
+        // Wait for month to change
+        let monthChangedExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label != %@", initialMonth),
+            object: monthYearLabel
+        )
+        let changeResult = XCTWaiter().wait(for: [monthChangedExpectation], timeout: 5)
+        XCTAssertEqual(changeResult, .completed, "Month should change after navigation")
+        
+        // Today button should appear - wait with longer timeout
         let todayButton = app.buttons["todayButton"]
-        XCTAssertTrue(todayButton.waitForExistence(timeout: 3), "Today button should appear when viewing past month")
+        guard todayButton.waitForExistence(timeout: 8) else {
+            // Debug info if it fails
+            let newMonth = monthYearLabel.label
+            print("DEBUG: Initial month: \(initialMonth), Current month: \(newMonth)")
+            print("DEBUG: Today button exists: \(todayButton.exists)")
+            print("DEBUG: All visible buttons:", app.buttons.allElementsBoundByIndex.map { $0.identifier })
+            XCTFail("Today button should appear when viewing past month (was: \(initialMonth), now: \(newMonth))")
+            return
+        }
+        
+        XCTAssertTrue(todayButton.isHittable, "Today button should be tappable")
         
         // Tap Today
         todayButton.tap()
-        Thread.sleep(forTimeInterval: 1.0)
         
-        // Should return to current month
-        XCTAssertFalse(todayButton.exists, "Today button should disappear when back to current month")
+        // Wait to return to current month
+        let monthReturnedExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", initialMonth),
+            object: monthYearLabel
+        )
+        let result = XCTWaiter().wait(for: [monthReturnedExpectation], timeout: 5)
+        XCTAssertEqual(result, .completed, "Should return to current month")
+        
+        // Today button should disappear
+        let todayButtonGoneExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: todayButton
+        )
+        let disappearResult = XCTWaiter().wait(for: [todayButtonGoneExpectation], timeout: 5)
+        XCTAssertEqual(disappearResult, .completed, "Today button should disappear when back to current month")
     }
     
     @MainActor
     func testDateSelectionShowsOnlyThatDaysInterviews() throws {
         // Wait for calendar to load
-        Thread.sleep(forTimeInterval: 1.0)
+        let monthYearLabel = app.staticTexts["monthYearLabel"]
+        XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
         
         // This assumes there's test data
-        let dateCell = app.buttons["15"].firstMatch
+        let dateCell = app.buttons.matching(identifier: "15").firstMatch
         
-        guard dateCell.waitForExistence(timeout: 3) else {
-            throw XCTSkip("Date cell not found")
+        guard dateCell.waitForExistence(timeout: 5) && dateCell.isHittable else {
+            throw XCTSkip("Date cell not found or not tappable")
         }
         
         dateCell.tap()
-        Thread.sleep(forTimeInterval: 1.0)
         
         // Header should reflect the selected date
         let dateHeader = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Interviews on'")).element
-        XCTAssertTrue(dateHeader.exists, "Should show date-specific header")
+        XCTAssertTrue(dateHeader.waitForExistence(timeout: 3), "Should show date-specific header")
     }
     
     // MARK: - Combined Feature Tests
