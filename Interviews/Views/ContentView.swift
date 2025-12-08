@@ -10,8 +10,7 @@ import SwiftData
 import Clerk
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.modelContext) private var modelContext 
     @Query private var interviews: [Interview]
 
     @State private var showingSettings = false
@@ -28,7 +27,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if horizontalSizeClass == .regular {
+            if UIDevice.current.userInterfaceIdiom == .pad {
                 // iPad layout: Calendar on left, interviews on right
                 NavigationSplitView(columnVisibility: $columnVisibility) {
                     // Sidebar - Calendar

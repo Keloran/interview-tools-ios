@@ -10,7 +10,6 @@ import SwiftData
 
 struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Query private var interviews: [Interview]
     
     @Binding var selectedDate: Date?
@@ -107,9 +106,10 @@ struct CalendarView: View {
 
             // Floating action button
             if selectedDate != nil {
-                let heightWidth: CGFloat = horizontalSizeClass == .regular ? 52 : 28
-                let size: CGFloat = horizontalSizeClass == .regular ? 24 : 12
-                let padding: CGFloat = horizontalSizeClass == .regular ? 16 : 8
+                let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+                let heightWidth: CGFloat = isIPad ? 52 : 28
+                let size: CGFloat = isIPad ? 24 : 12
+                let padding: CGFloat = isIPad ? 16 : 8
                 
                 Button(action: {
                     showingAddInterview = true
