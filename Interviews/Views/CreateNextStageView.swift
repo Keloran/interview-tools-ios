@@ -194,6 +194,13 @@ struct CreateNextStageView: View {
         interview.outcome = .passed
         interview.updatedAt = Date()
         
+        let newOutcome: InterviewOutcome?
+        if hasSpecificDate {
+            newOutcome = .scheduled
+        } else {
+            newOutcome = nil
+        }
+        
         // Create new interview with next stage
         let newInterview = Interview(
             company: interview.company,
@@ -206,7 +213,7 @@ struct CreateNextStageView: View {
             userId: interview.userId,
             date: hasSpecificDate ? interviewDate : nil,
             deadline: hasDeadline ? deadline : nil,
-            outcome: .awaitingResponse, // New stage is awaiting response
+            outcome: newOutcome,
             notes: notes.isEmpty ? nil : notes,
             link: link.isEmpty ? nil : link,
             jobListing: interview.jobListing // Carry over job posting link
