@@ -165,8 +165,14 @@ struct InterviewListView: View {
             }
         }
         
-        // Default: Show all interviews (both scheduled and applications)
-        // Sort by date - scheduled interviews first (by date/deadline), then applications by applicationDate
+        // Default: Show only today and future interviews
+        let startOfToday = calendar.startOfDay(for: now)
+        filtered = filtered.filter { interview in
+            let dateToCheck = interview.displayDate ?? interview.applicationDate
+            return dateToCheck >= startOfToday
+        }
+        
+        // Sort by date (earliest first)
         return filtered.sorted { interview1, interview2 in
             let date1 = interview1.displayDate ?? interview1.applicationDate
             let date2 = interview2.displayDate ?? interview2.applicationDate

@@ -180,7 +180,37 @@ struct ContentView: View {
             
             await APIService.shared.setAuthToken(token.jwt)
             
-            // Create sync service and sync all data from server (source of truth)
+            // FIRST: Check if there are guest interviews to migrate
+            let guestInterviews = try modelContext.fetch(FetchDescriptor<Interview>(
+                predicate: #Predicate { interview in
+                    interview.id == nil
+                }
+            ))
+            
+            if !guestInterviews.isEmpty {
+                print("📤 Found \(guestInterviews.count) guest interview(s) - migrating to server first...")
+                
+                // Create sync service and push guest data
+                let syncService = SyncService(modelContext: modelContext)
+                
+                for interview in guestInterviews {
+                    do {
+                        // Push the interview to the server
+                        let apiInterview = try await syncService.pushInterview(interview)
+                        
+                        // Update the local interview with the server ID
+                        interview.id = apiInterview.id
+                        print("✅ Migrated guest interview: \(interview.jobTitle) at \(interview.company?.name ?? "Unknown")")
+                    } catch {
+                        print("❌ Failed to migrate interview: \(interview.jobTitle) - \(error)")
+                    }
+                }
+                
+                try modelContext.save()
+                print("✅ Guest data migration complete")
+            }
+            
+            // THEN: Sync all data from server (source of truth)
             let syncService = SyncService(modelContext: modelContext)
             await syncService.syncAll()
             
