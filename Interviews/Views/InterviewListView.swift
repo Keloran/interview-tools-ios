@@ -127,7 +127,7 @@ struct InterviewListView: View {
         if !searchText.isEmpty {
             return "No interviews found with companies matching '\(searchText)'"
         } else if selectedDate != nil {
-            return "Click the + button on the calendar to add an interview for this date"
+            return "Choose a date and click the + to add a new Interview"
         } else {
             return "Click the + button on a date to add an interview"
         }
