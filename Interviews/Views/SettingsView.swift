@@ -52,9 +52,11 @@ struct SettingsView: View {
     private var authSection: some View {
         if clerk.user != nil {
             Section("Authentication") {
-                VStack {
+                HStack {
                     UserButton()
                         .frame(width: 36, height: 36)
+                    
+                    Text(clerk.user?.username ?? "Interviews")
                 }
                 .sheet(isPresented: $authIsPresented) {
                     AuthView()
