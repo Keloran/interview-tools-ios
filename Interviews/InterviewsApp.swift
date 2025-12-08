@@ -75,7 +75,7 @@ struct InterviewsApp: App {
             // Seed default data synchronously before showing UI
             // This ensures stages and methods are available immediately
             let mainContext = container.mainContext
-            await DataSeeder.seedDefaultData(context: mainContext)
+            DataSeeder.seedDefaultData(context: mainContext)
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

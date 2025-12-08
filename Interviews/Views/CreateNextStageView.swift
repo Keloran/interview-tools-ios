@@ -209,7 +209,7 @@ struct CreateNextStageView: View {
             outcome: .awaitingResponse, // New stage is awaiting response
             notes: notes.isEmpty ? nil : notes,
             link: link.isEmpty ? nil : link,
-            jobPostingLink: interview.jobPostingLink // Carry over job posting link
+            jobListing: interview.jobListing // Carry over job posting link
         )
         
         modelContext.insert(newInterview)

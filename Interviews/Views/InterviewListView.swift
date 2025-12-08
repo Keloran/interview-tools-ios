@@ -418,7 +418,7 @@ struct InterviewDetailSheet: View {
                 }
 
                 // Additional Information (only show if present)
-                if interview.interviewer != nil || interview.link != nil || interview.jobPostingLink != nil || interview.notes != nil {
+                if interview.interviewer != nil || interview.link != nil || interview.jobListing != nil || interview.notes != nil {
                     Divider()
                     
                     VStack(alignment: .leading, spacing: 12) {
@@ -438,7 +438,7 @@ struct InterviewDetailSheet: View {
                             }
                         }
                         
-                        if let jobPostingLink = interview.jobPostingLink {
+                        if let jobPostingLink = interview.jobListing {
                             Link(destination: URL(string: jobPostingLink) ?? URL(string: "https://")!) {
                                 Label("View Job Posting", systemImage: "doc.text")
                                     .font(.subheadline)

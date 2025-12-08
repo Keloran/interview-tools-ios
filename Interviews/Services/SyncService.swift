@@ -259,6 +259,7 @@ class SyncService: ObservableObject {
                 if let metadata = apiInterview.metadata,
                    let jobListing = metadata.jobListing {
                     existing.metadataJSON = "{\"jobListing\":\"\(jobListing)\"}"
+                    existing.jobListing = jobListing
                 }
             } else {
                 // Create new
@@ -282,6 +283,7 @@ class SyncService: ObservableObject {
                 if let metadata = apiInterview.metadata,
                    let jobListing = metadata.jobListing {
                     interview.metadataJSON = "{\"jobListing\":\"\(jobListing)\"}"
+                    interview.jobListing = jobListing
                 }
 
                 modelContext.insert(interview)
