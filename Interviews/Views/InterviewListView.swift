@@ -51,19 +51,21 @@ struct InterviewListView: View {
                     ForEach(sortedInterviews, id: \.persistentModelID) { interview in
                         InterviewListRow(interview: interview)
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                Button {
-                                    interviewForNextStage = interview
-                                } label: {
-                                    Label("Next Stage", systemImage: "arrow.right.circle")
-                                }
-                                .tint(.green)
-                                
                                 if interview.outcome != .awaitingResponse && interview.outcome != .passed && interview.outcome != .rejected {
                                     Button {
                                         setAwaiting(interview)
                                     } label: {
                                         Label("Awaiting Response", systemImage: "timer.circle")
                                     }.tint(.purple)
+                                }
+                                
+                                if interview.outcome != .passed {
+                                    Button {
+                                        interviewForNextStage = interview
+                                    } label: {
+                                        Label("Next Stage", systemImage: "arrow.right.circle")
+                                    }
+                                    .tint(.green)
                                 }
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
