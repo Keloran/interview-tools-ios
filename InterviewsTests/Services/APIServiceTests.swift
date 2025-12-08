@@ -10,7 +10,7 @@ import Testing
 @testable import Interviews
 
 struct APIServiceTests {
-    @Test func testAPIModelsDecoding() async throws {
+    @Test func testAPIModelsDecoding() throws {
         let json = """
         {
             "id": 1,
@@ -46,7 +46,7 @@ struct APIServiceTests {
         #expect(interview.link == "https://zoom.us/j/123")
     }
 
-    @Test func testCreateInterviewRequestEncoding() async throws {
+    @Test func testCreateInterviewRequestEncoding() throws {
         let request = CreateInterviewRequest(
             stage: "Phone Screen",
             companyName: "Google",
@@ -74,7 +74,7 @@ struct APIServiceTests {
         #expect(json["locationType"] as? String == "link")
     }
 
-    @Test func testAPIErrorTypes() async throws {
+    @Test func testAPIErrorTypes() throws {
         let unauthorizedError = APIError.unauthorized
         #expect(unauthorizedError.errorDescription == "Unauthorized. Please sign in.")
 
@@ -85,7 +85,7 @@ struct APIServiceTests {
         #expect(invalidResponse.errorDescription == "Invalid response from server")
     }
 
-    @Test func testAPICompanyDecoding() async throws {
+    @Test func testAPICompanyDecoding() throws {
         let json = """
         {"id": 5, "name": "Meta"}
         """
@@ -97,7 +97,7 @@ struct APIServiceTests {
         #expect(company.name == "Meta")
     }
 
-    @Test func testAPIStageDecoding() async throws {
+    @Test func testAPIStageDecoding() throws {
         let json = """
         {"id": 2, "stage": "Technical Interview"}
         """
@@ -109,7 +109,7 @@ struct APIServiceTests {
         #expect(stage.stage == "Technical Interview")
     }
 
-    @Test func testAPIStageMethodDecoding() async throws {
+    @Test func testAPIStageMethodDecoding() throws {
         let json = """
         {"id": 3, "method": "In Person"}
         """
@@ -121,7 +121,7 @@ struct APIServiceTests {
         #expect(method.method == "In Person")
     }
 
-    @Test func testMetadataDecoding() async throws {
+    @Test func testMetadataDecoding() throws {
         let json = """
         {"jobListing": "https://example.com/job", "location": "phone"}
         """
@@ -133,7 +133,7 @@ struct APIServiceTests {
         #expect(metadata.location == "phone")
     }
 
-    @Test func testUpdateInterviewRequestEncoding() async throws {
+    @Test func testUpdateInterviewRequestEncoding() throws {
         let request = UpdateInterviewRequest(
             outcome: "PASSED",
             stage: nil,
@@ -151,7 +151,7 @@ struct APIServiceTests {
         #expect(json["outcome"] as? String == "PASSED")
     }
 
-    @Test func testInterviewWithNullableFields() async throws {
+    @Test func testInterviewWithNullableFields() throws {
         let json = """
         {
             "id": 1,

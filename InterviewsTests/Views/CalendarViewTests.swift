@@ -152,7 +152,7 @@ struct CalendarViewTests {
         #expect(calendar.component(.year, from: nextMonth) == 2026)
     }
 
-    @Test func testOutcomeColorMapping() async throws {
+    @Test func testOutcomeColorMapping() throws {
         let testCases: [(InterviewOutcome, String)] = [
             (.scheduled, "blue"),
             (.passed, "green"),

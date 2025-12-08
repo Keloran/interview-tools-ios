@@ -57,7 +57,7 @@ struct ContentViewTests {
             for: Interview.self, Company.self, Stage.self, StageMethod.self,
             configurations: config
         )
-        let context = container.mainContext
+        _ = container.mainContext
         
         // The hasPerformedInitialSync flag should prevent redundant sync calls
         // This is a behavioral test - in production, only one sync happens per launch
@@ -298,8 +298,8 @@ struct ContentViewTests {
     @Test("onChange detects user sign in")
     func testUserSignInDetection() async throws {
         // Simulate user state change from nil to signed in
-        var oldUser: Bool? = nil
-        var newUser: Bool? = true
+        let oldUser: Bool? = nil
+        let newUser: Bool? = true
         
         let shouldTriggerSync = (oldUser == nil && newUser != nil)
         
@@ -309,8 +309,8 @@ struct ContentViewTests {
     @Test("onChange ignores user sign out")
     func testUserSignOutIgnored() async throws {
         // Simulate user state change from signed in to nil
-        var oldUser: Bool? = true
-        var newUser: Bool? = nil
+        let oldUser: Bool? = true
+        let newUser: Bool? = nil
         
         let shouldTriggerSync = (oldUser == nil && newUser != nil)
         
@@ -320,8 +320,8 @@ struct ContentViewTests {
     @Test("onChange ignores when user stays signed in")
     func testUserRemainsSignedIn() async throws {
         // User was signed in and remains signed in
-        var oldUser: Bool? = true
-        var newUser: Bool? = true
+        let oldUser: Bool? = true
+        let newUser: Bool? = true
         
         let shouldTriggerSync = (oldUser == nil && newUser != nil)
         

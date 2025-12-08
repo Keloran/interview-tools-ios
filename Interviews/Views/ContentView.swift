@@ -39,8 +39,6 @@ struct ContentView: View {
                         
                         Spacer()
                     }
-                    .navigationTitle("Calendar")
-                    .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
@@ -54,7 +52,8 @@ struct ContentView: View {
                     // Detail - Interview List
                     NavigationStack {
                         InterviewListView(selectedDate: $selectedDate, searchText: searchText)
-                            .navigationTitle("Interviews")
+                            .navigationTitle("Interview Planner")
+                            .navigationBarTitleDisplayMode(.inline)
                             .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
                     }
                 }
@@ -74,7 +73,8 @@ struct ContentView: View {
 
                         InterviewListView(selectedDate: $selectedDate, searchText: searchText)
                     }
-                    .navigationTitle("Interviews")
+                    .navigationTitle("Interview Planner")
+                    .navigationBarTitleDisplayMode(.inline)
                     .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {

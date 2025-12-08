@@ -190,7 +190,7 @@ struct InterviewListViewTests {
         #expect(interview.displayDate == interviewDate)
     }
 
-    @Test func testOutcomeColorMapping() async throws {
+    @Test func testOutcomeColorMapping() throws {
         let testCases: [(InterviewOutcome, String)] = [
             (.scheduled, "blue"),
             (.passed, "green"),

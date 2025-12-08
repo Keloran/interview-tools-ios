@@ -33,7 +33,7 @@ struct AddInterviewViewTests {
     }
 
     @Test func testAppliedStageValidation() async throws {
-        let stageName = "Applied"
+        _ = "Applied"
         let hasCompany = true
         let hasJobTitle = true
 
@@ -43,7 +43,7 @@ struct AddInterviewViewTests {
     }
 
     @Test func testTechnicalTestValidation() async throws {
-        let stageName = "Technical Test"
+        _ = "Technical Test"
         let hasCompany = true
         let hasJobTitle = true
         let hasDeadline = true
