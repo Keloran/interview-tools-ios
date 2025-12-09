@@ -49,6 +49,28 @@ class SyncService: ObservableObject {
     private func syncCompanies() async throws {
         let apiCompanies = try await apiService.fetchCompanies()
 
+        // Create a set of server company IDs for deletion check
+        let serverCompanyIds = Set(apiCompanies.map { $0.id })
+        
+        // Fetch all local companies that have a server ID
+        let allLocalCompaniesDescriptor = FetchDescriptor<Company>(
+            predicate: #Predicate { company in
+                company.id != nil
+            }
+        )
+        let allLocalCompanies = try modelContext.fetch(allLocalCompaniesDescriptor)
+        
+        // Delete local companies that no longer exist on the server
+        for localCompany in allLocalCompanies {
+            if let localId = localCompany.id, !serverCompanyIds.contains(localId) {
+                print("🗑️ Deleting company '\(localCompany.name)' (ID: \(localId)) - no longer on server")
+                modelContext.delete(localCompany)
+            }
+        }
+        
+        // Save immediately after deletions to prevent fault errors
+        try modelContext.save()
+
         for apiCompany in apiCompanies {
             // Find or create company
             let companyId = apiCompany.id
@@ -91,6 +113,28 @@ class SyncService: ObservableObject {
 
     private func syncStages() async throws {
         let apiStages = try await apiService.fetchStages()
+
+        // Create a set of server stage IDs for deletion check
+        let serverStageIds = Set(apiStages.map { $0.id })
+        
+        // Fetch all local stages that have a server ID
+        let allLocalStagesDescriptor = FetchDescriptor<Stage>(
+            predicate: #Predicate { stage in
+                stage.id != nil
+            }
+        )
+        let allLocalStages = try modelContext.fetch(allLocalStagesDescriptor)
+        
+        // Delete local stages that no longer exist on the server
+        for localStage in allLocalStages {
+            if let localId = localStage.id, !serverStageIds.contains(localId) {
+                print("🗑️ Deleting stage '\(localStage.stage)' (ID: \(localId)) - no longer on server")
+                modelContext.delete(localStage)
+            }
+        }
+        
+        // Save immediately after deletions to prevent fault errors
+        try modelContext.save()
 
         for apiStage in apiStages {
             // Capture the ID in a local variable to use in predicate
@@ -135,6 +179,28 @@ class SyncService: ObservableObject {
     private func syncStageMethods() async throws {
         let apiMethods = try await apiService.fetchStageMethods()
 
+        // Create a set of server method IDs for deletion check
+        let serverMethodIds = Set(apiMethods.map { $0.id })
+        
+        // Fetch all local stage methods that have a server ID
+        let allLocalMethodsDescriptor = FetchDescriptor<StageMethod>(
+            predicate: #Predicate { method in
+                method.id != nil
+            }
+        )
+        let allLocalMethods = try modelContext.fetch(allLocalMethodsDescriptor)
+        
+        // Delete local methods that no longer exist on the server
+        for localMethod in allLocalMethods {
+            if let localId = localMethod.id, !serverMethodIds.contains(localId) {
+                print("🗑️ Deleting stage method '\(localMethod.method)' (ID: \(localId)) - no longer on server")
+                modelContext.delete(localMethod)
+            }
+        }
+        
+        // Save immediately after deletions to prevent fault errors
+        try modelContext.save()
+
         for apiMethod in apiMethods {
             // Capture the ID in a local variable to use in predicate
             let methodId = apiMethod.id
@@ -177,6 +243,28 @@ class SyncService: ObservableObject {
 
     private func syncInterviews() async throws {
         let apiInterviews = try await apiService.fetchInterviews(includePast: true)
+
+        // Create a set of server interview IDs for deletion check
+        let serverInterviewIds = Set(apiInterviews.map { $0.id })
+        
+        // Fetch all local interviews that have a server ID
+        let allLocalInterviewsDescriptor = FetchDescriptor<Interview>(
+            predicate: #Predicate { interview in
+                interview.id != nil
+            }
+        )
+        let allLocalInterviews = try modelContext.fetch(allLocalInterviewsDescriptor)
+        
+        // Delete local interviews that no longer exist on the server
+        for localInterview in allLocalInterviews {
+            if let localId = localInterview.id, !serverInterviewIds.contains(localId) {
+                print("🗑️ Deleting interview '\(localInterview.jobTitle)' (ID: \(localId)) - no longer on server")
+                modelContext.delete(localInterview)
+            }
+        }
+        
+        // Save immediately after deletions to prevent fault errors
+        try modelContext.save()
 
         for apiInterview in apiInterviews {
             // Find or create company
