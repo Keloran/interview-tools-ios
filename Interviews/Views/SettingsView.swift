@@ -30,6 +30,9 @@ struct SettingsView: View {
                 authSection
                 syncSection
                 aboutSection
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    statsSection
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -132,6 +135,12 @@ struct SettingsView: View {
                     Image(systemName: "arrow.up.forward")
                 }
             }
+        }
+    }
+    
+    private var statsSection: some View {
+        Section("Stats") {
+            
         }
     }
 

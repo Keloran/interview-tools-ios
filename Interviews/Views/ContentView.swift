@@ -37,7 +37,7 @@ struct ContentView: View {
                         CalendarView(selectedDate: $selectedDate)
                             .padding(.top)
                         
-                        Spacer()
+                        Divider()
                     }
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
