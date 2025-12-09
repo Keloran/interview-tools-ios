@@ -28,9 +28,9 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 authSection
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    statsSection
-                }
+//                if UIDevice.current.userInterfaceIdiom == .phone {
+//                    statsSection
+//                }
                 syncSection
                 aboutSection
             }

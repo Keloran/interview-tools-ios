@@ -41,7 +41,7 @@ struct ContentView: View {
                             .padding(.vertical, 8)
                         
                         // Stats view under calendar on iPad
-                        CompactStatsView()
+//                        CompactStatsView()
                         
                         Spacer()
                     }

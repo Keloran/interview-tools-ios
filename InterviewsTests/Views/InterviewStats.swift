@@ -45,58 +45,65 @@ struct InterviewStats {
     
     /// Compute statistics from a list of interviews
     static func compute(from interviews: [Interview]) -> InterviewStats {
-        var stats = InterviewStats(
-            totalInterviews: interviews.count,
-            applied: 0,
-            scheduled: 0,
-            awaitingResponse: 0,
-            passed: 0,
-            rejected: 0,
-            offerReceived: 0,
-            offerAccepted: 0,
-            offerDeclined: 0,
-            withdrew: 0
-        )
+        var applied = 0
+        var scheduled = 0
+        var awaitingResponse = 0
+        var passedAppliedStage = 0
+        var rejected = 0
+        var offerReceived = 0
+        var offerAccepted = 0
+        var offerDeclined = 0
+        var withdrew = 0
         
         for interview in interviews {
-            // Check if this is an "Applied" stage interview
-            // We check the stage name case-insensitively and look for "applied" or "application"
+            // Check if this job is still at the "Applied" stage
             let stageName = interview.stage?.stage.lowercased() ?? ""
-            let isAppliedStage = stageName.contains("appl")
+            let isStillAtAppliedStage = stageName.contains("appl")
             
-            // Count by outcome first, if set
+            // Count jobs currently at Applied stage
+            if isStillAtAppliedStage {
+                applied += 1
+            } else {
+                // If not at applied stage anymore, they've progressed
+                passedAppliedStage += 1
+            }
+            
+            // Count specific outcomes (these can overlap with stage-based counts)
             if let outcome = interview.outcome {
                 switch outcome {
                 case .scheduled:
-                    stats = incrementStat(stats, \.scheduled)
+                    scheduled += 1
                 case .passed:
-                    stats = incrementStat(stats, \.passed)
+                    // This is just an outcome status, doesn't affect stage progression count
+                    break
                 case .rejected:
-                    stats = incrementStat(stats, \.rejected)
+                    rejected += 1
                 case .awaitingResponse:
-                    stats = incrementStat(stats, \.awaitingResponse)
+                    awaitingResponse += 1
                 case .offerReceived:
-                    stats = incrementStat(stats, \.offerReceived)
+                    offerReceived += 1
                 case .offerAccepted:
-                    stats = incrementStat(stats, \.offerAccepted)
+                    offerAccepted += 1
                 case .offerDeclined:
-                    stats = incrementStat(stats, \.offerDeclined)
+                    offerDeclined += 1
                 case .withdrew:
-                    stats = incrementStat(stats, \.withdrew)
-                }
-            } else {
-                // No outcome set - categorize by stage
-                if isAppliedStage {
-                    // If in "Applied" stage with no outcome, count as applied
-                    stats = incrementStat(stats, \.applied)
-                } else {
-                    // Otherwise, count as scheduled (they have an interview scheduled but no outcome yet)
-                    stats = incrementStat(stats, \.scheduled)
+                    withdrew += 1
                 }
             }
         }
         
-        return stats
+        return InterviewStats(
+            totalInterviews: interviews.count,
+            applied: applied,
+            scheduled: scheduled,
+            awaitingResponse: awaitingResponse,
+            passed: passedAppliedStage,
+            rejected: rejected,
+            offerReceived: offerReceived,
+            offerAccepted: offerAccepted,
+            offerDeclined: offerDeclined,
+            withdrew: withdrew
+        )
     }
     
     /// Helper to increment a stat field immutably
