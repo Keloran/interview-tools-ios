@@ -38,6 +38,12 @@ struct ContentView: View {
                             .padding(.top)
                         
                         Divider()
+                            .padding(.vertical, 8)
+                        
+                        // Stats view under calendar on iPad
+                        CompactStatsView()
+                        
+                        Spacer()
                     }
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
