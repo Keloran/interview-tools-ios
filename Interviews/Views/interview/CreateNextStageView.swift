@@ -201,6 +201,45 @@ struct CreateNextStageView: View {
             newOutcome = nil
         }
         
+        // Prepare merged metadata dictionary by parsing existing metadataJSON (if any)
+        var mergedMetadata: [String: Any] = [:]
+        if let metadataJSON = interview.metadataJSON,
+           let data = metadataJSON.data(using: .utf8) {
+            do {
+                if let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    mergedMetadata = jsonObject
+                }
+            } catch {
+                print("⚠️ createNextStage: Failed to parse previous metadataJSON: \(error.localizedDescription)")
+            }
+        }
+        
+        // Overwrite or add new metadata entries
+        // Update jobListing if set
+        if let jobListing = interview.jobListing {
+            mergedMetadata["jobListing"] = jobListing
+        }
+        
+        // Update method type if selectedMethod is set
+        if let methodName = selectedMethod?.method {
+            mergedMetadata["methodType"] = methodName
+        }
+        
+        // Update current stage name
+        if let stageName = selectedStage?.stage {
+            mergedMetadata["stage"] = stageName
+        }
+        
+        // Serialize merged metadata dictionary back to JSON string
+        let newMetadataJSON: String?
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: mergedMetadata, options: [])
+            newMetadataJSON = String(data: jsonData, encoding: .utf8)
+        } catch {
+            print("⚠️ createNextStage: Failed to serialize merged metadataJSON: \(error.localizedDescription)")
+            newMetadataJSON = nil
+        }
+        
         // Create new interview with next stage
         let newInterview = Interview(
             company: interview.company,
@@ -215,8 +254,8 @@ struct CreateNextStageView: View {
             deadline: hasDeadline ? deadline : nil,
             outcome: newOutcome,
             notes: notes.isEmpty ? nil : notes,
-            link: link.isEmpty ? nil : link,
-            jobListing: interview.jobListing // Carry over job posting link
+            metadataJSON: newMetadataJSON, link: link.isEmpty ? nil : link,
+            jobListing: interview.jobListing
         )
         
         modelContext.insert(newInterview)
@@ -316,3 +355,4 @@ struct CreateNextStageView: View {
     return CreateNextStageView(interview: interview)
         .modelContainer(container)
 }
+

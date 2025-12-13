@@ -328,6 +328,28 @@ class SyncService: ObservableObject {
 
             let existing = try modelContext.fetch(interviewDescriptor).first
 
+            // Prepare metadata dictionary that merges existing jobListing or other keys with applied flag
+            var mergedMetadata: [String: Any] = [:]
+            // If metadata exists from API, parse it into dictionary
+            if let metadata = apiInterview.metadata {
+                if let jobListing = metadata.jobListing {
+                    mergedMetadata["jobListing"] = jobListing
+                }
+                // Add other keys from metadata if any, assuming metadata may have more keys in future
+                // (If actual metadata has more keys, parsing and merging should be extended accordingly)
+            }
+            // Always add 'applied' key depending on apiInterview.stage?.stage
+            mergedMetadata["applied"] = (apiInterview.stage?.stage == "Applied")
+
+            // Serialize mergedMetadata to JSON string
+            let metadataJSON: String
+            if let jsonData = try? JSONSerialization.data(withJSONObject: mergedMetadata, options: []),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                metadataJSON = jsonString
+            } else {
+                metadataJSON = "{}"
+            }
+
             if let existing = existing {
                 // Update existing
                 existing.company = company
@@ -343,11 +365,13 @@ class SyncService: ObservableObject {
                 existing.notes = apiInterview.notes
                 existing.link = apiInterview.link
 
-                // Update metadata JSON if needed
-                if let metadata = apiInterview.metadata,
-                   let jobListing = metadata.jobListing {
-                    existing.metadataJSON = "{\"jobListing\":\"\(jobListing)\"}"
+                // Update metadata JSON with merged metadata including 'applied' field.
+                // Also update jobListing property if present in metadata.
+                existing.metadataJSON = metadataJSON
+                if let jobListing = mergedMetadata["jobListing"] as? String {
                     existing.jobListing = jobListing
+                } else {
+                    existing.jobListing = nil
                 }
             } else {
                 // Create new
@@ -367,10 +391,10 @@ class SyncService: ObservableObject {
                     link: apiInterview.link
                 )
 
-                // Set metadata JSON if needed
-                if let metadata = apiInterview.metadata,
-                   let jobListing = metadata.jobListing {
-                    interview.metadataJSON = "{\"jobListing\":\"\(jobListing)\"}"
+                // Set metadata JSON with merged metadata including 'applied' field.
+                // Also set jobListing property if present.
+                interview.metadataJSON = metadataJSON
+                if let jobListing = mergedMetadata["jobListing"] as? String {
                     interview.jobListing = jobListing
                 }
 
@@ -419,3 +443,4 @@ class SyncService: ObservableObject {
         return jobListing
     }
 }
+
