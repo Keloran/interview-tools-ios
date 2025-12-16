@@ -7,9 +7,11 @@
 
 import SwiftUI
 import SwiftData
+import Clerk
 
 struct InterviewListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.clerk) private var clerk
     @Query private var interviews: [Interview]
     
     @Binding var selectedDate: Date?
@@ -111,12 +113,49 @@ struct InterviewListView: View {
         interview.outcome = .rejected
         interview.updatedAt = Date()
         try? modelContext.save()
+        
+        // Sync to server if user is authenticated
+        Task {
+            await updateInterviewOnServer(interview)
+        }
     }
     
     private func setAwaiting(_ interview: Interview) {
         interview.outcome = .awaitingResponse
         interview.updatedAt = Date()
         try? modelContext.save()
+        
+        // Sync to server if user is authenticated
+        Task {
+            await updateInterviewOnServer(interview)
+        }
+    }
+    
+    private func updateInterviewOnServer(_ interview: Interview) async {
+        // Only sync if user is authenticated and interview has a server ID
+        guard clerk.user != nil,
+              let interviewId = interview.id else {
+            return
+        }
+        
+        let dateFormatter = ISO8601DateFormatter()
+        
+        let request = UpdateInterviewRequest(
+            outcome: interview.outcome?.rawValue,
+            stage: interview.stage?.stage,
+            date: interview.date.map { dateFormatter.string(from: $0) },
+            deadline: interview.deadline.map { dateFormatter.string(from: $0) },
+            interviewer: interview.interviewer,
+            notes: interview.notes,
+            link: interview.link
+        )
+        
+        do {
+            _ = try await APIService.shared.updateInterview(id: interviewId, request)
+        } catch {
+            print("Failed to update interview on server: \(error)")
+            // Optionally, you could show an error to the user here
+        }
     }
     
     private var headerTitle: String {
@@ -294,6 +333,7 @@ struct InterviewListRow: View {
 struct InterviewDetailSheet: View {
     let interview: Interview
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.clerk) private var clerk
     @State private var showingEditSheet = false
     @State private var showingOutcomeOptions = false
 
@@ -526,6 +566,38 @@ struct InterviewDetailSheet: View {
         interview.outcome = outcome
         interview.updatedAt = Date()
         try? modelContext.save()
+        
+        // Sync to server if user is authenticated
+        Task {
+            await updateInterviewOnServer()
+        }
+    }
+    
+    private func updateInterviewOnServer() async {
+        // Only sync if user is authenticated and interview has a server ID
+        guard clerk.user != nil,
+              let interviewId = interview.id else {
+            return
+        }
+        
+        let dateFormatter = ISO8601DateFormatter()
+        
+        let request = UpdateInterviewRequest(
+            outcome: interview.outcome?.rawValue,
+            stage: interview.stage?.stage,
+            date: interview.date.map { dateFormatter.string(from: $0) },
+            deadline: interview.deadline.map { dateFormatter.string(from: $0) },
+            interviewer: interview.interviewer,
+            notes: interview.notes,
+            link: interview.link
+        )
+        
+        do {
+            _ = try await APIService.shared.updateInterview(id: interviewId, request)
+        } catch {
+            print("Failed to update interview on server: \(error)")
+            // Optionally, you could show an error to the user here
+        }
     }
 
     private func colorForOutcome(_ outcome: InterviewOutcome) -> Color {
