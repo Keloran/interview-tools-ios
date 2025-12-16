@@ -390,9 +390,15 @@ struct AddInterviewView: View {
             link: (requiresScheduling && !isTechnicalTest) ? (link.isEmpty ? nil : link) : nil
         )
 
-        // Store job posting link in metadata
+        // Construct metadataJSON to always include 'applied' flag and optionally jobListing if present
+        // This ensures we preserve info about whether the interview is at Applied stage even if jobPostingLink is empty
+        var metadataDict: [String: Any] = ["applied": selectedStageName == "Applied"]
         if !jobPostingLink.isEmpty {
-            interview.metadataJSON = "{\"jobListing\":\"\(jobPostingLink)\"}"
+            metadataDict["jobListing"] = jobPostingLink
+        }
+        if let jsonData = try? JSONSerialization.data(withJSONObject: metadataDict, options: []),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            interview.metadataJSON = jsonString
         }
 
         print("✅ Created interview: \(company.name) - \(jobTitle)")

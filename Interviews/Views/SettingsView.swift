@@ -28,6 +28,9 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 authSection
+//                if UIDevice.current.userInterfaceIdiom == .phone {
+//                    statsSection
+//                }
                 syncSection
                 aboutSection
             }
@@ -132,6 +135,26 @@ struct SettingsView: View {
                     Image(systemName: "arrow.up.forward")
                 }
             }
+        }
+    }
+    
+    private var statsSection: some View {
+        Section {
+            NavigationLink {
+                StatsView()
+                    .navigationTitle("Statistics")
+                    .navigationBarTitleDisplayMode(.inline)
+            } label: {
+                HStack {
+                    Image(systemName: "chart.bar.fill")
+                        .foregroundStyle(.blue)
+                    Text("View Statistics")
+                }
+            }
+        } header: {
+            Text("Statistics")
+        } footer: {
+            Text("View detailed statistics about your interview applications")
         }
     }
 
