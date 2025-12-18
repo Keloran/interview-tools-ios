@@ -19,6 +19,7 @@ struct InterviewListView: View {
 
     @State private var selectedInterview: Interview?
     @State private var interviewForNextStage: Interview?
+    @State private var isSyncing = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -87,7 +88,29 @@ struct InterviewListView: View {
                             }
                     }
                 }
+                .refreshable {
+                    // Immediately end the system spinner and show our own syncing popup
+                    isSyncing = true
+                    Task {
+                        await syncAllInterviews()
+                        await MainActor.run { isSyncing = false }
+                    }
+                }
                 .listStyle(.inset)
+            }
+        }
+        .overlay(alignment: .center) {
+            if isSyncing {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Syncing…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shadow(radius: 10)
+                .transition(.opacity)
             }
         }
         .sheet(item: $selectedInterview) { interview in
@@ -155,6 +178,24 @@ struct InterviewListView: View {
         } catch {
             print("Failed to update interview on server: \(error)")
             // Optionally, you could show an error to the user here
+        }
+    }
+
+    private func syncAllInterviews() async {
+        // Only sync if user is authenticated
+        guard clerk.user != nil else { return }
+        
+        // Snapshot the current interviews on the main actor to avoid crossing actor boundaries while iterating
+        let itemsToSync: [Interview] = await MainActor.run { interviews }
+        
+        // Perform updates concurrently and wait for all to finish before returning (so the spinner can stop)
+        await withTaskGroup(of: Void.self) { group in
+            for item in itemsToSync {
+                group.addTask {
+                    await updateInterviewOnServer(item)
+                }
+            }
+            await group.waitForAll()
         }
     }
     
@@ -618,3 +659,4 @@ struct InterviewDetailSheet: View {
     InterviewListView(selectedDate: .constant(nil), searchText: "")
         .modelContainer(for: [Interview.self, Company.self, Stage.self, StageMethod.self], inMemory: true)
 }
+
