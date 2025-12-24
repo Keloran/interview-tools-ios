@@ -39,7 +39,7 @@ actor VersionChecker {
     }
 
     // Compare semantic versions (e.g., 1.2.3). Returns true if storeVersion > currentVersion
-    func isStoreVersionNewer(currentVersion: String, storeVersion: String) -> Bool {
+    nonisolated func isStoreVersionNewer(currentVersion: String, storeVersion: String) -> Bool {
         let current = currentVersion.split(separator: ".").compactMap { Int($0) }
         let store = storeVersion.split(separator: ".").compactMap { Int($0) }
         let count = max(current.count, store.count)
@@ -107,3 +107,4 @@ extension View {
         modifier(UpdateAlertModifier())
     }
 }
+
