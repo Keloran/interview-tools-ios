@@ -29,6 +29,7 @@ struct InterviewsApp: App {
                             // Clerk should handle the OAuth callback automatically
                             // when it detects the matching URL scheme
                         }
+                        .appUpdateAlertOnLaunch()
                 }
                 
                 // Launch screen overlay - dismisses quickly
