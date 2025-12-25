@@ -1,12 +1,12 @@
 import Foundation
 import SwiftUI
 
-struct AppStoreLookupResponse: Decodable {
+struct AppStoreLookupResponse: @preconcurrency Decodable, Sendable {
     let resultCount: Int
     let results: [AppStoreApp]
 }
 
-struct AppStoreApp: Decodable {
+struct AppStoreApp: @preconcurrency Decodable, Sendable {
     let version: String
     let trackViewUrl: String
     let releaseNotes: String?
