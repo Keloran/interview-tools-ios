@@ -69,9 +69,6 @@ struct ContentView: View {
                 // iPhone layout: Stacked vertically
                 NavigationStack {
                     VStack(spacing: 0) {
-                        // Show guest mode banner if not authenticated
-                        GuestModeBanner()
-                        
                         CalendarView(selectedDate: $selectedDate)
                             .frame(maxHeight: 400)
 
