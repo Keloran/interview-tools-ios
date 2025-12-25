@@ -77,6 +77,15 @@ struct SettingsView: View {
                     handleAuthChange(oldValue: oldValue, newValue: newValue)
                 }
             }
+        } else {
+            Section("Authentication") {
+                Button("Sign in") {
+                    authIsPresented = true
+                }
+                .sheet(isPresented: $authIsPresented) {
+                    AuthView()
+                }
+            }
         }
     }
 
@@ -146,6 +155,12 @@ struct SettingsView: View {
                     Spacer()
                     Image(systemName: "arrow.up.forward")
                 }
+            }
+            HStack {
+                Text("Version")
+                Spacer()
+                Text(appVersionString)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -232,6 +247,14 @@ struct SettingsView: View {
             errorMessage = "Failed to fetch database info: \(error.localizedDescription)"
             showingError = true
         }
+    }
+}
+
+private extension SettingsView {
+    var appVersionString: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        return build.isEmpty ? version : "\(version) (\(build))"
     }
 }
 
