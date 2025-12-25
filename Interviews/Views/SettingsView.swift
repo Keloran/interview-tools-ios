@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import Clerk
+import FlagsSwift
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -19,6 +20,8 @@ struct SettingsView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     @State private var authIsPresented = false
+    
+    @State private var statsEnabled: Bool = false
 
     init(modelContext: ModelContext) {
         _syncService = StateObject(wrappedValue: SyncService(modelContext: modelContext))
@@ -28,9 +31,9 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 authSection
-//                if UIDevice.current.userInterfaceIdiom == .phone {
-//                    statsSection
-//                }
+                if statsEnabled {
+                    statsSection
+                }
                 syncSection
                 aboutSection
             }
@@ -41,6 +44,23 @@ struct SettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                }
+            }
+            .task {
+                do {
+                    let client = try Client.builder().withAuth(Auth(
+                        projectId: "198ba0bd-e7e1-4219-beee-9bd82de0e03c",
+                        agentId: "8b98066c-9017-460f-8c0f-beb92392eb14",
+                        environmentId: "07a3b112-3bdc-4b1f-a096-ae2bdf21ad67"
+                    )).build()
+                    let enabled = await client.is("stats").enabled()
+                    statsEnabled = enabled
+                } catch {
+                    // If fetching the flag fails, default to false and optionally log
+                    statsEnabled = false
+                    #if DEBUG
+                    print("Failed to fetch stats flag: \(error)")
+                    #endif
                 }
             }
             .alert("Error", isPresented: $showingError) {
@@ -232,3 +252,4 @@ struct SettingsView: View {
 
     return SettingsView(modelContext: container.mainContext)
 }
+

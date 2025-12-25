@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F3372BC02EFD862E009DECED /* FlagsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = F3372BBF2EFD862E009DECED /* FlagsSwift */; };
 		F3F3C1DD2EE3A7F80000102D /* Clerk in Frameworks */ = {isa = PBXBuildFile; productRef = F3F3C1DC2EE3A7F80000102D /* Clerk */; };
 /* End PBXBuildFile section */
 
@@ -57,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F3372BC02EFD862E009DECED /* FlagsSwift in Frameworks */,
 				F3F3C1DD2EE3A7F80000102D /* Clerk in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -120,6 +122,7 @@
 			name = Interviews;
 			packageProductDependencies = (
 				F3F3C1DC2EE3A7F80000102D /* Clerk */,
+				F3372BBF2EFD862E009DECED /* FlagsSwift */,
 			);
 			productName = Interviews;
 			productReference = F3F3C1872EE397CD0000102D /* Interviews.app */;
@@ -205,6 +208,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */,
+				F3372BBE2EFD862E009DECED /* XCRemoteSwiftPackageReference "swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F3F3C1882EE397CD0000102D /* Products */;
@@ -599,6 +603,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		F3372BBE2EFD862E009DECED /* XCRemoteSwiftPackageReference "swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/flags-gg/swift.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/clerk/clerk-ios";
@@ -610,6 +622,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		F3372BBF2EFD862E009DECED /* FlagsSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F3372BBE2EFD862E009DECED /* XCRemoteSwiftPackageReference "swift" */;
+			productName = FlagsSwift;
+		};
 		F3F3C1DC2EE3A7F80000102D /* Clerk */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */;
