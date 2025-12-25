@@ -1,12 +1,11 @@
-import Foundation
-import SwiftUI
+@preconcurrency import Foundation
 
-struct AppStoreLookupResponse: @preconcurrency Decodable, Sendable {
+struct AppStoreLookupResponse: Decodable, Sendable {
     let resultCount: Int
     let results: [AppStoreApp]
 }
 
-struct AppStoreApp: @preconcurrency Decodable, Sendable {
+struct AppStoreApp: Decodable, Sendable {
     let version: String
     let trackViewUrl: String
     let releaseNotes: String?
@@ -18,7 +17,7 @@ actor VersionChecker {
     private init() {}
 
     // Fetch latest version from App Store using bundle identifier
-    func fetchLatestVersion(bundleIdentifier: String) async throws -> (version: String, url: URL, notes: String?)? {
+    nonisolated func fetchLatestVersion(bundleIdentifier: String) async throws -> (version: String, url: URL, notes: String?)? {
         // Use iTunes Lookup API
         guard var components = URLComponents(string: "https://itunes.apple.com/lookup") else { return nil }
         components.queryItems = [
@@ -52,6 +51,8 @@ actor VersionChecker {
         return false
     }
 }
+
+import SwiftUI
 
 // ViewModifier to present update alert easily
 struct UpdateAlertModifier: ViewModifier {

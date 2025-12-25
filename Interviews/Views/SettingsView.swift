@@ -8,12 +8,13 @@
 import SwiftUI
 import SwiftData
 import Clerk
-import FlagsSwift
+import FlagsGG
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.clerk) private var clerk
+    @Environment(\.flagsAgent) private var flagsAgent
 
     @StateObject private var syncService: SyncService
 
@@ -47,21 +48,9 @@ struct SettingsView: View {
                 }
             }
             .task {
-                do {
-                    let client = try Client.builder().withAuth(Auth(
-                        projectId: "198ba0bd-e7e1-4219-beee-9bd82de0e03c",
-                        agentId: "8b98066c-9017-460f-8c0f-beb92392eb14",
-                        environmentId: "07a3b112-3bdc-4b1f-a096-ae2bdf21ad67"
-                    )).build()
-                    let enabled = await client.is("stats").enabled()
-                    statsEnabled = enabled
-                } catch {
-                    // If fetching the flag fails, default to false and optionally log
-                    statsEnabled = false
-                    #if DEBUG
-                    print("Failed to fetch stats flag: \(error)")
-                    #endif
-                }
+                guard let client = flagsAgent else { return }
+                let enabled = await client.is("stats").enabled()
+                statsEnabled = enabled
             }
             .alert("Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
@@ -91,20 +80,23 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
     private var syncSection: some View {
-        Section("Sync") {
-            if syncService.isSyncing {
-                HStack {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                    Text("Syncing...")
-                        .foregroundStyle(.secondary)
+        if clerk.user != nil {
+            Section("Sync") {
+                if syncService.isSyncing {
+                    HStack {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                        Text("Syncing...")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    syncButton
+                    debugInfoButton
+                    lastSyncText
+                    syncErrorText
                 }
-            } else {
-                syncButton
-                debugInfoButton
-                lastSyncText
-                syncErrorText
             }
         }
     }
