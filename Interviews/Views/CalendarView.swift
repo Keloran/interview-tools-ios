@@ -16,6 +16,7 @@ struct CalendarView: View {
 
     @State private var currentDate = Date()
     @State private var showingAddInterview = false
+    @State private var dragTranslation: CGFloat = 0
 
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
     private let weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -102,6 +103,7 @@ struct CalendarView: View {
 
                 Spacer()
             }
+            .offset(x: dragTranslation / 10)
             .padding(.vertical)
 
             // Floating action button
@@ -125,6 +127,23 @@ struct CalendarView: View {
                 .padding(padding)
             }
         }
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 20, coordinateSpace: .local)
+                .onChanged { value in
+                    dragTranslation = value.translation.width
+                }
+                .onEnded { value in
+                    let threshold: CGFloat = 50
+                    let horizontal = value.translation.width
+                    if horizontal < -threshold {
+                        withAnimation(.easeInOut) { nextMonth() }
+                    } else if horizontal > threshold {
+                        withAnimation(.easeInOut) { previousMonth() }
+                    }
+                    dragTranslation = 0
+                }
+        )
         .sheet(isPresented: $showingAddInterview) {
             AddInterviewView(initialDate: selectedDate ?? Date())
         }
