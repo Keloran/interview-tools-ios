@@ -16,6 +16,20 @@ struct CreateNextStageView: View {
     
     let interview: Interview
     
+    // Restrict methods to three options
+    private var allowedMethods: [StageMethod] {
+        let allowedNames = ["Link", "In Person", "Phone"]
+        var results: [StageMethod] = []
+        for name in allowedNames {
+            if let existing = allMethods.first(where: { $0.method.caseInsensitiveCompare(name) == .orderedSame }) {
+                results.append(existing)
+            } else {
+                results.append(StageMethod(method: name))
+            }
+        }
+        return results
+    }
+    
     @State private var selectedStage: Stage?
     @State private var selectedMethod: StageMethod?
     @State private var interviewDate: Date = Date()
@@ -75,7 +89,7 @@ struct CreateNextStageView: View {
                         
                         Picker("Method", selection: $selectedMethod) {
                             Text("Select Method").tag(nil as StageMethod?)
-                            ForEach(allMethods, id: \.persistentModelID) { method in
+                            ForEach(allowedMethods, id: \.method) { method in
                                 Text(method.method).tag(method as StageMethod?)
                             }
                         }
@@ -96,7 +110,7 @@ struct CreateNextStageView: View {
                         
                         TextField("Interviewer (optional)", text: $interviewer)
                         
-                        // Show link field for all methods except "In Person" and "Phone"
+                        // Show link field for method exactly "Link"
                         if shouldShowLinkField {
                             TextField("Interview Link", text: $link)
                                 .textInputAutocapitalization(.never)
@@ -166,9 +180,7 @@ struct CreateNextStageView: View {
     // Determine if link field should be shown
     private var shouldShowLinkField: Bool {
         guard let method = selectedMethod?.method else { return false }
-        let lowercased = method.lowercased()
-        // Don't show for "In Person" or "Phone"
-        return !lowercased.contains("in person") && !lowercased.contains("phone")
+        return method.caseInsensitiveCompare("Link") == .orderedSame
     }
     
     private var isFormValid: Bool {
@@ -315,17 +327,8 @@ struct CreateNextStageView: View {
     
     /// Auto-detect and select stage method from link
     private func autoDetectStageMethod(from link: String) {
-        guard let detectedName = inferStageMethodName(from: link) else { return }
-        
-        // Try to find a matching stage method
-        if let matchingMethod = allMethods.first(where: { method in
-            method.method.lowercased() == detectedName.lowercased()
-        }) {
-            selectedMethod = matchingMethod
-            print("✅ Auto-detected stage method: \(detectedName)")
-        } else {
-            // If no exact match found, keep current selection or default to generic video call
-            print("⚠️ Detected \(detectedName) but no matching stage method in database")
+        if let linkMethod = allowedMethods.first(where: { $0.method.caseInsensitiveCompare("Link") == .orderedSame }) {
+            selectedMethod = linkMethod
         }
     }
 }
