@@ -8,17 +8,21 @@
 import SwiftUI
 import SwiftData
 import Clerk
+import FlagsGG
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.clerk) private var clerk
+    @Environment(\.flagsAgent) private var flagsAgent
 
     @StateObject private var syncService: SyncService
 
     @State private var showingError = false
     @State private var errorMessage = ""
     @State private var authIsPresented = false
+    
+    @State private var statsEnabled: Bool = false
 
     init(modelContext: ModelContext) {
         _syncService = StateObject(wrappedValue: SyncService(modelContext: modelContext))
@@ -28,9 +32,9 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 authSection
-//                if UIDevice.current.userInterfaceIdiom == .phone {
-//                    statsSection
-//                }
+                if statsEnabled {
+                    statsSection
+                }
                 syncSection
                 aboutSection
             }
@@ -42,6 +46,11 @@ struct SettingsView: View {
                         dismiss()
                     }
                 }
+            }
+            .task {
+                guard let client = flagsAgent else { return }
+                let enabled = await client.is("stats").enabled()
+                statsEnabled = enabled
             }
             .alert("Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
@@ -68,23 +77,35 @@ struct SettingsView: View {
                     handleAuthChange(oldValue: oldValue, newValue: newValue)
                 }
             }
+        } else {
+            Section("Authentication") {
+                Button("Sign in") {
+                    authIsPresented = true
+                }
+                .sheet(isPresented: $authIsPresented) {
+                    AuthView()
+                }
+            }
         }
     }
 
+    @ViewBuilder
     private var syncSection: some View {
-        Section("Sync") {
-            if syncService.isSyncing {
-                HStack {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                    Text("Syncing...")
-                        .foregroundStyle(.secondary)
+        if clerk.user != nil {
+            Section("Sync") {
+                if syncService.isSyncing {
+                    HStack {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                        Text("Syncing...")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    syncButton
+                    debugInfoButton
+                    lastSyncText
+                    syncErrorText
                 }
-            } else {
-                syncButton
-                debugInfoButton
-                lastSyncText
-                syncErrorText
             }
         }
     }
@@ -134,6 +155,12 @@ struct SettingsView: View {
                     Spacer()
                     Image(systemName: "arrow.up.forward")
                 }
+            }
+            HStack {
+                Text("Version")
+                Spacer()
+                Text(appVersionString)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -223,6 +250,14 @@ struct SettingsView: View {
     }
 }
 
+private extension SettingsView {
+    var appVersionString: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        return build.isEmpty ? version : "\(version) (\(build))"
+    }
+}
+
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(
@@ -232,3 +267,4 @@ struct SettingsView: View {
 
     return SettingsView(modelContext: container.mainContext)
 }
+

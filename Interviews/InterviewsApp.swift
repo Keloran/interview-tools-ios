@@ -8,12 +8,29 @@
 import SwiftUI
 import SwiftData
 import Clerk
+import FlagsGG
 
 @main
 struct InterviewsApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var modelContainer: ModelContainer?
     @State private var showLaunchScreen = true
+    private let flagsClient: Flags?
+    
+    init() {
+        do {
+            flagsClient = try Flags.builder().withAuth(Auth(
+                projectId: "198ba0bd-e7e1-4219-beee-9bd82de0e03c",
+                agentId: "8b98066c-9017-460f-8c0f-beb92392eb14",
+                environmentId: "07a3b112-3bdc-4b1f-a096-ae2bdf21ad67"
+            )).build()
+        } catch {
+            #if DEBUG
+            print("Failed to initialize Flags client: \(error)")
+            #endif
+            flagsClient = nil
+        }
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -30,6 +47,10 @@ struct InterviewsApp: App {
                             // when it detects the matching URL scheme
                         }
                         .appUpdateAlertOnLaunch()
+                        .modifier(FlagsAgentModifier(client: flagsClient))
+                        .task {
+                            // no-op; initialization handled below
+                        }
                 }
                 
                 // Launch screen overlay - dismisses quickly
@@ -91,5 +112,26 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> UIInterfaceOrientationMask {
         // Lock to portrait orientation only
         return .portrait
+    }
+}
+private extension View {
+    @ViewBuilder
+    func ifLet<T>(_ value: T?, transform: (Self, T) -> some View) -> some View {
+        if let value {
+            transform(self, value)
+        } else {
+            self
+        }
+    }
+}
+
+private struct FlagsAgentModifier: ViewModifier {
+    let client: FlagsClient?
+    func body(content: Content) -> some View {
+        if let client {
+            content.flagsAgent(client)
+        } else {
+            content
+        }
     }
 }
