@@ -54,9 +54,7 @@ struct AddInterviewView: View {
     // Determine if link field should be shown
     private var shouldShowLinkField: Bool {
         guard let method = selectedStageMethod?.method else { return false }
-        let lowercased = method.lowercased()
-        // Don't show for "In Person" or "Phone"
-        return !lowercased.contains("in person") && !lowercased.contains("phone")
+        return method.caseInsensitiveCompare("Link") == .orderedSame
     }
     
     // Deduplicate and sort stages
@@ -111,19 +109,20 @@ struct AddInterviewView: View {
     
     // Deduplicate and sort stage methods
     private var sortedUniqueStageMethods: [StageMethod] {
-        // Group methods by name and keep only the first occurrence
-        var seenMethods = Set<String>()
-        let uniqueMethods = stageMethods.filter { method in
-            let name = method.method
-            if seenMethods.contains(name) {
-                return false
+        // Restrict to exactly three options regardless of what's in the database
+        let allowedNames = ["Link", "In Person", "Phone"]
+
+        // Try to reuse existing StageMethod objects if they exist, otherwise create ephemeral ones
+        var results: [StageMethod] = []
+        for name in allowedNames {
+            if let existing = stageMethods.first(where: { $0.method.caseInsensitiveCompare(name) == .orderedSame }) {
+                results.append(existing)
+            } else {
+                // Create a transient StageMethod (not inserted) for selection purposes
+                results.append(StageMethod(method: name))
             }
-            seenMethods.insert(name)
-            return true
         }
-        
-        // Sort alphabetically
-        return uniqueMethods.sorted { $0.method < $1.method }
+        return results
     }
 
     var body: some View {
@@ -503,17 +502,9 @@ struct AddInterviewView: View {
     
     /// Auto-detect and select stage method from link
     private func autoDetectStageMethod(from link: String) {
-        guard let detectedName = inferStageMethodName(from: link) else { return }
-        
-        // Try to find a matching stage method
-        if let matchingMethod = stageMethods.first(where: { method in
-            method.method.lowercased() == detectedName.lowercased()
-        }) {
-            selectedStageMethod = matchingMethod
-            print("✅ Auto-detected stage method: \(detectedName)")
-        } else {
-            // If no exact match found, keep current selection or default to generic video call
-            print("⚠️ Detected \(detectedName) but no matching stage method in database")
+        // Always select the high-level "Link" method when a URL is provided
+        if let linkMethod = sortedUniqueStageMethods.first(where: { $0.method.caseInsensitiveCompare("Link") == .orderedSame }) {
+            selectedStageMethod = linkMethod
         }
     }
 }
