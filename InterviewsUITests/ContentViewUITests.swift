@@ -106,14 +106,22 @@ final class ContentViewUITests: XCTestCase {
     func testSearchFieldAcceptsText() throws {
         // Find and tap search field
         let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5), "Search field should exist")
         searchField.tap()
         
-        // Type text
-        searchField.typeText("Apple")
+        // Ensure the keyboard is presented before typing (prevents dropped keys in CI)
+        XCTAssertTrue(app.keyboards.element.waitForExistence(timeout: 3), "Keyboard should appear after tapping search")
         
-        // Verify text was entered
-        XCTAssertEqual(searchField.value as? String, "Apple", "Search field should contain typed text")
+        // Type text more reliably (character by character with a tiny delay)
+        for ch in "Apple" {
+            app.typeText(String(ch))
+            usleep(30_000) // 30ms spacing helps on CI
+        }
+        
+        // Wait for the field to reflect full text (guards against race conditions)
+        let predicate = NSPredicate(format: "value == %@", "Apple")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: searchField)
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: 3), .completed, "Search field should contain typed text")
     }
     
     @MainActor
@@ -926,3 +934,4 @@ final class ContentViewUITests: XCTestCase {
         }
     }
 }
+
