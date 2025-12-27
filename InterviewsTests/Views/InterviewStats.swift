@@ -7,6 +7,9 @@
 
 import Foundation
 import SwiftData
+#if canImport(Interviews)
+@testable import Interviews
+#endif
 
 /// Represents computed statistics about interviews
 struct InterviewStats {
@@ -155,3 +158,4 @@ struct InterviewStats {
         )
     }
 }
+

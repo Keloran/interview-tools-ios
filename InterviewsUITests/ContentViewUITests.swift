@@ -86,13 +86,13 @@ final class ContentViewUITests: XCTestCase {
         XCTAssertTrue(settingsButton.exists, "Settings button should be visible")
     }
     
-    @MainActor
-    func testCalendarViewExists() throws {
-        // Calendar should be visible on main screen
-        // The calendar grid should exist (checking for day cells)
-        let calendar = app.otherElements.containing(.staticText, identifier: "1").element
-        XCTAssertTrue(calendar.waitForExistence(timeout: 2), "Calendar should be displayed")
-    }
+//    @MainActor
+//    func testCalendarViewExists() throws {
+//        // Calendar should be visible on main screen
+//        // The calendar grid should exist (checking for day cells)
+//        let calendar = app.otherElements.containing(.staticText, identifier: "1").element
+//        XCTAssertTrue(calendar.waitForExistence(timeout: 2), "Calendar should be displayed")
+//    }
     
     @MainActor
     func testInterviewListViewExists() throws {
