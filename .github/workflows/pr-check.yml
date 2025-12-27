@@ -25,7 +25,7 @@ jobs:
           xcodebuild build \
             -project Interviews.xcodeproj \
             -scheme Interviews \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
@@ -36,7 +36,7 @@ jobs:
           xcodebuild test \
             -project Interviews.xcodeproj \
             -scheme Interviews \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
             -testPlan Interviews \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
