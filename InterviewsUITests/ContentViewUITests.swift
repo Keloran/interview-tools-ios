@@ -17,6 +17,8 @@ final class ContentViewUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--uitesting"]
         app.launch()
+        // Give the simulator a brief moment to finish initializing AX in CI
+        usleep(500_000) // 0.5s
         
         // Wait for initial loading overlay to disappear
         let loadingOverlay = app.staticTexts["Loading Your Interviews"]
