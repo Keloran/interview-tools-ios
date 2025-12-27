@@ -35,9 +35,22 @@
 		F3F3C1A02EE397D50000102D /* InterviewsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InterviewsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F3372BCA2F0040E7009DECED /* Exceptions for "Interviews" folder in "Interviews" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F3F3C1862EE397CD0000102D /* Interviews */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F3F3C1892EE397CD0000102D /* Interviews */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F3372BCA2F0040E7009DECED /* Exceptions for "Interviews" folder in "Interviews" target */,
+			);
 			path = Interviews;
 			sourceTree = "<group>";
 		};
@@ -418,7 +431,9 @@
 				DEVELOPMENT_TEAM = RM96X7JX9K;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Interviews/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Interviews.tool;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -453,7 +468,9 @@
 				DEVELOPMENT_TEAM = RM96X7JX9K;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Interviews/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Interviews.tool;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
