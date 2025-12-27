@@ -7,17 +7,33 @@
 
 import XCTest
 
+private func ciTimestamp() -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+    return formatter.string(from: Date())
+}
+
+private func ciLog(_ message: String, file: StaticString = #file, function: StaticString = #function) {
+    let fileName = ("\(file)" as NSString).lastPathComponent
+    print("[UI-TEST] \(ciTimestamp()) [\(fileName)] \(function): \(message)")
+}
+
 final class ContentViewUITests: XCTestCase {
     
     var app: XCUIApplication!
 
     override func setUpWithError() throws {
+        ciLog("BEGIN setUpWithError")
         continueAfterFailure = false
         
         app = XCUIApplication()
         app.launchArguments = ["--uitesting"]
         app.launch()
+        ciLog("App launched, warming up AX")
+        // Give the simulator a brief moment to finish initializing AX in CI
+        usleep(500_000) // 0.5s
         
+        ciLog("Waiting for loading overlay to disappear if present")
         // Wait for initial loading overlay to disappear
         let loadingOverlay = app.staticTexts["Loading Your Interviews"]
         if loadingOverlay.exists {
@@ -27,20 +43,26 @@ final class ContentViewUITests: XCTestCase {
             )
             _ = XCTWaiter().wait(for: [disappearExpectation], timeout: 15)
         }
+        ciLog("Loading overlay handling complete")
         
+        ciLog("Ensuring main navigation is ready")
         // Ensure main navigation is ready
         let mainNavBar = app.navigationBars["Interviews"]
         _ = mainNavBar.waitForExistence(timeout: 5)
+        ciLog("END setUpWithError")
     }
 
     override func tearDownWithError() throws {
+        ciLog("BEGIN tearDownWithError")
         app = nil
+        ciLog("END tearDownWithError")
     }
 
     // MARK: - Launch Screen Tests
     
     @MainActor
     func testLaunchScreenAppearsOnStartup() throws {
+        ciLog("BEGIN test: testLaunchScreenAppearsOnStartup")
         // The app should show launch screen elements briefly
         // Note: Launch screen transitions quickly, so we mainly verify the app loaded successfully
         
@@ -60,10 +82,12 @@ final class ContentViewUITests: XCTestCase {
         
         // Ultimately, the app should reach the main screen
         XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Main screen should appear after launch")
+        ciLog("END test: testLaunchScreenAppearsOnStartup")
     }
     
     @MainActor
     func testLaunchScreenTransitionsToMainContent() throws {
+        ciLog("BEGIN test: testLaunchScreenTransitionsToMainContent")
         // Wait for main content to appear (launch screen should transition away)
         let mainNavBar = app.navigationBars["Interview Planner"]
         XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Should transition to main content")
@@ -71,12 +95,14 @@ final class ContentViewUITests: XCTestCase {
         // Verify main UI elements are present after transition
         let settingsButton = app.buttons["gear"]
         XCTAssertTrue(settingsButton.exists, "Main UI should be fully loaded")
+        ciLog("END test: testLaunchScreenTransitionsToMainContent")
     }
     
     // MARK: - Navigation and Layout Tests
     
     @MainActor
     func testMainScreenExists() throws {
+        ciLog("BEGIN test: testMainScreenExists")
         // Wait for app to finish launching
         let mainNavBar = app.navigationBars["Interview Planner"]
         XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Main navigation bar should exist")
@@ -84,6 +110,7 @@ final class ContentViewUITests: XCTestCase {
         // Verify settings button exists in toolbar
         let settingsButton = app.buttons["gear"]
         XCTAssertTrue(settingsButton.exists, "Settings button should be visible")
+        ciLog("END test: testMainScreenExists")
     }
     
 //    @MainActor
@@ -96,28 +123,41 @@ final class ContentViewUITests: XCTestCase {
     
     @MainActor
     func testInterviewListViewExists() throws {
+        ciLog("BEGIN test: testInterviewListViewExists")
         // The interview list section should exist
         let interviewList = app.staticTexts["Upcoming Interviews"]
         XCTAssertTrue(interviewList.waitForExistence(timeout: 2), "Interview list header should exist")
+        ciLog("END test: testInterviewListViewExists")
     }
     
     // MARK: - Search Feature UI Tests
     @MainActor
     func testSearchFieldAcceptsText() throws {
+        ciLog("BEGIN test: testSearchFieldAcceptsText")
         // Find and tap search field
         let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5), "Search field should exist")
         searchField.tap()
         
-        // Type text
-        searchField.typeText("Apple")
+        // Ensure the keyboard is presented before typing (prevents dropped keys in CI)
+        XCTAssertTrue(app.keyboards.element.waitForExistence(timeout: 3), "Keyboard should appear after tapping search")
         
-        // Verify text was entered
-        XCTAssertEqual(searchField.value as? String, "Apple", "Search field should contain typed text")
+        // Type text more reliably (character by character with a tiny delay)
+        for ch in "Apple" {
+            app.typeText(String(ch))
+            usleep(30_000) // 30ms spacing helps on CI
+        }
+        
+        // Wait for the field to reflect full text (guards against race conditions)
+        let predicate = NSPredicate(format: "value == %@", "Apple")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: searchField)
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: 3), .completed, "Search field should contain typed text")
+        ciLog("END test: testSearchFieldAcceptsText")
     }
     
     @MainActor
     func testSearchShowsResults() throws {
+        ciLog("BEGIN test: testSearchShowsResults")
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -126,10 +166,12 @@ final class ContentViewUITests: XCTestCase {
         // Header should change to "Search Results"
         let searchResultsHeader = app.staticTexts["Search Results"]
         XCTAssertTrue(searchResultsHeader.waitForExistence(timeout: 2), "Search results header should appear")
+        ciLog("END test: testSearchShowsResults")
     }
     
     @MainActor
     func testSearchCanBeCancelled() throws {
+        ciLog("BEGIN test: testSearchCanBeCancelled")
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -143,10 +185,12 @@ final class ContentViewUITests: XCTestCase {
             // Search field should be dismissed or cleared
             XCTAssertFalse(searchField.isHittable || searchField.value as? String == "")
         }
+        ciLog("END test: testSearchCanBeCancelled")
     }
     
     @MainActor
     func testSearchEmptyStateAppears() throws {
+        ciLog("BEGIN test: testSearchEmptyStateAppears")
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -161,12 +205,14 @@ final class ContentViewUITests: XCTestCase {
         // Empty state description should also be visible
         let emptyStateDescription = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'ZZZNonExistentCompanyXYZ'")).element
         XCTAssertTrue(emptyStateDescription.exists, "Empty state description should mention search term")
+        ciLog("END test: testSearchEmptyStateAppears")
     }
     
     // MARK: - Date Selection UI Tests
     
     @MainActor
     func testCalendarDateCanBeSelected() throws {
+        ciLog("BEGIN test: testCalendarDateCanBeSelected")
         // Wait for calendar to fully load - use a more reliable wait
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
@@ -217,10 +263,12 @@ final class ContentViewUITests: XCTestCase {
         }
         
         XCTAssertTrue(clearButton.exists, "Clear button should appear after selecting a date")
+        ciLog("END test: testCalendarDateCanBeSelected")
     }
     
     @MainActor
     func testClearButtonAppearsAfterDateSelection() throws {
+        ciLog("BEGIN test: testClearButtonAppearsAfterDateSelection")
         // Wait for calendar to load
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
@@ -236,10 +284,12 @@ final class ContentViewUITests: XCTestCase {
         // Clear button should appear
         let clearButton = app.buttons["clearDateButton"]
         XCTAssertTrue(clearButton.waitForExistence(timeout: 5), "Clear button should appear after date selection")
+        ciLog("END test: testClearButtonAppearsAfterDateSelection")
     }
     
     @MainActor
     func testClearButtonRemovesDateFilter() throws {
+        ciLog("BEGIN test: testClearButtonRemovesDateFilter")
         // Wait for calendar to load
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
@@ -273,10 +323,12 @@ final class ContentViewUITests: XCTestCase {
         )
         let result = XCTWaiter().wait(for: [expectation], timeout: 3)
         XCTAssertEqual(result, .completed, "Clear button should disappear after clearing filter")
+        ciLog("END test: testClearButtonRemovesDateFilter")
     }
     
     @MainActor
     func testCalendarNavigationWorks() throws {
+        ciLog("BEGIN test: testCalendarNavigationWorks")
         // Wait for calendar to load
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Month/year label should exist")
@@ -330,10 +382,12 @@ final class ContentViewUITests: XCTestCase {
         
         let returnedMonth = monthYearLabel.label
         XCTAssertEqual(currentMonth, returnedMonth, "Should return to original month")
+        ciLog("END test: testCalendarNavigationWorks")
     }
     
     @MainActor
     func testTodayButtonAppearsWhenNavigatingToOtherMonth() throws {
+        ciLog("BEGIN test: testTodayButtonAppearsWhenNavigatingToOtherMonth")
         // Wait for initial load
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
@@ -377,10 +431,12 @@ final class ContentViewUITests: XCTestCase {
             XCTFail("Today button should appear when viewing different month")
             return
         }
+        ciLog("END test: testTodayButtonAppearsWhenNavigatingToOtherMonth")
     }
     
     @MainActor
     func testTodayButtonReturnsToCurrentMonth() throws {
+        ciLog("BEGIN test: testTodayButtonReturnsToCurrentMonth")
         // Wait for initial load
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
@@ -437,10 +493,12 @@ final class ContentViewUITests: XCTestCase {
         )
         let disappearResult = XCTWaiter().wait(for: [todayButtonGoneExpectation], timeout: 5)
         XCTAssertEqual(disappearResult, .completed, "Today button should disappear when returning to current month")
+        ciLog("END test: testTodayButtonReturnsToCurrentMonth")
     }
     
     @MainActor
     func testTodayButtonWorksFromMultipleMonthsAway() throws {
+        ciLog("BEGIN test: testTodayButtonWorksFromMultipleMonthsAway")
         // Wait for calendar to load
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
@@ -485,10 +543,12 @@ final class ContentViewUITests: XCTestCase {
         )
         let disappearResult = XCTWaiter().wait(for: [todayButtonGoneExpectation], timeout: 3)
         XCTAssertEqual(disappearResult, .completed, "Today button should disappear after returning to current month")
+        ciLog("END test: testTodayButtonWorksFromMultipleMonthsAway")
     }
     
     @MainActor
     func testTodayButtonWorksFromPastMonths() throws {
+        ciLog("BEGIN test: testTodayButtonWorksFromPastMonths")
         // Wait for initial load
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
@@ -543,10 +603,12 @@ final class ContentViewUITests: XCTestCase {
         )
         let disappearResult = XCTWaiter().wait(for: [todayButtonGoneExpectation], timeout: 5)
         XCTAssertEqual(disappearResult, .completed, "Today button should disappear when back to current month")
+        ciLog("END test: testTodayButtonWorksFromPastMonths")
     }
     
     @MainActor
     func testDateSelectionShowsOnlyThatDaysInterviews() throws {
+        ciLog("BEGIN test: testDateSelectionShowsOnlyThatDaysInterviews")
         // Wait for calendar to load
         let monthYearLabel = app.staticTexts["monthYearLabel"]
         XCTAssertTrue(monthYearLabel.waitForExistence(timeout: 5), "Calendar should load")
@@ -563,12 +625,14 @@ final class ContentViewUITests: XCTestCase {
         // Header should reflect the selected date
         let dateHeader = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Interviews on'")).element
         XCTAssertTrue(dateHeader.waitForExistence(timeout: 3), "Should show date-specific header")
+        ciLog("END test: testDateSelectionShowsOnlyThatDaysInterviews")
     }
     
     // MARK: - Combined Feature Tests
     
     @MainActor
     func testSearchIgnoresDateFilter() throws {
+        ciLog("BEGIN test: testSearchIgnoresDateFilter")
         // When searching, date filter should be ignored
         // This allows users to see ALL past interviews with a company
         
@@ -599,10 +663,12 @@ final class ContentViewUITests: XCTestCase {
         // Header should change to "Search Results" (not date-specific)
         let searchResultsHeader = app.staticTexts["Search Results"]
         XCTAssertTrue(searchResultsHeader.waitForExistence(timeout: 2), "Search should override date filter")
+        ciLog("END test: testSearchIgnoresDateFilter")
     }
     
     @MainActor
     func testSearchShowsPastInterviewsForDuplicateDetection() throws {
+        ciLog("BEGIN test: testSearchShowsPastInterviewsForDuplicateDetection")
         let searchField = app.searchFields["Search companies..."]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -614,10 +680,12 @@ final class ContentViewUITests: XCTestCase {
         
         // Note: In real usage, this would show past rejected interviews
         // to warn user they already applied to this company
+        ciLog("END test: testSearchShowsPastInterviewsForDuplicateDetection")
     }
     
     @MainActor
     func testEmptyStateShowsForDateWithNoInterviews() throws {
+        ciLog("BEGIN test: testEmptyStateShowsForDateWithNoInterviews")
         // Navigate to a far future date unlikely to have interviews
         let nextMonthButton = app.buttons["nextMonthButton"]
         
@@ -639,6 +707,7 @@ final class ContentViewUITests: XCTestCase {
         // Should show empty state for that date
         let emptyState = app.staticTexts["No Interviews This Day"]
         XCTAssertTrue(emptyState.waitForExistence(timeout: 2), "Empty state should appear for date with no interviews")
+        ciLog("END test: testEmptyStateShowsForDateWithNoInterviews")
     }
     
     
@@ -646,6 +715,7 @@ final class ContentViewUITests: XCTestCase {
     
     @MainActor
     func testSwipeLeftToRejectInterview() throws {
+        ciLog("BEGIN test: testSwipeLeftToRejectInterview")
         // Check if there are any interview rows
         let firstInterviewRow = app.cells.firstMatch
         
@@ -667,10 +737,12 @@ final class ContentViewUITests: XCTestCase {
         }
         
         XCTAssertTrue(rejectButton.exists, "Reject action should be available")
+        ciLog("END test: testSwipeLeftToRejectInterview")
     }
     
     @MainActor
     func testSwipeRightToOpenNextStage() throws {
+        ciLog("BEGIN test: testSwipeRightToOpenNextStage")
         // Check if there are any interview rows
         let firstInterviewRow = app.cells.firstMatch
         
@@ -696,10 +768,12 @@ final class ContentViewUITests: XCTestCase {
         }
         
         XCTAssertTrue(nextStageButton.exists, "Next Stage button should be visible")
+        ciLog("END test: testSwipeRightToOpenNextStage")
     }
     
     @MainActor
     func testRejectActionChangesInterviewStatus() throws {
+        ciLog("BEGIN test: testRejectActionChangesInterviewStatus")
         // Check if there are any interview rows
         let firstInterviewRow = app.cells.firstMatch
         
@@ -728,10 +802,12 @@ final class ContentViewUITests: XCTestCase {
         // Test passes if no crash occurs and action completes
         // We can verify the list still renders
         XCTAssertTrue(app.isHittable, "App should remain responsive after reject action")
+        ciLog("END test: testRejectActionChangesInterviewStatus")
     }
     
     @MainActor
     func testNextStageOpensCreateInterviewSheet() throws {
+        ciLog("BEGIN test: testNextStageOpensCreateInterviewSheet")
         // Check if there are any interview rows
         let firstInterviewRow = app.cells.firstMatch
         
@@ -761,10 +837,12 @@ final class ContentViewUITests: XCTestCase {
         
         // Cancel to close
         cancelButton.tap()
+        ciLog("END test: testNextStageOpensCreateInterviewSheet")
     }
     
     @MainActor
     func testNextStageSheetPrefillsCompanyAndJobTitle() throws {
+        ciLog("BEGIN test: testNextStageSheetPrefillsCompanyAndJobTitle")
         // Check if there are any interview rows
         let firstInterviewRow = app.cells.firstMatch
         
@@ -794,10 +872,12 @@ final class ContentViewUITests: XCTestCase {
         
         // Cancel
         app.buttons["Cancel"].tap()
+        ciLog("END test: testNextStageSheetPrefillsCompanyAndJobTitle")
     }
     
     @MainActor
     func testNextStageSheetDoesNotAllowAppliedStage() throws {
+        ciLog("BEGIN test: testNextStageSheetDoesNotAllowAppliedStage")
         // Check if there are any interview rows
         let firstInterviewRow = app.cells.firstMatch
         
@@ -829,10 +909,12 @@ final class ContentViewUITests: XCTestCase {
         
         // Cancel
         app.buttons["Cancel"].tap()
+        ciLog("END test: testNextStageSheetDoesNotAllowAppliedStage")
     }
     
     @MainActor
     func testNextStageSheetRequiresDateAndTime() throws {
+        ciLog("BEGIN test: testNextStageSheetRequiresDateAndTime")
         // Check if there are any interview rows
         let firstInterviewRow = app.cells.firstMatch
         
@@ -862,12 +944,14 @@ final class ContentViewUITests: XCTestCase {
         
         // Cancel
         app.buttons["Cancel"].tap()
+        ciLog("END test: testNextStageSheetRequiresDateAndTime")
     }
     
     // MARK: - Settings Navigation Tests
     
     @MainActor
     func testSettingsButtonOpensSettings() throws {
+        ciLog("BEGIN test: testSettingsButtonOpensSettings")
         let settingsButton = app.buttons["gear"]
         XCTAssertTrue(settingsButton.exists)
         
@@ -880,20 +964,28 @@ final class ContentViewUITests: XCTestCase {
         
         // Settings view should be visible
         // You may need to adjust this based on your actual SettingsView content
+        ciLog("END test: testSettingsButtonOpensSettings")
     }
     
     // MARK: - Performance Tests
     
     @MainActor
     func testLaunchPerformance() throws {
+        ciLog("BEGIN test: testLaunchPerformance")
+        ciLog("Measuring app launch performance")
         measure(metrics: [XCTApplicationLaunchMetric()]) {
+            ciLog("Launching app for performance metric")
             XCUIApplication().launch()
         }
+        ciLog("END test: testLaunchPerformance")
     }
     
     @MainActor
     func testSearchPerformance() throws {
+        ciLog("BEGIN test: testSearchPerformance")
+        ciLog("Measuring search performance")
         measure {
+            ciLog("Typing into search for performance test")
             let searchField = app.searchFields["Search companies..."]
             searchField.tap()
             searchField.typeText("A")
@@ -906,11 +998,15 @@ final class ContentViewUITests: XCTestCase {
                 app.buttons["Cancel"].tap()
             }
         }
+        ciLog("END test: testSearchPerformance")
     }
     
     @MainActor
     func testCalendarNavigationPerformance() throws {
+        ciLog("BEGIN test: testCalendarNavigationPerformance")
+        ciLog("Measuring calendar navigation performance")
         measure {
+            ciLog("Navigating calendar forward and backward for performance test")
             let nextButton = app.buttons["nextMonthButton"]
             
             for _ in 0..<5 {
@@ -924,5 +1020,7 @@ final class ContentViewUITests: XCTestCase {
                 Thread.sleep(forTimeInterval: 0.5)
             }
         }
+        ciLog("END test: testCalendarNavigationPerformance")
     }
 }
+
