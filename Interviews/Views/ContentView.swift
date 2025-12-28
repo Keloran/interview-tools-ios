@@ -104,14 +104,7 @@ struct ContentView: View {
                     .navigationTitle("Interview Planner")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button {
-                                showingSearch = true
-                            } label: {
-                                Label("Search", systemImage: "magnifyingglass")
-                            }
-                            .accessibilityIdentifier("searchButton")
-                        }
+                        // Removed ToolbarItem(placement: .topBarLeading) search button as per instructions
                         ToolbarItemGroup(placement: .topBarTrailing) {
                             if selectedDate != nil {
                                 Button {
@@ -128,6 +121,10 @@ struct ContentView: View {
                             }
                         }
                     }
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)
+                        .padding(16)
                 }
             }
         }
@@ -181,10 +178,11 @@ struct ContentView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView(modelContext: modelContext)
-        }
-        .sheet(isPresented: $showingSearch) {
+        .sheet(isPresented: Binding(get: { UIDevice.current.userInterfaceIdiom == .pad && showingSearch }, set: { newValue in
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                showingSearch = newValue
+            }
+        })) {
             NavigationStack {
                 VStack {
                     TextField("Search companies...", text: $searchText)
@@ -202,6 +200,9 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(modelContext: modelContext)
         }
         .sheet(isPresented: $showingAddInterview) {
             AddInterviewView(initialDate: selectedDate ?? Date())
@@ -336,6 +337,54 @@ struct ContentView: View {
             withAnimation {
                 isSyncing = false
                 isInitialLoad = false
+            }
+        }
+    }
+}
+
+private struct FloatingSearchControl: View {
+    @Binding var isExpanded: Bool
+    @Binding var text: String
+
+    var body: some View {
+        Group {
+            if isExpanded {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("Search companies...", text: $text)
+                        .textFieldStyle(.plain)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    Button("Cancel") {
+                        text = ""
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                            isExpanded = false
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.regularMaterial)
+                .clipShape(Capsule())
+                .shadow(radius: 3)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .accessibilityIdentifier("searchFieldInline")
+            } else {
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                        isExpanded = true
+                    }
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.accentColor)
+                        .clipShape(Circle())
+                        .shadow(radius: 4)
+                }
+                .accessibilityIdentifier("searchButton")
             }
         }
     }
