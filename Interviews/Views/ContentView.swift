@@ -60,8 +60,32 @@ struct ContentView: View {
                         InterviewListView(selectedDate: $selectedDate, searchText: searchText)
                             .navigationTitle("Interview Planner")
                             .navigationBarTitleDisplayMode(.inline)
-                            .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
                             .accessibilityIdentifier("interviewListView")
+                            .toolbar {
+                                ToolbarItem(placement: .topBarLeading) {
+                                    Button {
+                                        showingSearch = true
+                                    } label: {
+                                        Label("Search", systemImage: "magnifyingglass")
+                                    }
+                                    .accessibilityIdentifier("searchButton")
+                                }
+                                ToolbarItemGroup(placement: .topBarTrailing) {
+                                    if selectedDate != nil {
+                                        Button {
+                                            showingAddInterview = true
+                                        } label: {
+                                            Image(systemName: "plus")
+                                        }
+                                        .accessibilityIdentifier("addInterviewButton")
+                                    }
+                                    Button {
+                                        showingSettings = true
+                                    } label: {
+                                        Image(systemName: "gear")
+                                    }
+                                }
+                            }
                     }
                 }
                 .navigationSplitViewStyle(.balanced)
@@ -70,18 +94,33 @@ struct ContentView: View {
                 NavigationStack {
                     VStack(spacing: 0) {
                         CalendarView(selectedDate: $selectedDate)
-                            .frame(maxHeight: 400)
+                            .frame(maxHeight: 300)
 
                         Divider()
-                            .padding(.bottom, 20)
+                            .padding(.bottom, 8)
 
                         InterviewListView(selectedDate: $selectedDate, searchText: searchText)
                     }
                     .navigationTitle("Interview Planner")
                     .navigationBarTitleDisplayMode(.inline)
-                    .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search companies...")
                     .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button {
+                                showingSearch = true
+                            } label: {
+                                Label("Search", systemImage: "magnifyingglass")
+                            }
+                            .accessibilityIdentifier("searchButton")
+                        }
+                        ToolbarItemGroup(placement: .topBarTrailing) {
+                            if selectedDate != nil {
+                                Button {
+                                    showingAddInterview = true
+                                } label: {
+                                    Image(systemName: "plus")
+                                }
+                                .accessibilityIdentifier("addInterviewButton")
+                            }
                             Button {
                                 showingSettings = true
                             } label: {
@@ -144,6 +183,25 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(modelContext: modelContext)
+        }
+        .sheet(isPresented: $showingSearch) {
+            NavigationStack {
+                VStack {
+                    TextField("Search companies...", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .padding()
+                    Spacer()
+                }
+                .navigationTitle("Search")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Cancel") {
+                            searchText = ""
+                            showingSearch = false
+                        }
+                    }
+                }
+            }
         }
         .sheet(isPresented: $showingAddInterview) {
             AddInterviewView(initialDate: selectedDate ?? Date())
