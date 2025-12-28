@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import Clerk
+import FlagsGG
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext 
@@ -24,6 +25,9 @@ struct ContentView: View {
     @State private var showingSearch = false
     @State private var showingAddInterview = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
+    @State private var statsEnabled: Bool = false
+    
+    @Environment(\.flagsAgent) private var flagsAgent
 
     var body: some View {
         Group {
@@ -32,25 +36,25 @@ struct ContentView: View {
                 NavigationSplitView(columnVisibility: $columnVisibility) {
                     // Sidebar - Calendar
                     VStack(spacing: 0) {
-                        GuestModeBanner()
-                        
                         CalendarView(selectedDate: $selectedDate)
                             .padding(.top)
                         
                         Divider()
                             .padding(.vertical, 8)
                         
-                        // Stats view under calendar on iPad
-//                        CompactStatsView()
+                        if statsEnabled {
+                            CompactStatsView()
+                                .transition(.opacity)
+                        }
                         
                         Spacer()
                     }
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                showingSettings = true
-                            } label: {
-                                Image(systemName: "gear")
+                    .task {
+                        guard let client = flagsAgent else { return }
+                        let enabled = await client.is("stats").enabled()
+                        await MainActor.run {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                statsEnabled = enabled
                             }
                         }
                     }
@@ -98,6 +102,12 @@ struct ContentView: View {
 
                         Divider()
                             .padding(.bottom, 8)
+                        
+                        if statsEnabled {
+                            CompactStatsView()
+                                .padding(.bottom, 8)
+                                .transition(.opacity)
+                        }
 
                         InterviewListView(selectedDate: $selectedDate, searchText: searchText)
                     }
@@ -400,3 +410,4 @@ private struct FloatingSearchControl: View {
     return ContentView()
         .modelContainer(container)
 }
+
