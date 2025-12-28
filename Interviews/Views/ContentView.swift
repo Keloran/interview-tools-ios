@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var isInitialLoad = true
 
     @State private var selectedDate: Date?
+
     @State private var searchText = ""
     @State private var showingSearch = false
     @State private var showingAddInterview = false
@@ -29,92 +30,95 @@ struct ContentView: View {
     
     @Environment(\.flagsAgent) private var flagsAgent
 
+    // MARK: - Subviews to reduce type-checking complexity
+    @ViewBuilder
+    private var iPadSidebar: some View {
+        VStack(spacing: 0) {
+            CalendarView(selectedDate: $selectedDate)
+                .padding(.top)
+            Divider()
+                .padding(.vertical, 8)
+            if statsEnabled {
+                CompactStatsView()
+                    .transition(.opacity)
+            }
+            Spacer()
+        }
+        .task {
+            guard let client = flagsAgent else { return }
+            let enabled = await client.is("stats").enabled()
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    statsEnabled = enabled
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var iPadDetail: some View {
+        NavigationStack {
+            InterviewListView(selectedDate: $selectedDate, searchText: searchText)
+                .navigationTitle("Interview Planner")
+                .navigationBarTitleDisplayMode(.inline)
+                .accessibilityIdentifier("interviewListView")
+                .toolbar { iPadToolbar }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var iPadToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                showingSearch = true
+            } label: {
+                Label("Search", systemImage: "magnifyingglass")
+            }
+            .accessibilityIdentifier("searchButton")
+        }
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if selectedDate != nil {
+                Button {
+                    showingAddInterview = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityIdentifier("addInterviewButton")
+            }
+            Button {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gear")
+            }
+        }
+    }
+
     var body: some View {
         Group {
             if UIDevice.current.userInterfaceIdiom == .pad {
-                // iPad layout: Calendar on left, interviews on right
                 NavigationSplitView(columnVisibility: $columnVisibility) {
-                    // Sidebar - Calendar
-                    VStack(spacing: 0) {
-                        CalendarView(selectedDate: $selectedDate)
-                            .padding(.top)
-                        
-                        Divider()
-                            .padding(.vertical, 8)
-                        
-                        if statsEnabled {
-                            CompactStatsView()
-                                .transition(.opacity)
-                        }
-                        
-                        Spacer()
-                    }
-                    .task {
-                        guard let client = flagsAgent else { return }
-                        let enabled = await client.is("stats").enabled()
-                        await MainActor.run {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                statsEnabled = enabled
-                            }
-                        }
-                    }
+                    iPadSidebar
                 } detail: {
-                    // Detail - Interview List
-                    NavigationStack {
-                        InterviewListView(selectedDate: $selectedDate, searchText: searchText)
-                            .navigationTitle("Interview Planner")
-                            .navigationBarTitleDisplayMode(.inline)
-                            .accessibilityIdentifier("interviewListView")
-                            .toolbar {
-                                ToolbarItem(placement: .topBarLeading) {
-                                    Button {
-                                        showingSearch = true
-                                    } label: {
-                                        Label("Search", systemImage: "magnifyingglass")
-                                    }
-                                    .accessibilityIdentifier("searchButton")
-                                }
-                                ToolbarItemGroup(placement: .topBarTrailing) {
-                                    if selectedDate != nil {
-                                        Button {
-                                            showingAddInterview = true
-                                        } label: {
-                                            Image(systemName: "plus")
-                                        }
-                                        .accessibilityIdentifier("addInterviewButton")
-                                    }
-                                    Button {
-                                        showingSettings = true
-                                    } label: {
-                                        Image(systemName: "gear")
-                                    }
-                                }
-                            }
-                    }
+                    iPadDetail
                 }
                 .navigationSplitViewStyle(.balanced)
             } else {
-                // iPhone layout: Stacked vertically
                 NavigationStack {
                     VStack(spacing: 0) {
                         CalendarView(selectedDate: $selectedDate)
                             .frame(maxHeight: 300)
-
                         Divider()
                             .padding(.bottom, 8)
-                        
                         if statsEnabled {
                             CompactStatsView()
                                 .padding(.bottom, 8)
                                 .transition(.opacity)
                         }
-
                         InterviewListView(selectedDate: $selectedDate, searchText: searchText)
                     }
                     .navigationTitle("Interview Planner")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
-                        // Removed ToolbarItem(placement: .topBarLeading) search button as per instructions
                         ToolbarItemGroup(placement: .topBarTrailing) {
                             if selectedDate != nil {
                                 Button {
@@ -215,7 +219,9 @@ struct ContentView: View {
             SettingsView(modelContext: modelContext)
         }
         .sheet(isPresented: $showingAddInterview) {
-            AddInterviewView(initialDate: selectedDate ?? Date())
+            // Capture the selected date at the moment the sheet is presented
+            let dateToUse = selectedDate ?? Date()
+            AddInterviewView(initialDate: dateToUse)
         }
         .environment(\.clerk, clerk)
         .onAppear {
@@ -243,7 +249,9 @@ struct ContentView: View {
                 // User signed out
                 Task {
                     await APIService.shared.setAuthToken(nil)
-                    hasPerformedInitialSync = false // Allow sync on next sign in
+                    await MainActor.run {
+                        hasPerformedInitialSync = false // Allow sync on next sign in
+                    }
                 }
             }
         }
@@ -273,7 +281,9 @@ struct ContentView: View {
             return
         }
         
-        hasPerformedInitialSync = true
+        await MainActor.run {
+            hasPerformedInitialSync = true
+        }
         
         await MainActor.run {
             isSyncing = true
