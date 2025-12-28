@@ -4,8 +4,7 @@ import PackageDescription
 let package = Package(
     name: "Interviews",
     platforms: [
-      .iOS(.v26.1),
-      .ipadOS(.v26.1)
+      .iOS(.v18),
     ],
     dependencies: [
         .package(url: "https://github.com/flags-gg/swift.git", from: "v1.0.2"),
