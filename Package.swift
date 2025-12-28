@@ -7,7 +7,7 @@ let package = Package(
       .iOS(.v18),
     ],
     dependencies: [
-        .package(url: "https://github.com/flags-gg/swift.git", from: "v1.0.2"),
+        .package(url: "https://github.com/flags-gg/swift.git", from: "1.0.3"),
         .package(url: "https://github.com/clerk/clerk-ios.git", from: "0.71.4")
     ],
     targets: [
