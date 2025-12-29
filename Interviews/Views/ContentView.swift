@@ -80,6 +80,7 @@ struct ContentView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 CalendarView(selectedDate: $selectedDate)
+                    .padding(.vertical, 4)
                     .frame(maxHeight: 300)
                     .onChange(of: selectedDate) { oldValue, newValue in
                         let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
@@ -88,11 +89,6 @@ struct ContentView: View {
                     }
                 Divider()
                     .padding(.bottom, 8)
-                if statsEnabled {
-                    CompactStatsView()
-                        .padding(.bottom, 8)
-                        .transition(.opacity)
-                }
                 InterviewListView(selectedDate: $selectedDate, searchText: searchText)
             }
             .navigationTitle("Interview Planner")
