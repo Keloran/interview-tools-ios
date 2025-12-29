@@ -421,7 +421,7 @@ struct InterviewDetailSheet: View {
                                 .foregroundStyle(.secondary)
                             Text("Not specified")
                                 .foregroundStyle(.tertiary)
-                        }.glassEffect()
+                        }
                     }
 
                     if let method = interview.stageMethod {
@@ -430,20 +430,19 @@ struct InterviewDetailSheet: View {
                                 .foregroundStyle(.secondary)
                             Text(method.method)
                                 .fontWeight(.medium)
-                        }.glassEffect()
+                        }
                     } else {
                         HStack {
                             Text("Method:")
                                 .foregroundStyle(.secondary)
                             Text("Not specified")
                                 .foregroundStyle(.tertiary)
-                        }.glassEffect()
+                        }
                     }
 
                     HStack {
                         Text("Outcome:")
                             .foregroundStyle(.secondary)
-                            .glassEffect()
                         if let outcome = interview.outcome {
                             Text(outcome.displayName)
                                 .fontWeight(.medium)
@@ -468,12 +467,10 @@ struct InterviewDetailSheet: View {
                                     .font(.caption)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Color.primary)
-                                    .cornerRadius(6)
                                     .glassEffect()
                             }
                         }
-                    }.glassEffect()
+                    }
                 }
 
                 Divider()
@@ -512,7 +509,7 @@ struct InterviewDetailSheet: View {
                         )
                         .font(.subheadline)
                     }
-                }.glassEffect()
+                }
 
                 // Additional Information (only show if present)
                 if interview.interviewer != nil || interview.link != nil || interview.jobListing != nil || interview.notes != nil {

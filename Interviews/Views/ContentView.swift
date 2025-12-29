@@ -138,6 +138,7 @@ struct ContentView: View {
                 showingSettings = true
             } label: {
                 Image(systemName: "gear")
+                    .glassEffect()
             }
         }
     }
