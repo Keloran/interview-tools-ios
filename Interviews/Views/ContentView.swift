@@ -35,14 +35,15 @@ struct ContentView: View {
     private var iPadSidebar: some View {
         VStack(spacing: 0) {
             CalendarView(selectedDate: $selectedDate)
-                .frame(maxHeight: 300)
-                .padding(.top)
-                .onChange(of: selectedDate) { oldValue, newValue in
-                    let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-                    let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-                }
+                .frame(maxHeight: 320)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+//                .onChange(of: selectedDate) { oldValue, newValue in
+//                    let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+//                    let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+//                }
             Divider()
-                .padding(.vertical, 8)
+                .padding(.vertical, 12)
             if statsEnabled {
                 CompactStatsView()
                     .transition(.opacity)
@@ -80,15 +81,16 @@ struct ContentView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 CalendarView(selectedDate: $selectedDate)
-                    .padding(.vertical, 4)
-                    .frame(maxHeight: 300)
-                    .onChange(of: selectedDate) { oldValue, newValue in
-                        let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-                        let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-//                        print("📅 selectedDate changed (iPhone): \(oldStr) -> \(newStr)")
-                    }
-                Divider()
+                    .padding(.top, 8)
                     .padding(.bottom, 8)
+                    .frame(maxHeight: 320)
+//                    .onChange(of: selectedDate) { oldValue, newValue in
+//                        let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+//                        let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+//                        print("📅 selectedDate changed (iPhone): \(oldStr) -> \(newStr)")
+//                    }
+                Divider()
+                    .padding(.vertical, 12)
                 InterviewListView(selectedDate: $selectedDate, searchText: searchText)
             }
             .navigationTitle("Interview Planner")
@@ -354,13 +356,13 @@ struct ContentView: View {
             try? DatabaseCleanup.cleanupAll(context: modelContext)
             
             // Log summary
-            let descriptor = FetchDescriptor<Interview>()
-            if let allInterviews = try? modelContext.fetch(descriptor) {
-                let withDates = allInterviews.filter { $0.displayDate != nil }
+//            let descriptor = FetchDescriptor<Interview>()
+//            if let allInterviews = try? modelContext.fetch(descriptor) {
+//                let withDates = allInterviews.filter { $0.displayDate != nil }
 //                print("✅ Sync complete: \(allInterviews.count) interviews (\(withDates.count) with scheduled dates)")
-            } else {
-                print("✅ Sync completed successfully")
-            }
+//            } else {
+//                print("✅ Sync completed successfully")
+//            }
         } catch {
             print("Initial sync failed: \(error)")
         }

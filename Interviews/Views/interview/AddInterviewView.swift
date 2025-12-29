@@ -300,7 +300,7 @@ struct AddInterviewView: View {
         applicationDate = initialDate
         if interviewDate == nil { interviewDate = initialDate }
         if deadline == nil { deadline = initialDate }
-        let formattedInit = initialDate.formatted(date: .abbreviated, time: .omitted)
+//        let formattedInit = initialDate.formatted(date: .abbreviated, time: .omitted)
 //        print("🗓️ Defaults seeded with initialDate=\(formattedInit)")
     }
 

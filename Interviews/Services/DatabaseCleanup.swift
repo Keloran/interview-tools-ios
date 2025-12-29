@@ -27,7 +27,7 @@ class DatabaseCleanup {
 //        print("📊 Found \(allStages.count) total stages")
         
         // Count stages with nil IDs
-        let nilIdCount = allStages.filter { $0.id == nil }.count
+//        let nilIdCount = allStages.filter { $0.id == nil }.count
 //        if nilIdCount > 0 {
 //            print("⚠️ Warning: \(nilIdCount) stage(s) have nil ID - this can cause UI issues")
 //        }
@@ -44,7 +44,7 @@ class DatabaseCleanup {
         var stagesToDelete: [Stage] = []
         
         // For each group, keep the first one (lowest ID) and mark the rest for deletion
-        for (name, stages) in stagesByName {
+        for (_, stages) in stagesByName {
             if stages.count > 1 {
 //                print("🔍 Found \(stages.count) duplicates of '\(name)'")
                 
@@ -110,8 +110,8 @@ class DatabaseCleanup {
 //        print("🧹 Cleaned up \(stagesToDelete.count) duplicate stage(s)")
         
         // Verify what's left
-        let remaining = try context.fetch(FetchDescriptor<Stage>())
-        let remainingNilIds = remaining.filter { $0.id == nil }.count
+//        let remaining = try context.fetch(FetchDescriptor<Stage>())
+//        let remainingNilIds = remaining.filter { $0.id == nil }.count
 //        print("✅ \(remaining.count) unique stages remaining: \(remaining.map { $0.stage }.sorted().joined(separator: ", "))")
 //        if remainingNilIds > 0 {
 //            print("⚠️ Note: \(remainingNilIds) stage(s) still have nil ID")
