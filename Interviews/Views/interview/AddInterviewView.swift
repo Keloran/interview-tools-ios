@@ -294,6 +294,14 @@ struct AddInterviewView: View {
                 print("❌ No stages available!")
             }
         }
+        
+        // Seed date fields from the initialDate so calendar selection is preserved
+        // When the stage is "Applied" (no scheduling), we use applicationDate for grouping/display
+        applicationDate = initialDate
+        if interviewDate == nil { interviewDate = initialDate }
+        if deadline == nil { deadline = initialDate }
+        let formattedInit = initialDate.formatted(date: .abbreviated, time: .omitted)
+        print("🗓️ Defaults seeded with initialDate=\(formattedInit)")
     }
 
     private var isValid: Bool {

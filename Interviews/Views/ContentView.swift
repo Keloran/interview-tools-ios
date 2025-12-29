@@ -30,12 +30,27 @@ struct ContentView: View {
     
     @Environment(\.flagsAgent) private var flagsAgent
 
+    private var iPadSearchSheetBinding: Binding<Bool> {
+        Binding(get: {
+            UIDevice.current.userInterfaceIdiom == .pad && showingSearch
+        }, set: { newValue in
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                showingSearch = newValue
+            }
+        })
+    }
+
     // MARK: - Subviews to reduce type-checking complexity
     @ViewBuilder
     private var iPadSidebar: some View {
         VStack(spacing: 0) {
             CalendarView(selectedDate: $selectedDate)
                 .padding(.top)
+                .onChange(of: selectedDate) { oldValue, newValue in
+                    let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+                    let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+                    print("📅 selectedDate changed (iPad): \(oldStr) -> \(newStr)")
+                }
             Divider()
                 .padding(.vertical, 8)
             if statsEnabled {
@@ -66,6 +81,36 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private var iPhoneMain: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                CalendarView(selectedDate: $selectedDate)
+                    .frame(maxHeight: 300)
+                    .onChange(of: selectedDate) { oldValue, newValue in
+                        let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+                        let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+                        print("📅 selectedDate changed (iPhone): \(oldStr) -> \(newStr)")
+                    }
+                Divider()
+                    .padding(.bottom, 8)
+                if statsEnabled {
+                    CompactStatsView()
+                        .padding(.bottom, 8)
+                        .transition(.opacity)
+                }
+                InterviewListView(selectedDate: $selectedDate, searchText: searchText)
+            }
+            .navigationTitle("Interview Planner")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { iPhoneToolbar }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)
+                .padding(16)
+        }
+    }
+
     @ToolbarContentBuilder
     private var iPadToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
@@ -79,6 +124,8 @@ struct ContentView: View {
         ToolbarItemGroup(placement: .topBarTrailing) {
             if selectedDate != nil {
                 Button {
+                    let sel = selectedDate?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+                    print("➕ Add tapped (iPad). selectedDate=\(sel)")
                     showingAddInterview = true
                 } label: {
                     Image(systemName: "plus")
@@ -92,111 +139,115 @@ struct ContentView: View {
             }
         }
     }
+    
+    @ToolbarContentBuilder
+    private var iPhoneToolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if selectedDate != nil {
+                Button {
+                    let sel = selectedDate?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
+                    print("➕ Add tapped (iPhone). selectedDate=\(sel)")
+                    showingAddInterview = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityIdentifier("addInterviewButton")
+            }
+            Button {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gear")
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var syncOverlay: some View {
+        // Full-screen loading overlay for initial sync
+        if isInitialLoad && isSyncing {
+            ZStack {
+                Color(.systemBackground)
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 24) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .tint(Color.accentColor)
+                    
+                    VStack(spacing: 8) {
+                        Text("Loading Your Interviews")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        
+                        Text("Syncing data from server...")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .transition(.opacity)
+        }
+        // Show small sync indicator in corner for subsequent syncs
+        else if isSyncing {
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Syncing...")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial)
+                    .cornerRadius(20)
+                    .shadow(radius: 2)
+                    .padding()
+                }
+            }
+        }
+    }
 
     var body: some View {
-        Group {
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                NavigationSplitView(columnVisibility: $columnVisibility) {
-                    iPadSidebar
-                } detail: {
-                    iPadDetail
-                }
-                .navigationSplitViewStyle(.balanced)
-            } else {
-                NavigationStack {
-                    VStack(spacing: 0) {
-                        CalendarView(selectedDate: $selectedDate)
-                            .frame(maxHeight: 300)
-                        Divider()
-                            .padding(.bottom, 8)
-                        if statsEnabled {
-                            CompactStatsView()
-                                .padding(.bottom, 8)
-                                .transition(.opacity)
-                        }
-                        InterviewListView(selectedDate: $selectedDate, searchText: searchText)
-                    }
-                    .navigationTitle("Interview Planner")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItemGroup(placement: .topBarTrailing) {
-                            if selectedDate != nil {
-                                Button {
-                                    showingAddInterview = true
-                                } label: {
-                                    Image(systemName: "plus")
-                                }
-                                .accessibilityIdentifier("addInterviewButton")
-                            }
-                            Button {
-                                showingSettings = true
-                            } label: {
-                                Image(systemName: "gear")
-                            }
-                        }
-                    }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)
-                        .padding(16)
-                }
+        mainScaffold
+            .accessibilityElement(children: .contain)
+            .accessibilityValue(selectedDate != nil ? "Date selected" : "No date selected")
+            .overlay { syncOverlay }
+            .sheet(isPresented: iPadSearchSheetBinding) { SearchSheet(searchText: $searchText, showingSearch: $showingSearch) }
+            .sheet(isPresented: $showingSettings) { SettingsView(modelContext: modelContext) }
+            .sheet(isPresented: $showingAddInterview) { AddInterviewSheet(selectedDate: selectedDate) }
+            .onChange(of: showingAddInterview) { _, newValue in
+                print("🪟 showingAddInterview changed -> \(newValue)")
             }
+            .environment(\.clerk, clerk)
+            .onAppear { configureClerkAndMaybeSync() }
+            .onChange(of: clerk.user) { oldValue, newValue in
+                handleClerkUserChange(oldValue: oldValue, newValue: newValue)
+            }
+    }
+
+    @ViewBuilder
+    private var mainScaffold: some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
+                iPadSidebar
+            } detail: {
+                iPadDetail
+            }
+            .navigationSplitViewStyle(.balanced)
+        } else {
+            iPhoneMain
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityValue(selectedDate != nil ? "Date selected" : "No date selected")
-        .overlay {
-            // Full-screen loading overlay for initial sync
-            if isInitialLoad && isSyncing {
-                ZStack {
-                    Color(.systemBackground)
-                        .ignoresSafeArea()
-                    
-                    VStack(spacing: 24) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .tint(Color.accentColor)
-                        
-                        VStack(spacing: 8) {
-                            Text("Loading Your Interviews")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                            
-                            Text("Syncing data from server...")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .transition(.opacity)
-            }
-            // Show small sync indicator in corner for subsequent syncs
-            else if isSyncing {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Syncing...")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(.regularMaterial)
-                        .cornerRadius(20)
-                        .shadow(radius: 2)
-                        .padding()
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: Binding(get: { UIDevice.current.userInterfaceIdiom == .pad && showingSearch }, set: { newValue in
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                showingSearch = newValue
-            }
-        })) {
+    }
+
+    private struct SearchSheet: View {
+        @Binding var searchText: String
+        @Binding var showingSearch: Bool
+
+        var body: some View {
             NavigationStack {
                 VStack {
                     TextField("Search companies...", text: $searchText)
@@ -215,43 +266,47 @@ struct ContentView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView(modelContext: modelContext)
-        }
-        .sheet(isPresented: $showingAddInterview) {
-            // Capture the selected date at the moment the sheet is presented
+    }
+
+    private struct AddInterviewSheet: View {
+        let selectedDate: Date?
+
+        var body: some View {
             let dateToUse = selectedDate ?? Date()
-            AddInterviewView(initialDate: dateToUse)
-        }
-        .environment(\.clerk, clerk)
-        .onAppear {
-            // Configure Clerk synchronously (this should be instant)
-            clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
-            
-            // Load Clerk and sync in the background
-            Task {
-                try? await clerk.load()
-                await performInitialSyncIfNeeded()
+            let formatted = dateToUse.formatted(date: .abbreviated, time: .omitted)
+
+            return NavigationStack {
+                AddInterviewView(initialDate: dateToUse)
+                    .task {
+                        // Keeping the debug print localized reduces inference in main body
+                        print("🧾 Presenting AddInterviewView with initialDate=\(formatted). selectedDate was \(selectedDate?.formatted(date: .abbreviated, time: .omitted) ?? "nil")")
+                    }
             }
         }
-        .onChange(of: clerk.user) { oldValue, newValue in
-            // When user signs in, sync data
-            if oldValue == nil && newValue != nil {
-                Task {
-                    // User just signed in
-                    if let session = clerk.session,
-                       let token = try? await session.getToken() {
-                        await APIService.shared.setAuthToken(token.jwt)
-                        await performInitialSyncIfNeeded()
-                    }
+    }
+
+    private func configureClerkAndMaybeSync() {
+        clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
+        Task {
+            try? await clerk.load()
+            await performInitialSyncIfNeeded()
+        }
+    }
+
+    private func handleClerkUserChange(oldValue: User?, newValue: User?) {
+        if oldValue == nil && newValue != nil {
+            Task {
+                if let session = clerk.session,
+                   let token = try? await session.getToken() {
+                    await APIService.shared.setAuthToken(token.jwt)
+                    await performInitialSyncIfNeeded()
                 }
-            } else if oldValue != nil && newValue == nil {
-                // User signed out
-                Task {
-                    await APIService.shared.setAuthToken(nil)
-                    await MainActor.run {
-                        hasPerformedInitialSync = false // Allow sync on next sign in
-                    }
+            }
+        } else if oldValue != nil && newValue == nil {
+            Task {
+                await APIService.shared.setAuthToken(nil)
+                await MainActor.run {
+                    hasPerformedInitialSync = false
                 }
             }
         }
