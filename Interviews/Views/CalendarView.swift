@@ -54,6 +54,7 @@ struct CalendarView: View {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(.primary)
+                                .padding(.all, 4)
                         }
                         .glassEffect()
                         .accessibilityIdentifier("previousMonthButton")
@@ -62,6 +63,7 @@ struct CalendarView: View {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(.primary)
+                                .padding(.all, 4)
                         }
                         .glassEffect()
                         .accessibilityIdentifier("nextMonthButton")

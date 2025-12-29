@@ -74,7 +74,6 @@ struct ContentView: View {
                         .padding(16)
                 }
                 .foregroundStyle(.primary)
-                .glassEffect()
         }
     }
 
@@ -94,7 +93,6 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { iPhoneToolbar }
             .foregroundStyle(.primary)
-            .glassEffect()
         }
         .overlay(alignment: .bottomTrailing) {
             FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)

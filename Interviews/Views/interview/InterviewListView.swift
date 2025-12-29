@@ -36,7 +36,8 @@ struct InterviewListView: View {
                             .font(.subheadline)
                             .foregroundStyle(.primary)
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .glassEffect()
                     .accessibilityIdentifier("clearDateButton")
                     .accessibilityLabel("Clear date selection")
