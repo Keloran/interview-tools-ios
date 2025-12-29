@@ -20,17 +20,17 @@ class DatabaseCleanup {
         let allStages = try context.fetch(descriptor)
         
         guard !allStages.isEmpty else {
-            print("⚠️ No stages found in database")
+//            print("⚠️ No stages found in database")
             return
         }
         
-        print("📊 Found \(allStages.count) total stages")
+//        print("📊 Found \(allStages.count) total stages")
         
         // Count stages with nil IDs
         let nilIdCount = allStages.filter { $0.id == nil }.count
-        if nilIdCount > 0 {
-            print("⚠️ Warning: \(nilIdCount) stage(s) have nil ID - this can cause UI issues")
-        }
+//        if nilIdCount > 0 {
+//            print("⚠️ Warning: \(nilIdCount) stage(s) have nil ID - this can cause UI issues")
+//        }
         
         // Group by name to find duplicates (maintaining sorted order by ID)
         var stagesByName: [String: [Stage]] = [:]
@@ -38,7 +38,7 @@ class DatabaseCleanup {
             stagesByName[stage.stage, default: []].append(stage)
         }
         
-        print("📊 Unique stage names: \(stagesByName.keys.sorted().joined(separator: ", "))")
+//        print("📊 Unique stage names: \(stagesByName.keys.sorted().joined(separator: ", "))")
         
         var stagesToKeep: [Stage] = []
         var stagesToDelete: [Stage] = []
@@ -46,7 +46,7 @@ class DatabaseCleanup {
         // For each group, keep the first one (lowest ID) and mark the rest for deletion
         for (name, stages) in stagesByName {
             if stages.count > 1 {
-                print("🔍 Found \(stages.count) duplicates of '\(name)'")
+//                print("🔍 Found \(stages.count) duplicates of '\(name)'")
                 
                 // Sort by ID to ensure we keep the first one
                 let sorted = stages.sorted { (s1, s2) -> Bool in
@@ -73,7 +73,7 @@ class DatabaseCleanup {
         }
         
         guard !stagesToDelete.isEmpty else {
-            print("✅ No duplicate stages found")
+//            print("✅ No duplicate stages found")
             return
         }
         
@@ -96,26 +96,26 @@ class DatabaseCleanup {
             }
         }
         
-        if reassignCount > 0 {
-            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated stages")
-        }
+//        if reassignCount > 0 {
+//            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated stages")
+//        }
         
         // Delete duplicates
-        print("🗑️ Deleting \(stagesToDelete.count) duplicate stage(s)")
+//        print("🗑️ Deleting \(stagesToDelete.count) duplicate stage(s)")
         for duplicate in stagesToDelete {
             context.delete(duplicate)
         }
         
         try context.save()
-        print("🧹 Cleaned up \(stagesToDelete.count) duplicate stage(s)")
+//        print("🧹 Cleaned up \(stagesToDelete.count) duplicate stage(s)")
         
         // Verify what's left
         let remaining = try context.fetch(FetchDescriptor<Stage>())
         let remainingNilIds = remaining.filter { $0.id == nil }.count
-        print("✅ \(remaining.count) unique stages remaining: \(remaining.map { $0.stage }.sorted().joined(separator: ", "))")
-        if remainingNilIds > 0 {
-            print("⚠️ Note: \(remainingNilIds) stage(s) still have nil ID")
-        }
+//        print("✅ \(remaining.count) unique stages remaining: \(remaining.map { $0.stage }.sorted().joined(separator: ", "))")
+//        if remainingNilIds > 0 {
+//            print("⚠️ Note: \(remainingNilIds) stage(s) still have nil ID")
+//        }
     }
     
     /// Remove duplicate stage methods from the database, keeping only the first occurrence of each unique name
@@ -139,7 +139,7 @@ class DatabaseCleanup {
         }
         
         guard !methodsToDelete.isEmpty else {
-            print("✅ No duplicate stage methods found")
+//            print("✅ No duplicate stage methods found")
             return
         }
         
@@ -161,9 +161,9 @@ class DatabaseCleanup {
             }
         }
         
-        if reassignCount > 0 {
-            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated methods")
-        }
+//        if reassignCount > 0 {
+//            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated methods")
+//        }
         
         // Delete duplicates
         for duplicate in methodsToDelete {
@@ -171,7 +171,7 @@ class DatabaseCleanup {
         }
         
         try context.save()
-        print("🧹 Cleaned up \(methodsToDelete.count) duplicate stage method(s)")
+//        print("🧹 Cleaned up \(methodsToDelete.count) duplicate stage method(s)")
     }
     
     /// Remove duplicate companies from the database, keeping only the first occurrence of each unique name
@@ -195,7 +195,7 @@ class DatabaseCleanup {
         }
         
         guard !companiesToDelete.isEmpty else {
-            print("✅ No duplicate companies found")
+//            print("✅ No duplicate companies found")
             return
         }
         
@@ -217,9 +217,9 @@ class DatabaseCleanup {
             }
         }
         
-        if reassignCount > 0 {
-            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated companies")
-        }
+//        if reassignCount > 0 {
+//            print("🔗 Reassigned \(reassignCount) interview(s) to deduplicated companies")
+//        }
         
         // Delete duplicates
         for duplicate in companiesToDelete {
@@ -227,15 +227,15 @@ class DatabaseCleanup {
         }
         
         try context.save()
-        print("🧹 Cleaned up \(companiesToDelete.count) duplicate company(ies)")
+//        print("🧹 Cleaned up \(companiesToDelete.count) duplicate company(ies)")
     }
     
     /// Run all cleanup operations
     static func cleanupAll(context: ModelContext) throws {
-        print("🧹 Starting database cleanup...")
+//        print("🧹 Starting database cleanup...")
         try removeDuplicateStages(context: context)
         try removeDuplicateStageMethods(context: context)
         try removeDuplicateCompanies(context: context)
-        print("✅ Database cleanup complete")
+//        print("✅ Database cleanup complete")
     }
 }

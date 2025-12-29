@@ -279,7 +279,7 @@ struct MigrationView: View {
         let localInterviews = try modelContext.fetch(descriptor)
         
         guard !localInterviews.isEmpty else {
-            print("📭 No local interviews to push")
+//            print("📭 No local interviews to push")
             return
         }
         
@@ -297,16 +297,16 @@ struct MigrationView: View {
                 interview.id = apiInterview.id
                 successCount += 1
                 
-                print("✅ Pushed interview: \(interview.jobTitle) at \(interview.company?.name ?? "Unknown")")
+//                print("✅ Pushed interview: \(interview.jobTitle) at \(interview.company?.name ?? "Unknown")")
             } catch {
                 failureCount += 1
-                print("❌ Failed to push interview: \(interview.jobTitle) - \(error)")
+//                print("❌ Failed to push interview: \(interview.jobTitle) - \(error)")
             }
         }
         
         try modelContext.save()
         
-        print("📊 Push complete: \(successCount) succeeded, \(failureCount) failed")
+//        print("📊 Push complete: \(successCount) succeeded, \(failureCount) failed")
         
         if failureCount > 0 {
             throw NSError(domain: "com.interviews", code: 500, userInfo: [

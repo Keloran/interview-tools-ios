@@ -172,7 +172,7 @@ struct CreateNextStageView: View {
         
         // Trigger seeding if data is missing (fallback)
         if allStages.isEmpty || allMethods.isEmpty {
-            print("⚠️ CreateNextStageView: No stages/methods found - triggering fallback seeding")
+//            print("⚠️ CreateNextStageView: No stages/methods found - triggering fallback seeding")
             DataSeeder.seedDefaultData(context: modelContext)
         }
     }

@@ -30,26 +30,16 @@ struct ContentView: View {
     
     @Environment(\.flagsAgent) private var flagsAgent
 
-    private var iPadSearchSheetBinding: Binding<Bool> {
-        Binding(get: {
-            UIDevice.current.userInterfaceIdiom == .pad && showingSearch
-        }, set: { newValue in
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                showingSearch = newValue
-            }
-        })
-    }
-
     // MARK: - Subviews to reduce type-checking complexity
     @ViewBuilder
     private var iPadSidebar: some View {
         VStack(spacing: 0) {
             CalendarView(selectedDate: $selectedDate)
+                .frame(maxHeight: 300)
                 .padding(.top)
                 .onChange(of: selectedDate) { oldValue, newValue in
                     let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
                     let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-                    print("📅 selectedDate changed (iPad): \(oldStr) -> \(newStr)")
                 }
             Divider()
                 .padding(.vertical, 8)
@@ -78,6 +68,10 @@ struct ContentView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .accessibilityIdentifier("interviewListView")
                 .toolbar { iPadToolbar }
+                .overlay(alignment: .bottomTrailing) {
+                    FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)
+                        .padding(16)
+                }
         }
     }
 
@@ -90,7 +84,7 @@ struct ContentView: View {
                     .onChange(of: selectedDate) { oldValue, newValue in
                         let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
                         let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-                        print("📅 selectedDate changed (iPhone): \(oldStr) -> \(newStr)")
+//                        print("📅 selectedDate changed (iPhone): \(oldStr) -> \(newStr)")
                     }
                 Divider()
                     .padding(.bottom, 8)
@@ -113,14 +107,6 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var iPadToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                showingSearch = true
-            } label: {
-                Label("Search", systemImage: "magnifyingglass")
-            }
-            .accessibilityIdentifier("searchButton")
-        }
         ToolbarItemGroup(placement: .topBarTrailing) {
             if selectedDate != nil {
                 Button {
@@ -216,7 +202,6 @@ struct ContentView: View {
             .accessibilityElement(children: .contain)
             .accessibilityValue(selectedDate != nil ? "Date selected" : "No date selected")
             .overlay { syncOverlay }
-            .sheet(isPresented: iPadSearchSheetBinding) { SearchSheet(searchText: $searchText, showingSearch: $showingSearch) }
             .sheet(isPresented: $showingSettings) { SettingsView(modelContext: modelContext) }
             .sheet(isPresented: $showingAddInterview) { AddInterviewSheet(selectedDate: selectedDate) }
             .onChange(of: showingAddInterview) { _, newValue in
@@ -240,31 +225,6 @@ struct ContentView: View {
             .navigationSplitViewStyle(.balanced)
         } else {
             iPhoneMain
-        }
-    }
-
-    private struct SearchSheet: View {
-        @Binding var searchText: String
-        @Binding var showingSearch: Bool
-
-        var body: some View {
-            NavigationStack {
-                VStack {
-                    TextField("Search companies...", text: $searchText)
-                        .textFieldStyle(.roundedBorder)
-                        .padding()
-                    Spacer()
-                }
-                .navigationTitle("Search")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Cancel") {
-                            searchText = ""
-                            showingSearch = false
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -320,7 +280,7 @@ struct ContentView: View {
                     isInitialLoad = false
                 }
             }
-            print("👋 Running in guest mode - no sync needed")
+//            print("👋 Running in guest mode - no sync needed")
             return
         }
         
@@ -367,7 +327,7 @@ struct ContentView: View {
             ))
             
             if !guestInterviews.isEmpty {
-                print("📤 Found \(guestInterviews.count) guest interview(s) - migrating to server first...")
+//                print("📤 Found \(guestInterviews.count) guest interview(s) - migrating to server first...")
                 
                 // Create sync service and push guest data
                 let syncService = SyncService(modelContext: modelContext)
@@ -379,14 +339,14 @@ struct ContentView: View {
                         
                         // Update the local interview with the server ID
                         interview.id = apiInterview.id
-                        print("✅ Migrated guest interview: \(interview.jobTitle) at \(interview.company?.name ?? "Unknown")")
+//                        print("✅ Migrated guest interview: \(interview.jobTitle) at \(interview.company?.name ?? "Unknown")")
                     } catch {
                         print("❌ Failed to migrate interview: \(interview.jobTitle) - \(error)")
                     }
                 }
                 
                 try modelContext.save()
-                print("✅ Guest data migration complete")
+//                print("✅ Guest data migration complete")
             }
             
             // THEN: Sync all data from server (source of truth)
@@ -400,7 +360,7 @@ struct ContentView: View {
             let descriptor = FetchDescriptor<Interview>()
             if let allInterviews = try? modelContext.fetch(descriptor) {
                 let withDates = allInterviews.filter { $0.displayDate != nil }
-                print("✅ Sync complete: \(allInterviews.count) interviews (\(withDates.count) with scheduled dates)")
+//                print("✅ Sync complete: \(allInterviews.count) interviews (\(withDates.count) with scheduled dates)")
             } else {
                 print("✅ Sync completed successfully")
             }

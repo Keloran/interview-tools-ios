@@ -274,7 +274,7 @@ struct CalendarDayCell: View {
                         ForEach(interviews.prefix(2), id: \.persistentModelID) { interview in
                             Circle()
                                 .fill(colorForInterview(interview))
-                                .frame(width: 3, height: 3)
+                                .frame(width: 4, height: 4)
                         }
                         if interviews.count > 2 {
                             Text("+\(interviews.count - 2)")
@@ -335,3 +335,4 @@ struct CalendarDayCell: View {
     CalendarView(selectedDate: .constant(nil))
         .modelContainer(for: [Interview.self, Company.self, Stage.self, StageMethod.self], inMemory: true)
 }
+

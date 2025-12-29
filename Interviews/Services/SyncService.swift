@@ -63,7 +63,7 @@ class SyncService: ObservableObject {
         // Delete local companies that no longer exist on the server
         for localCompany in allLocalCompanies {
             if let localId = localCompany.id, !serverCompanyIds.contains(localId) {
-                print("🗑️ Deleting company '\(localCompany.name)' (ID: \(localId)) - no longer on server")
+//                print("🗑️ Deleting company '\(localCompany.name)' (ID: \(localId)) - no longer on server")
                 modelContext.delete(localCompany)
             }
         }
@@ -97,7 +97,7 @@ class SyncService: ObservableObject {
                 if let localRecord = try modelContext.fetch(nameDescriptor).first {
                     // Update the local record with server ID (merge)
                     localRecord.id = apiCompany.id
-                    print("🔄 Merged local Company '\(apiCompany.name)' with server ID \(apiCompany.id)")
+//                    print("🔄 Merged local Company '\(apiCompany.name)' with server ID \(apiCompany.id)")
                 } else {
                     // Create new record
                     let company = Company(id: apiCompany.id, name: apiCompany.name)
@@ -128,7 +128,7 @@ class SyncService: ObservableObject {
         // Delete local stages that no longer exist on the server
         for localStage in allLocalStages {
             if let localId = localStage.id, !serverStageIds.contains(localId) {
-                print("🗑️ Deleting stage '\(localStage.stage)' (ID: \(localId)) - no longer on server")
+//                print("🗑️ Deleting stage '\(localStage.stage)' (ID: \(localId)) - no longer on server")
                 modelContext.delete(localStage)
             }
         }
@@ -162,7 +162,7 @@ class SyncService: ObservableObject {
                 if let localRecord = try modelContext.fetch(nameDescriptor).first {
                     // Update the local record with server ID (merge)
                     localRecord.id = apiStage.id
-                    print("🔄 Merged local Stage '\(apiStage.stage)' with server ID \(apiStage.id)")
+//                    print("🔄 Merged local Stage '\(apiStage.stage)' with server ID \(apiStage.id)")
                 } else {
                     // Create new record
                     let stage = Stage(id: apiStage.id, stage: apiStage.stage)
@@ -193,7 +193,7 @@ class SyncService: ObservableObject {
         // Delete local methods that no longer exist on the server
         for localMethod in allLocalMethods {
             if let localId = localMethod.id, !serverMethodIds.contains(localId) {
-                print("🗑️ Deleting stage method '\(localMethod.method)' (ID: \(localId)) - no longer on server")
+//                print("🗑️ Deleting stage method '\(localMethod.method)' (ID: \(localId)) - no longer on server")
                 modelContext.delete(localMethod)
             }
         }
@@ -227,7 +227,7 @@ class SyncService: ObservableObject {
                 if let localRecord = try modelContext.fetch(nameDescriptor).first {
                     // Update the local record with server ID (merge)
                     localRecord.id = apiMethod.id
-                    print("🔄 Merged local StageMethod '\(apiMethod.method)' with server ID \(apiMethod.id)")
+//                    print("🔄 Merged local StageMethod '\(apiMethod.method)' with server ID \(apiMethod.id)")
                 } else {
                     // Create new record
                     let method = StageMethod(id: apiMethod.id, method: apiMethod.method)
@@ -258,7 +258,7 @@ class SyncService: ObservableObject {
         // Delete local interviews that no longer exist on the server
         for localInterview in allLocalInterviews {
             if let localId = localInterview.id, !serverInterviewIds.contains(localId) {
-                print("🗑️ Deleting interview '\(localInterview.jobTitle)' (ID: \(localId)) - no longer on server")
+//                print("🗑️ Deleting interview '\(localInterview.jobTitle)' (ID: \(localId)) - no longer on server")
                 modelContext.delete(localInterview)
             }
         }
