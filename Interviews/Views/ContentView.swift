@@ -111,6 +111,7 @@ struct ContentView: View {
                     showingAddInterview = true
                 } label: {
                     Image(systemName: "plus")
+                    
                 }
                 .accessibilityIdentifier("addInterviewButton")
             }
@@ -411,7 +412,7 @@ private struct FloatingSearchControl: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
-                        .background(Color.accentColor)
+                        .glassEffect()
                         .clipShape(Circle())
                         .shadow(radius: 4)
                 }

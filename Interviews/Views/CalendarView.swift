@@ -44,7 +44,7 @@ struct CalendarView: View {
                                     .fontWeight(.medium)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(Color.accentColor.opacity(0.1))
+                                    .glassEffect()
                                     .foregroundStyle(Color.accentColor)
                                     .cornerRadius(8)
                             }
@@ -55,6 +55,7 @@ struct CalendarView: View {
                         Button(action: previousMonth) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
+                                .glassEffect()
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("previousMonthButton")
@@ -62,6 +63,7 @@ struct CalendarView: View {
                         Button(action: nextMonth) {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 16, weight: .semibold))
+                                .glassEffect()
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("nextMonthButton")
@@ -80,7 +82,7 @@ struct CalendarView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.top, 0)
+            .padding(.top, 2)
 
             // Calendar grid
             LazyVGrid(columns: columns, spacing: 2) {
