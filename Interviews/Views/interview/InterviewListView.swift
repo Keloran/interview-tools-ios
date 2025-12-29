@@ -34,9 +34,10 @@ struct InterviewListView: View {
                     Button(action: { selectedDate = nil }) {
                         Text("Clear")
                             .font(.subheadline)
-                            .foregroundStyle(.blue)
-                            .glassEffect()
+                            .foregroundStyle(.primary)
                     }
+                    .padding(.horizontal)
+                    .glassEffect()
                     .accessibilityIdentifier("clearDateButton")
                     .accessibilityLabel("Clear date selection")
                 }
@@ -334,7 +335,7 @@ struct InterviewListRow: View {
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.2))
+                            .background(Color.primary.opacity(0.2))
                             .cornerRadius(4)
                     }
                 }
@@ -419,7 +420,7 @@ struct InterviewDetailSheet: View {
                                 .foregroundStyle(.secondary)
                             Text("Not specified")
                                 .foregroundStyle(.tertiary)
-                        }
+                        }.glassEffect()
                     }
 
                     if let method = interview.stageMethod {
@@ -428,19 +429,20 @@ struct InterviewDetailSheet: View {
                                 .foregroundStyle(.secondary)
                             Text(method.method)
                                 .fontWeight(.medium)
-                        }
+                        }.glassEffect()
                     } else {
                         HStack {
                             Text("Method:")
                                 .foregroundStyle(.secondary)
                             Text("Not specified")
                                 .foregroundStyle(.tertiary)
-                        }
+                        }.glassEffect()
                     }
 
                     HStack {
                         Text("Outcome:")
                             .foregroundStyle(.secondary)
+                            .glassEffect()
                         if let outcome = interview.outcome {
                             Text(outcome.displayName)
                                 .fontWeight(.medium)
@@ -465,12 +467,12 @@ struct InterviewDetailSheet: View {
                                     .font(.caption)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Color.blue)
-                                    .foregroundStyle(.white)
+                                    .background(Color.primary)
                                     .cornerRadius(6)
+                                    .glassEffect()
                             }
                         }
-                    }
+                    }.glassEffect()
                 }
 
                 Divider()
@@ -509,7 +511,7 @@ struct InterviewDetailSheet: View {
                         )
                         .font(.subheadline)
                     }
-                }
+                }.glassEffect()
 
                 // Additional Information (only show if present)
                 if interview.interviewer != nil || interview.link != nil || interview.jobListing != nil || interview.notes != nil {

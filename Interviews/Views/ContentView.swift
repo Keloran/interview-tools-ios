@@ -73,6 +73,8 @@ struct ContentView: View {
                     FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)
                         .padding(16)
                 }
+                .foregroundStyle(.primary)
+                .glassEffect()
         }
     }
 
@@ -84,11 +86,6 @@ struct ContentView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 8)
                     .frame(maxHeight: 320)
-//                    .onChange(of: selectedDate) { oldValue, newValue in
-//                        let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-//                        let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-//                        print("📅 selectedDate changed (iPhone): \(oldStr) -> \(newStr)")
-//                    }
                 Divider()
                     .padding(.vertical, 12)
                 InterviewListView(selectedDate: $selectedDate, searchText: searchText)
@@ -96,6 +93,8 @@ struct ContentView: View {
             .navigationTitle("Interview Planner")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { iPhoneToolbar }
+            .foregroundStyle(.primary)
+            .glassEffect()
         }
         .overlay(alignment: .bottomTrailing) {
             FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)
@@ -108,11 +107,10 @@ struct ContentView: View {
         ToolbarItemGroup(placement: .topBarTrailing) {
             if selectedDate != nil {
                 Button {
-                    let sel = selectedDate?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-                    print("➕ Add tapped (iPad). selectedDate=\(sel)")
                     showingAddInterview = true
                 } label: {
                     Image(systemName: "plus")
+                        .foregroundStyle(.primary)
                     
                 }
                 .accessibilityIdentifier("addInterviewButton")
@@ -121,6 +119,7 @@ struct ContentView: View {
                 showingSettings = true
             } label: {
                 Image(systemName: "gear")
+                    .glassEffect()
             }
         }
     }
@@ -130,11 +129,10 @@ struct ContentView: View {
         ToolbarItemGroup(placement: .topBarTrailing) {
             if selectedDate != nil {
                 Button {
-                    let sel = selectedDate?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-                    print("➕ Add tapped (iPhone). selectedDate=\(sel)")
                     showingAddInterview = true
                 } label: {
                     Image(systemName: "plus")
+                        .foregroundStyle(.primary)
                 }
                 .accessibilityIdentifier("addInterviewButton")
             }
@@ -385,17 +383,19 @@ private struct FloatingSearchControl: View {
             if isExpanded {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary)
                     TextField("Search companies...", text: $text)
                         .textFieldStyle(.plain)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .foregroundStyle(.primary)
                     Button("Cancel") {
                         text = ""
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
                             isExpanded = false
                         }
                     }
+                    .foregroundStyle(.primary)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -412,13 +412,13 @@ private struct FloatingSearchControl: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
-                        .glassEffect()
                         .clipShape(Circle())
                         .shadow(radius: 4)
                 }
                 .accessibilityIdentifier("searchButton")
+                .foregroundStyle(.primary)
+                .glassEffect()
             }
         }
     }

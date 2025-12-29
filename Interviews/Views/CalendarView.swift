@@ -44,28 +44,26 @@ struct CalendarView: View {
                                     .fontWeight(.medium)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .glassEffect()
-                                    .foregroundStyle(Color.accentColor)
-                                    .cornerRadius(8)
+                                    .foregroundStyle(.primary)
                             }
-                            .buttonStyle(.plain)
+                            .glassEffect()
                             .accessibilityIdentifier("todayButton")
                         }
                         
                         Button(action: previousMonth) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
-                                .glassEffect()
+                                .foregroundStyle(.primary)
                         }
-                        .buttonStyle(.plain)
+                        .glassEffect()
                         .accessibilityIdentifier("previousMonthButton")
 
                         Button(action: nextMonth) {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 16, weight: .semibold))
-                                .glassEffect()
+                                .foregroundStyle(.primary)
                         }
-                        .buttonStyle(.plain)
+                        .glassEffect()
                         .accessibilityIdentifier("nextMonthButton")
                     }
                 }
@@ -295,7 +293,7 @@ struct CalendarDayCell: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.accentColor : (isToday ? Color.accentColor : Color.clear), lineWidth: isSelected ? 2 : (isToday ? 1 : 0))
+                    .stroke(isSelected ? Color.purple : (isToday ? Color.accentColor : Color.clear), lineWidth: isSelected ? 2 : (isToday ? 1 : 0))
             )
         }
         .buttonStyle(.plain)

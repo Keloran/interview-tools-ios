@@ -27,13 +27,13 @@ struct StatsView: View {
                     StatCard(
                         title: "Total",
                         value: "\(stats.totalInterviews)",
-                        color: .blue
+                        color: .primary
                     )
                     
                     StatCard(
                         title: "Active",
                         value: "\(stats.activeInterviews)",
-                        color: .orange
+                        color: .secondary
                     )
                 }
             }

@@ -21,7 +21,7 @@ struct GuestModeBanner: View {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     Image(systemName: "person.crop.circle.badge.questionmark")
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.primary)
                         .font(.title3)
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -48,6 +48,7 @@ struct GuestModeBanner: View {
                             showingSignIn = true
                         }
                         .buttonStyle(.borderedProminent)
+                        .foregroundStyle(.primary)
                         .controlSize(.small)
                     }
                 }
@@ -78,7 +79,7 @@ struct SignInView: View {
             VStack(spacing: 24) {
                 Image(systemName: "person.circle")
                     .font(.system(size: 80))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.primary)
                 
                 VStack(spacing: 8) {
                     Text("Sign In to Sync")
@@ -101,6 +102,7 @@ struct SignInView: View {
             }
             .padding()
             .navigationTitle("Sign In")
+            .foregroundStyle(.primary)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -197,7 +199,7 @@ struct MigrationView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "arrow.triangle.2.circlepath.circle")
                             .font(.system(size: 80))
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.primary)
                         
                         Text("Sync Your Data")
                             .font(.title2)
