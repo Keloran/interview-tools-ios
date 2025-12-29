@@ -356,21 +356,12 @@ struct InterviewListRow: View {
     private var outcomeColor: Color {
         // If no outcome is set and stage is "Applied", show as awaiting response
         if interview.outcome == nil && interview.stage?.stage == "Applied" {
-            return .yellow
+            return colorForOutcomeString("applied")
         }
         
         guard let outcome = interview.outcome else { return .blue }
-
-        switch outcome {
-        case .scheduled: return .blue
-        case .passed: return .green
-        case .rejected: return .red
-        case .awaitingResponse: return .yellow
-        case .offerReceived: return .purple
-        case .offerAccepted: return .green
-        case .offerDeclined: return .orange
-        case .withdrew: return .gray
-        }
+        
+        return colorForOutcomeInterview(outcome)
     }
 }
 
@@ -451,7 +442,7 @@ struct InterviewDetailSheet: View {
                             // All "Applied" interviews are awaiting response
                             Text("Awaiting Response")
                                 .fontWeight(.medium)
-                                .foregroundStyle(.yellow)
+                                .foregroundStyle(colorForOutcomeString("applied"))
                         } else {
                             Text("Pending")
                                 .foregroundStyle(.tertiary)

@@ -314,22 +314,9 @@ struct CalendarDayCell: View {
 
     private func colorForInterview(_ interview: Interview) -> Color {
         if let outcome = interview.outcome {
-            return colorForOutcome(outcome)
+            return colorForOutcomeInterview(outcome)
         }
         return .blue
-    }
-
-    private func colorForOutcome(_ outcome: InterviewOutcome) -> Color {
-        switch outcome {
-        case .scheduled: return .blue
-        case .passed: return .green
-        case .rejected: return .red
-        case .awaitingResponse: return .yellow
-        case .offerReceived: return .purple
-        case .offerAccepted: return .green
-        case .offerDeclined: return .orange
-        case .withdrew: return .gray
-        }
     }
 }
 
