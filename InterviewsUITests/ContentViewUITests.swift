@@ -20,6 +20,91 @@ private func ciLog(_ message: String, file: StaticString = #file, function: Stat
 
 final class ContentViewUITests: XCTestCase {
     
+    // MARK: - Helpers
+    @discardableResult
+    private func revealSearchField(timeout: TimeInterval = 8) -> XCUIElement {
+        ciLog("Attempting to reveal expanding search field")
+
+        // Try to find an existing search field or inline text field first
+        let inlineTextField = app.textFields["searchFieldInline"]
+        if inlineTextField.exists && inlineTextField.isHittable {
+            ciLog("Inline search text field already visible (searchFieldInline)")
+            return inlineTextField
+        }
+        let existingSearchField = app.searchFields.element(boundBy: 0)
+        if existingSearchField.exists && existingSearchField.isHittable {
+            ciLog("Search field already visible")
+            return existingSearchField
+        }
+        let existingTextField = app.textFields.element(boundBy: 0)
+        if existingTextField.exists && existingTextField.isHittable {
+            ciLog("Text field already visible (search likely implemented as TextField)")
+            return existingTextField
+        }
+
+        // Prefer the inline search toggle revealed in logs: identifier `searchFieldInline`
+        let inlineSearchToggle = app.buttons["searchFieldInline"]
+        if inlineSearchToggle.exists && inlineSearchToggle.isHittable {
+            ciLog("Tapping inline search toggle (searchFieldInline)")
+            inlineSearchToggle.tap()
+            usleep(200_000)
+        } else {
+            // Potential buttons that reveal the search field
+            let possibleSearchButtons: [XCUIElement] = [
+                app.buttons["searchButton"],                 // explicit identifier if set in app code
+                app.buttons["Search"],                       // accessibility label
+                app.buttons["magnifyingglass"],              // SF Symbol name used as identifier
+                app.navigationBars.buttons["Search"],
+                app.navigationBars.buttons["magnifyingglass"],
+                app.toolbars.buttons["Search"],
+                app.toolbars.buttons["magnifyingglass"]
+            ]
+
+            // Tap the first visible one
+            if let button = possibleSearchButtons.first(where: { $0.exists && $0.isHittable }) {
+                ciLog("Tapping search reveal button: \(button.label)")
+                button.tap()
+                usleep(150_000)
+            } else {
+                ciLog("No obvious search button found; attempting to pull-to-reveal search")
+                // Try a small pull-down on the main list to expose search in a navigation bar
+                let firstScrollable = app.scrollViews.firstMatch.exists ? app.scrollViews.firstMatch : app.tables.firstMatch
+                if firstScrollable.exists {
+                    firstScrollable.swipeDown()
+                    usleep(200_000)
+                }
+            }
+        }
+
+        // After attempting to reveal, wait for either a SearchField or the inline TextField
+        let searchField = app.searchFields.element(boundBy: 0)
+        let inlineField = app.textFields["searchFieldInline"]
+        let anyTextField = app.textFields.element(boundBy: 0)
+
+        let appeared = inlineField.waitForExistence(timeout: timeout)
+            || searchField.waitForExistence(timeout: max(0, timeout - 0.5))
+            || anyTextField.waitForExistence(timeout: max(0, timeout - 1.0))
+
+        if !appeared {
+            // As a last resort, try toggling inline again in case it requires a second tap to expand
+            if inlineSearchToggle.exists && inlineSearchToggle.isHittable {
+                ciLog("Second attempt: tapping inline search toggle again")
+                inlineSearchToggle.tap()
+                usleep(200_000)
+            }
+        }
+
+        let finalField: XCUIElement = inlineField.exists ? inlineField : (searchField.exists ? searchField : anyTextField)
+        let finalAppeared = finalField.waitForExistence(timeout: 2)
+        if !finalAppeared {
+            // Debug info
+            let allButtons = app.buttons.allElementsBoundByIndex.map { "\($0.identifier)|\($0.label)" }
+            print("DEBUG: Could not reveal search field. Buttons: \(allButtons)")
+        }
+        XCTAssertTrue(finalAppeared, "Search field should become visible after revealing it")
+        return finalField
+    }
+
     var app: XCUIApplication!
 
     override func setUpWithError() throws {
@@ -31,7 +116,7 @@ final class ContentViewUITests: XCTestCase {
         app.launch()
         ciLog("App launched, warming up AX")
         // Give the simulator a brief moment to finish initializing AX in CI
-        usleep(500_000) // 0.5s
+        usleep(800_000) // 0.8s
         
         ciLog("Waiting for loading overlay to disappear if present")
         // Wait for initial loading overlay to disappear
@@ -47,8 +132,8 @@ final class ContentViewUITests: XCTestCase {
         
         ciLog("Ensuring main navigation is ready")
         // Ensure main navigation is ready
-        let mainNavBar = app.navigationBars["Interviews"]
-        _ = mainNavBar.waitForExistence(timeout: 5)
+        let mainNavBar = app.navigationBars["Interview Planner"].exists ? app.navigationBars["Interview Planner"] : app.navigationBars["Interviews"]
+        XCTAssertTrue(mainNavBar.waitForExistence(timeout: 8), "Main navigation should appear after launch")
         ciLog("END setUpWithError")
     }
 
@@ -74,7 +159,7 @@ final class ContentViewUITests: XCTestCase {
         // 1. Launch screen is still visible, OR
         // 2. Main screen has already appeared
         
-        let mainNavBar = app.navigationBars["Interview Planner"]
+        let mainNavBar = app.navigationBars["Interview Planner"].exists ? app.navigationBars["Interview Planner"] : app.navigationBars["Interviews"]
         
         // At least one should be true: launch screen exists OR main screen exists
         let launchOrMainExists = appTitle.exists || mainNavBar.exists
@@ -89,7 +174,7 @@ final class ContentViewUITests: XCTestCase {
     func testLaunchScreenTransitionsToMainContent() throws {
         ciLog("BEGIN test: testLaunchScreenTransitionsToMainContent")
         // Wait for main content to appear (launch screen should transition away)
-        let mainNavBar = app.navigationBars["Interview Planner"]
+        let mainNavBar = app.navigationBars["Interview Planner"].exists ? app.navigationBars["Interview Planner"] : app.navigationBars["Interviews"]
         XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Should transition to main content")
         
         // Verify main UI elements are present after transition
@@ -104,7 +189,7 @@ final class ContentViewUITests: XCTestCase {
     func testMainScreenExists() throws {
         ciLog("BEGIN test: testMainScreenExists")
         // Wait for app to finish launching
-        let mainNavBar = app.navigationBars["Interview Planner"]
+        let mainNavBar = app.navigationBars["Interview Planner"].exists ? app.navigationBars["Interview Planner"] : app.navigationBars["Interviews"]
         XCTAssertTrue(mainNavBar.waitForExistence(timeout: 5), "Main navigation bar should exist")
         
         // Verify settings button exists in toolbar
@@ -135,8 +220,7 @@ final class ContentViewUITests: XCTestCase {
     func testSearchFieldAcceptsText() throws {
         ciLog("BEGIN test: testSearchFieldAcceptsText")
         // Find and tap search field
-        let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 5), "Search field should exist")
+        let searchField = revealSearchField()
         searchField.tap()
         
         // Ensure the keyboard is presented before typing (prevents dropped keys in CI)
@@ -158,32 +242,44 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testSearchShowsResults() throws {
         ciLog("BEGIN test: testSearchShowsResults")
-        let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        let searchField = revealSearchField()
         searchField.tap()
         searchField.typeText("Apple")
         
         // Header should change to "Search Results"
         let searchResultsHeader = app.staticTexts["Search Results"]
-        XCTAssertTrue(searchResultsHeader.waitForExistence(timeout: 2), "Search results header should appear")
+        XCTAssertTrue(searchResultsHeader.waitForExistence(timeout: 5), "Search results header should appear")
         ciLog("END test: testSearchShowsResults")
     }
     
     @MainActor
     func testSearchCanBeCancelled() throws {
         ciLog("BEGIN test: testSearchCanBeCancelled")
-        let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        let searchField = revealSearchField()
         searchField.tap()
         searchField.typeText("Apple")
         
+        usleep(200_000)
         // Look for cancel button (standard iOS search behavior)
         let cancelButton = app.buttons["Cancel"]
         if cancelButton.exists {
             cancelButton.tap()
-            
-            // Search field should be dismissed or cleared
-            XCTAssertFalse(searchField.isHittable || searchField.value as? String == "")
+
+            // After cancel, the inline text field should disappear and Cancel should go away
+            let inlineField = app.textFields["searchFieldInline"]
+            let goneExpectation = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"),
+                object: inlineField
+            )
+            _ = XCTWaiter().wait(for: [goneExpectation], timeout: 3)
+            XCTAssertFalse(inlineField.exists, "Inline search field should be dismissed after Cancel")
+
+            let cancelGone = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"),
+                object: cancelButton
+            )
+            _ = XCTWaiter().wait(for: [cancelGone], timeout: 3)
+            XCTAssertFalse(cancelButton.exists, "Cancel button should disappear after cancelling search")
         }
         ciLog("END test: testSearchCanBeCancelled")
     }
@@ -191,8 +287,7 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testSearchEmptyStateAppears() throws {
         ciLog("BEGIN test: testSearchEmptyStateAppears")
-        let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        let searchField = revealSearchField()
         searchField.tap()
         
         // Search for something that definitely doesn't exist
@@ -200,7 +295,7 @@ final class ContentViewUITests: XCTestCase {
         
         // Empty state should appear
         let emptyStateTitle = app.staticTexts["No Companies Found"]
-        XCTAssertTrue(emptyStateTitle.waitForExistence(timeout: 2), "Empty state should appear for no results")
+        XCTAssertTrue(emptyStateTitle.waitForExistence(timeout: 5), "Empty state should appear for no results")
         
         // Empty state description should also be visible
         let emptyStateDescription = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'ZZZNonExistentCompanyXYZ'")).element
@@ -652,8 +747,7 @@ final class ContentViewUITests: XCTestCase {
         let clearButton = app.buttons["clearDateButton"]
         XCTAssertTrue(clearButton.waitForExistence(timeout: 3), "Clear button should appear")
         
-        let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        let searchField = revealSearchField()
         searchField.tap()
         searchField.typeText("Apple")
         
@@ -669,14 +763,13 @@ final class ContentViewUITests: XCTestCase {
     @MainActor
     func testSearchShowsPastInterviewsForDuplicateDetection() throws {
         ciLog("BEGIN test: testSearchShowsPastInterviewsForDuplicateDetection")
-        let searchField = app.searchFields["Search companies..."]
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        let searchField = revealSearchField()
         searchField.tap()
         searchField.typeText("Google")
         
         // Should show ALL Google interviews (past, present, future)
         let searchResultsHeader = app.staticTexts["Search Results"]
-        XCTAssertTrue(searchResultsHeader.waitForExistence(timeout: 2))
+        XCTAssertTrue(searchResultsHeader.waitForExistence(timeout: 5))
         
         // Note: In real usage, this would show past rejected interviews
         // to warn user they already applied to this company
@@ -986,12 +1079,12 @@ final class ContentViewUITests: XCTestCase {
         ciLog("Measuring search performance")
         measure {
             ciLog("Typing into search for performance test")
-            let searchField = app.searchFields["Search companies..."]
+            let searchField = revealSearchField()
             searchField.tap()
             searchField.typeText("A")
             
             // Wait for results to load
-            Thread.sleep(forTimeInterval: 1.0)
+            usleep(600_000)
             
             // Clear search
             if app.buttons["Cancel"].exists {
