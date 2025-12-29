@@ -224,7 +224,7 @@ struct CalendarView: View {
         }
 
         return interviews.filter { interview in
-            guard let interviewDate = interview.displayDate else { return false }
+            let interviewDate = interview.displayDate ?? interview.applicationDate
             return calendar.isDate(interviewDate, inSameDayAs: date)
         }
     }
