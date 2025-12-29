@@ -21,7 +21,7 @@ struct GuestModeBanner: View {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     Image(systemName: "person.crop.circle.badge.questionmark")
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.primary)
                         .font(.title3)
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -48,6 +48,7 @@ struct GuestModeBanner: View {
                             showingSignIn = true
                         }
                         .buttonStyle(.borderedProminent)
+                        .foregroundStyle(.primary)
                         .controlSize(.small)
                     }
                 }
@@ -78,7 +79,7 @@ struct SignInView: View {
             VStack(spacing: 24) {
                 Image(systemName: "person.circle")
                     .font(.system(size: 80))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.primary)
                 
                 VStack(spacing: 8) {
                     Text("Sign In to Sync")
@@ -101,6 +102,7 @@ struct SignInView: View {
             }
             .padding()
             .navigationTitle("Sign In")
+            .foregroundStyle(.primary)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -197,7 +199,7 @@ struct MigrationView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "arrow.triangle.2.circlepath.circle")
                             .font(.system(size: 80))
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.primary)
                         
                         Text("Sync Your Data")
                             .font(.title2)
@@ -279,7 +281,7 @@ struct MigrationView: View {
         let localInterviews = try modelContext.fetch(descriptor)
         
         guard !localInterviews.isEmpty else {
-            print("📭 No local interviews to push")
+//            print("📭 No local interviews to push")
             return
         }
         
@@ -297,16 +299,16 @@ struct MigrationView: View {
                 interview.id = apiInterview.id
                 successCount += 1
                 
-                print("✅ Pushed interview: \(interview.jobTitle) at \(interview.company?.name ?? "Unknown")")
+//                print("✅ Pushed interview: \(interview.jobTitle) at \(interview.company?.name ?? "Unknown")")
             } catch {
                 failureCount += 1
-                print("❌ Failed to push interview: \(interview.jobTitle) - \(error)")
+//                print("❌ Failed to push interview: \(interview.jobTitle) - \(error)")
             }
         }
         
         try modelContext.save()
         
-        print("📊 Push complete: \(successCount) succeeded, \(failureCount) failed")
+//        print("📊 Push complete: \(successCount) succeeded, \(failureCount) failed")
         
         if failureCount > 0 {
             throw NSError(domain: "com.interviews", code: 500, userInfo: [

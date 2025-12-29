@@ -82,6 +82,7 @@ struct SettingsView: View {
                 Button("Sign in") {
                     authIsPresented = true
                 }
+                .foregroundStyle(.primary)
                 .sheet(isPresented: $authIsPresented) {
                     AuthView()
                 }
@@ -152,10 +153,15 @@ struct SettingsView: View {
             Link(destination: URL(string: "https://interviews.tools")!) {
                 HStack {
                     Text("Visit interviews.tools")
+                        .foregroundStyle(.primary)
                     Spacer()
                     Image(systemName: "arrow.up.forward")
+                        .foregroundStyle(.primary)
                 }
+                .foregroundStyle(.primary)
             }
+            .foregroundStyle(.primary)
+            
             HStack {
                 Text("Version")
                 Spacer()

@@ -27,13 +27,13 @@ struct StatsView: View {
                     StatCard(
                         title: "Total",
                         value: "\(stats.totalInterviews)",
-                        color: .blue
+                        color: .primary
                     )
                     
                     StatCard(
                         title: "Active",
                         value: "\(stats.activeInterviews)",
-                        color: .orange
+                        color: .secondary
                     )
                 }
             }
@@ -50,21 +50,21 @@ struct StatsView: View {
                     StatRow(
                         label: "Applied",
                         value: stats.applied,
-                        color: .yellow,
+                        color: colorForOutcomeString("Applied"),
                         icon: "paperplane.fill"
                     )
                     
                     StatRow(
                         label: "Scheduled",
                         value: stats.scheduled,
-                        color: .blue,
+                        color: colorForOutcomeString("Scheduled"),
                         icon: "calendar"
                     )
                     
                     StatRow(
                         label: "Awaiting Response",
                         value: stats.awaitingResponse,
-                        color: .yellow,
+                        color: colorForOutcomeString("Awaiting Response"),
                         icon: "clock.fill"
                     )
                 }
@@ -82,21 +82,21 @@ struct StatsView: View {
                     StatRow(
                         label: "Passed",
                         value: stats.passed,
-                        color: .green,
+                        color: colorForOutcomeString("Passed"),
                         icon: "checkmark.circle.fill"
                     )
                     
                     StatRow(
                         label: "Rejected",
                         value: stats.rejected,
-                        color: .red,
+                        color: colorForOutcomeString("Rejected"),
                         icon: "xmark.circle.fill"
                     )
                     
                     StatRow(
                         label: "Withdrew",
                         value: stats.withdrew,
-                        color: .gray,
+                        color: colorForOutcomeString("Withdrew"),
                         icon: "arrow.uturn.backward.circle.fill"
                     )
                 }
@@ -114,21 +114,21 @@ struct StatsView: View {
                     StatRow(
                         label: "Offer Received",
                         value: stats.offerReceived,
-                        color: .purple,
+                        color: colorForOutcomeString("Offer Received"),
                         icon: "gift.fill"
                     )
                     
                     StatRow(
                         label: "Offer Accepted",
                         value: stats.offerAccepted,
-                        color: .green,
+                        color: colorForOutcomeString("Offer Accepted"),
                         icon: "hand.thumbsup.fill"
                     )
                     
                     StatRow(
                         label: "Offer Declined",
                         value: stats.offerDeclined,
-                        color: .orange,
+                        color: colorForOutcomeString("Offer Declined"),
                         icon: "hand.thumbsdown.fill"
                     )
                 }
@@ -296,13 +296,13 @@ struct CompactStatsView: View {
                     
                     // Key metrics in compact rows
                     VStack(spacing: 8) {
-                        CompactStatRow(label: "Applied", value: stats.applied, color: .yellow)
-                        CompactStatRow(label: "Passed", value: stats.passed, color: .green)
-                        CompactStatRow(label: "Rejected", value: stats.rejected, color: .red)
-                        CompactStatRow(label: "Awaiting", value: stats.awaitingResponse, color: .yellow)
+                        CompactStatRow(label: "Applied", value: stats.applied, color: colorForOutcomeString("Applied"))
+                        CompactStatRow(label: "Passed", value: stats.passed, color: colorForOutcomeString("Passed"))
+                        CompactStatRow(label: "Rejected", value: stats.rejected, color: colorForOutcomeString("Rejected"))
+                        CompactStatRow(label: "Awaiting", value: stats.awaitingResponse, color: colorForOutcomeString("Awaiting"))
                         
                         if stats.offerReceived > 0 {
-                            CompactStatRow(label: "Offers", value: stats.offerReceived, color: .purple)
+                            CompactStatRow(label: "Offers", value: stats.offerReceived, color: colorForOutcomeString("Offers"))
                         }
                     }
                     .padding(.horizontal)
@@ -406,3 +406,5 @@ struct CompactStatRow: View {
     CompactStatsView()
         .modelContainer(for: [Interview.self, Company.self, Stage.self, StageMethod.self], inMemory: true)
 }
+
+

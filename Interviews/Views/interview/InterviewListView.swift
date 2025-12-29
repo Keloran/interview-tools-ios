@@ -34,8 +34,11 @@ struct InterviewListView: View {
                     Button(action: { selectedDate = nil }) {
                         Text("Clear")
                             .font(.subheadline)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.primary)
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .glassEffect()
                     .accessibilityIdentifier("clearDateButton")
                     .accessibilityLabel("Clear date selection")
                 }
@@ -333,7 +336,7 @@ struct InterviewListRow: View {
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.2))
+                            .background(Color.primary.opacity(0.2))
                             .cornerRadius(4)
                     }
                 }
@@ -353,21 +356,12 @@ struct InterviewListRow: View {
     private var outcomeColor: Color {
         // If no outcome is set and stage is "Applied", show as awaiting response
         if interview.outcome == nil && interview.stage?.stage == "Applied" {
-            return .yellow
+            return colorForOutcomeString("applied")
         }
         
         guard let outcome = interview.outcome else { return .blue }
-
-        switch outcome {
-        case .scheduled: return .blue
-        case .passed: return .green
-        case .rejected: return .red
-        case .awaitingResponse: return .yellow
-        case .offerReceived: return .purple
-        case .offerAccepted: return .green
-        case .offerDeclined: return .orange
-        case .withdrew: return .gray
-        }
+        
+        return colorForOutcomeInterview(outcome)
     }
 }
 
@@ -448,7 +442,7 @@ struct InterviewDetailSheet: View {
                             // All "Applied" interviews are awaiting response
                             Text("Awaiting Response")
                                 .fontWeight(.medium)
-                                .foregroundStyle(.yellow)
+                                .foregroundStyle(colorForOutcomeString("applied"))
                         } else {
                             Text("Pending")
                                 .foregroundStyle(.tertiary)
@@ -464,9 +458,7 @@ struct InterviewDetailSheet: View {
                                     .font(.caption)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Color.blue)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(6)
+                                    .glassEffect()
                             }
                         }
                     }

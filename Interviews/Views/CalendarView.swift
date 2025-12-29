@@ -25,7 +25,7 @@ struct CalendarView: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 16) {
+            VStack(spacing: 4) {
                 // Header with month/year and navigation
                 HStack {
                     Text("\(monthNames[calendar.component(.month, from: currentDate) - 1]) \(String(calendar.component(.year, from: currentDate)))")
@@ -44,33 +44,35 @@ struct CalendarView: View {
                                     .fontWeight(.medium)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(Color.accentColor.opacity(0.1))
-                                    .foregroundStyle(Color.accentColor)
-                                    .cornerRadius(8)
+                                    .foregroundStyle(.primary)
                             }
-                            .buttonStyle(.plain)
+                            .glassEffect()
                             .accessibilityIdentifier("todayButton")
                         }
                         
                         Button(action: previousMonth) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .padding(.all, 4)
                         }
-                        .buttonStyle(.plain)
+                        .glassEffect()
                         .accessibilityIdentifier("previousMonthButton")
 
                         Button(action: nextMonth) {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .padding(.all, 4)
                         }
-                        .buttonStyle(.plain)
+                        .glassEffect()
                         .accessibilityIdentifier("nextMonthButton")
                     }
                 }
                 .padding(.horizontal)
 
             // Weekday headers
-            LazyVGrid(columns: columns, spacing: 4) {
+            LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(weekDays, id: \.self) { day in
                     Text(day)
                         .font(.caption)
@@ -80,9 +82,10 @@ struct CalendarView: View {
                 }
             }
             .padding(.horizontal)
+            .padding(.top, 2)
 
             // Calendar grid
-            LazyVGrid(columns: columns, spacing: 4) {
+            LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(calendarCells) { cell in
                     if cell.day > 0 {
                         CalendarDayCell(
@@ -101,31 +104,10 @@ struct CalendarView: View {
             }
             .padding(.horizontal)
 
-                Spacer()
             }
             .offset(x: dragTranslation / 10)
-            .padding(.vertical)
+            .padding(.top, 0)
 
-            // Floating action button
-            if selectedDate != nil {
-                let isIPad = UIDevice.current.userInterfaceIdiom == .pad
-                let heightWidth: CGFloat = isIPad ? 52 : 28
-                let size: CGFloat = isIPad ? 24 : 12
-                let padding: CGFloat = isIPad ? 16 : 8
-                
-                Button(action: {
-                    showingAddInterview = true
-                }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: size, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: heightWidth, height: heightWidth)
-                        .background(Color.accentColor)
-                        .clipShape(Circle())
-                        .shadow(radius: 4)
-                }
-                .padding(padding)
-            }
         }
         .contentShape(Rectangle())
         .gesture(
@@ -244,7 +226,7 @@ struct CalendarView: View {
         }
 
         return interviews.filter { interview in
-            guard let interviewDate = interview.displayDate else { return false }
+            let interviewDate = interview.displayDate ?? interview.applicationDate
             return calendar.isDate(interviewDate, inSameDayAs: date)
         }
     }
@@ -282,9 +264,8 @@ struct CalendarDayCell: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("\(day)")
-                        .font(.caption)
-                        .fontWeight(isToday ? .bold : .medium)
-                        .foregroundStyle(isToday ? .white : .primary)
+                        .font(.system(size: 13, weight: isToday ? .semibold : .medium))
+                        .foregroundStyle(isToday ? .primary : .primary)
                 }
 
                 Spacer()
@@ -299,21 +280,22 @@ struct CalendarDayCell: View {
                         }
                         if interviews.count > 2 {
                             Text("+\(interviews.count - 2)")
-                                .font(.system(size: 6))
+                                .font(.system(size: 5))
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
                 .frame(height: 4) // Reserve consistent height for dot area
             }
-            .padding(4)
+            .padding(3)
             .frame(maxWidth: .infinity)
             .aspectRatio(1, contentMode: .fit)
-            .background(isToday ? Color.accentColor : (isSelected ? Color.accentColor.opacity(0.2) : Color.clear))
-            .cornerRadius(8)
+            .background(
+                isSelected ? Color.accentColor.opacity(0.08) : Color.clear
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? Color.purple : (isToday ? Color.accentColor : Color.clear), lineWidth: isSelected ? 2 : (isToday ? 1 : 0))
             )
         }
         .buttonStyle(.plain)
@@ -332,22 +314,9 @@ struct CalendarDayCell: View {
 
     private func colorForInterview(_ interview: Interview) -> Color {
         if let outcome = interview.outcome {
-            return colorForOutcome(outcome)
+            return colorForOutcomeInterview(outcome)
         }
         return .blue
-    }
-
-    private func colorForOutcome(_ outcome: InterviewOutcome) -> Color {
-        switch outcome {
-        case .scheduled: return .blue
-        case .passed: return .green
-        case .rejected: return .red
-        case .awaitingResponse: return .yellow
-        case .offerReceived: return .purple
-        case .offerAccepted: return .green
-        case .offerDeclined: return .orange
-        case .withdrew: return .gray
-        }
     }
 }
 
@@ -355,3 +324,4 @@ struct CalendarDayCell: View {
     CalendarView(selectedDate: .constant(nil))
         .modelContainer(for: [Interview.self, Company.self, Stage.self, StageMethod.self], inMemory: true)
 }
+
