@@ -41,10 +41,7 @@ func colorForOutcomeInterview(_ outcome: InterviewOutcome) -> Color {
         return .orange
     case .withdrew:
         return .gray
-        
     case .awaitingResponse:
-        return .yellow
-    default:
         return .yellow
     }
 }

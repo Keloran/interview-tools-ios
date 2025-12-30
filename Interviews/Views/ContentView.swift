@@ -34,14 +34,14 @@ struct ContentView: View {
     @ViewBuilder
     private var iPadSidebar: some View {
         VStack(spacing: 0) {
-            CalendarView(selectedDate: $selectedDate)
-                .frame(maxHeight: 320)
-                .padding(.top, 8)
-                .padding(.bottom, 8)
-//                .onChange(of: selectedDate) { oldValue, newValue in
-//                    let oldStr = oldValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-//                    let newStr = newValue?.formatted(date: .abbreviated, time: .omitted) ?? "nil"
-//                }
+            GeometryReader { geo in
+                CalendarView(selectedDate: $selectedDate)
+                    .frame(maxHeight: 320)
+                    .padding(.top, geo.size.height * 0.01)
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
+            }
+            .frame(height: 320)
             Divider()
                 .padding(.vertical, 12)
             if statsEnabled {
@@ -81,10 +81,14 @@ struct ContentView: View {
     private var iPhoneMain: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                CalendarView(selectedDate: $selectedDate)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-                    .frame(maxHeight: 320)
+                GeometryReader { geo in
+                    CalendarView(selectedDate: $selectedDate)
+                        .padding(.top, geo.size.height * 0.01)
+                        .padding(.top, 8)
+                        .padding(.bottom, 8)
+                        .frame(maxHeight: 320)
+                }
+                .frame(height: 320)
                 Divider()
                     .padding(.vertical, 12)
                 InterviewListView(selectedDate: $selectedDate, searchText: searchText)
