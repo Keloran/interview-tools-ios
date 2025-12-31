@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var showingAddInterview = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
     @State private var statsEnabled: Bool = false
+    @State private var calendarHeight: CGFloat = 0
     
     @Environment(\.flagsAgent) private var flagsAgent
 
@@ -34,14 +35,10 @@ struct ContentView: View {
     @ViewBuilder
     private var iPadSidebar: some View {
         VStack(spacing: 0) {
-            GeometryReader { geo in
-                CalendarView(selectedDate: $selectedDate)
-                    .frame(maxHeight: 320)
-                    .padding(.top, geo.size.height * 0.01)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-            }
-            .frame(height: 320)
+            CalendarView(selectedDate: $selectedDate)
+                .frame(maxHeight: 320)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
             Divider()
                 .padding(.vertical, 12)
             if statsEnabled {
@@ -81,17 +78,26 @@ struct ContentView: View {
     private var iPhoneMain: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                GeometryReader { geo in
+                ZStack(alignment: .top) {
                     CalendarView(selectedDate: $selectedDate)
-                        .padding(.top, geo.size.height * 0.01)
-                        .padding(.top, 8)
-                        .padding(.bottom, 8)
                         .frame(maxHeight: 320)
+                        .background(
+                            GeometryReader { innerGeo in
+                                Color.clear
+                                    .onAppear { calendarHeight = innerGeo.size.height }
+                                    .onChange(of: innerGeo.size.height) { _, newValue in
+                                        calendarHeight = newValue
+                                    }
+                            }
+                        )
                 }
                 .frame(height: 320)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
                 Divider()
                     .padding(.vertical, 12)
                 InterviewListView(selectedDate: $selectedDate, searchText: searchText)
+                    .padding(.top, max(0, calendarHeight - 320))
             }
             .navigationTitle("Interview Planner")
             .navigationBarTitleDisplayMode(.inline)
