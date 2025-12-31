@@ -77,32 +77,38 @@ struct ContentView: View {
     @ViewBuilder
     private var iPhoneMain: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                ZStack(alignment: .top) {
-                    CalendarView(selectedDate: $selectedDate)
-                        .frame(maxHeight: 320)
-                        .background(
-                            GeometryReader { innerGeo in
-                                Color.clear
-                                    .onAppear { calendarHeight = innerGeo.size.height }
-                                    .onChange(of: innerGeo.size.height) { _, newValue in
-                                        calendarHeight = newValue
-                                    }
-                            }
-                        )
+            GeometryReader { geo in
+                VStack(spacing: 0) {
+                    // Calendar section
+                    VStack(spacing: 0) {
+                        CalendarView(selectedDate: $selectedDate)
+                            .background(
+                                GeometryReader { innerGeo in
+                                    Color.clear
+                                        .onAppear { calendarHeight = innerGeo.size.height }
+                                        .onChange(of: innerGeo.size.height) { _, newValue in
+                                            calendarHeight = newValue
+                                        }
+                                }
+                            )
+                            .padding(.top, 8)
+                            .padding(.bottom, 8)
+                        Divider()
+                            .padding(.vertical, 12)
+                    }
+                    .accessibilityIdentifier("calendarSection")
+
+                    // List section takes remaining space and scrolls
+                    InterviewListView(selectedDate: $selectedDate, searchText: searchText)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .accessibilityIdentifier("listSection")
                 }
-                .frame(height: 320)
-                .padding(.top, 8)
-                .padding(.bottom, 8)
-                Divider()
-                    .padding(.vertical, 12)
-                InterviewListView(selectedDate: $selectedDate, searchText: searchText)
-                    .padding(.top, max(0, calendarHeight - 320))
+                .foregroundStyle(.primary)
+                .frame(width: geo.size.width, height: geo.size.height)
             }
             .navigationTitle("Interview Planner")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { iPhoneToolbar }
-            .foregroundStyle(.primary)
         }
         .overlay(alignment: .bottomTrailing) {
             FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)
