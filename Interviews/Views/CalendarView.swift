@@ -43,7 +43,6 @@ struct CalendarView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
                                     .foregroundStyle(.primary)
                             }
                             .glassEffect()

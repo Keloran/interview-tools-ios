@@ -43,6 +43,7 @@ struct GuestModeBanner: View {
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
+                        .foregroundStyle(.primary)
                     } else {
                         Button("Sign In") {
                             showingSignIn = true

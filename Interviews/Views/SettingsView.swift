@@ -119,6 +119,7 @@ struct SettingsView: View {
                     await performSync()
                 }
             }
+            .foregroundStyle(.primary)
         }
     }
     
@@ -128,6 +129,7 @@ struct SettingsView: View {
                 await showDatabaseInfo()
             }
         }
+        .foregroundStyle(.primary)
     }
 
     @ViewBuilder

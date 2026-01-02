@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var showingAddInterview = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
     @State private var statsEnabled: Bool = false
+    @State private var calendarHeight: CGFloat = 0
     
     @Environment(\.flagsAgent) private var flagsAgent
 
@@ -34,14 +35,10 @@ struct ContentView: View {
     @ViewBuilder
     private var iPadSidebar: some View {
         VStack(spacing: 0) {
-            GeometryReader { geo in
-                CalendarView(selectedDate: $selectedDate)
-                    .frame(maxHeight: 320)
-                    .padding(.top, geo.size.height * 0.01)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-            }
-            .frame(height: 320)
+            CalendarView(selectedDate: $selectedDate)
+                .frame(maxHeight: 320)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
             Divider()
                 .padding(.vertical, 12)
             if statsEnabled {
@@ -80,23 +77,38 @@ struct ContentView: View {
     @ViewBuilder
     private var iPhoneMain: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                GeometryReader { geo in
-                    CalendarView(selectedDate: $selectedDate)
-                        .padding(.top, geo.size.height * 0.01)
-                        .padding(.top, 8)
-                        .padding(.bottom, 8)
-                        .frame(maxHeight: 320)
+            GeometryReader { geo in
+                VStack(spacing: 0) {
+                    // Calendar section
+                    VStack(spacing: 0) {
+                        CalendarView(selectedDate: $selectedDate)
+                            .background(
+                                GeometryReader { innerGeo in
+                                    Color.clear
+                                        .onAppear { calendarHeight = innerGeo.size.height }
+                                        .onChange(of: innerGeo.size.height) { _, newValue in
+                                            calendarHeight = newValue
+                                        }
+                                }
+                            )
+                            .padding(.top, 8)
+                            .padding(.bottom, 8)
+                        Divider()
+                            .padding(.vertical, 12)
+                    }
+                    .accessibilityIdentifier("calendarSection")
+
+                    // List section takes remaining space and scrolls
+                    InterviewListView(selectedDate: $selectedDate, searchText: searchText)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .accessibilityIdentifier("listSection")
                 }
-                .frame(height: 320)
-                Divider()
-                    .padding(.vertical, 12)
-                InterviewListView(selectedDate: $selectedDate, searchText: searchText)
+                .foregroundStyle(.primary)
+                .frame(width: geo.size.width, height: geo.size.height)
             }
             .navigationTitle("Interview Planner")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { iPhoneToolbar }
-            .foregroundStyle(.primary)
         }
         .overlay(alignment: .bottomTrailing) {
             FloatingSearchControl(isExpanded: $showingSearch, text: $searchText)
