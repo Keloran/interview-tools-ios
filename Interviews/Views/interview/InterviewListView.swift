@@ -9,6 +9,10 @@ import SwiftUI
 import SwiftData
 import Clerk
 
+private struct InterviewItem: Identifiable, Equatable {
+    let id: PersistentIdentifier
+}
+
 struct InterviewListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.clerk) private var clerk
@@ -17,8 +21,8 @@ struct InterviewListView: View {
     @Binding var selectedDate: Date?
     var searchText: String
 
-    @State private var selectedInterview: Interview?
-    @State private var interviewForNextStage: Interview?
+    @State private var selectedInterview: InterviewItem?
+    @State private var interviewForNextStage: InterviewItem?
     @State private var isSyncing = false
 
     var body: some View {
@@ -67,7 +71,7 @@ struct InterviewListView: View {
                                 
                                 if interview.outcome != .passed {
                                     Button {
-                                        interviewForNextStage = interview
+                                        interviewForNextStage = InterviewItem(id: interview.persistentModelID)
                                     } label: {
                                         Label("Next Stage", systemImage: "arrow.right.circle")
                                     }
@@ -87,7 +91,7 @@ struct InterviewListView: View {
                             .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                             .listRowSeparator(.hidden)
                             .onTapGesture {
-                                selectedInterview = interview
+                                selectedInterview = InterviewItem(id: interview.persistentModelID)
                             }
                     }
                 }
@@ -116,22 +120,33 @@ struct InterviewListView: View {
                 .transition(.opacity)
             }
         }
-        .sheet(item: $selectedInterview) { interview in
+        .sheet(item: $selectedInterview) { item in
             NavigationStack {
-                InterviewDetailSheet(interview: interview)
-                    .navigationTitle(interview.jobTitle)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
-                                selectedInterview = nil
+                let interview: Interview? = modelContext.model(for: item.id) as? Interview
+                if let interview {
+                    InterviewDetailSheet(interview: interview)
+                        .navigationTitle(interview.jobTitle)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") {
+                                    selectedInterview = nil
+                                }
                             }
                         }
-                    }
+                } else {
+                    Text("Interview not found")
+                        .padding()
+                }
             }
         }
-        .sheet(item: $interviewForNextStage) { interview in
-            CreateNextStageView(interview: interview)
+        .sheet(item: $interviewForNextStage) { item in
+            if let interview = modelContext.model(for: item.id) as? Interview {
+                CreateNextStageView(interview: interview)
+            } else {
+                Text("Interview not found")
+                    .padding()
+            }
         }
     }
     
@@ -140,9 +155,9 @@ struct InterviewListView: View {
         interview.updatedAt = Date()
         try? modelContext.save()
         
-        // Sync to server if user is authenticated
+        let pid = interview.persistentModelID
         Task {
-            await updateInterviewOnServer(interview)
+            await updateInterviewOnServer(persistentID: pid)
         }
     }
     
@@ -151,36 +166,49 @@ struct InterviewListView: View {
         interview.updatedAt = Date()
         try? modelContext.save()
         
-        // Sync to server if user is authenticated
+        let pid = interview.persistentModelID
         Task {
-            await updateInterviewOnServer(interview)
+            await updateInterviewOnServer(persistentID: pid)
         }
     }
     
-    private func updateInterviewOnServer(_ interview: Interview) async {
+    private func updateInterviewOnServer(persistentID: PersistentIdentifier) async {
         // Only sync if user is authenticated and interview has a server ID
-        guard clerk.user != nil,
-              let interviewId = interview.id else {
-            return
+        guard clerk.user != nil else { return }
+
+        // Snapshot only Sendable primitives on the main actor to avoid crossing non-Sendable Interview
+        let snapshot: (id: Int, outcome: String?, stage: String?, date: String?, deadline: String?, interviewer: String?, notes: String?, link: String?)? = await MainActor.run { () -> (id: Int, outcome: String?, stage: String?, date: String?, deadline: String?, interviewer: String?, notes: String?, link: String?)? in
+            guard let interview = modelContext.model(for: persistentID) as? Interview,
+                  let interviewId = interview.id else { return nil }
+            let dateFormatter = ISO8601DateFormatter()
+            return (
+                id: interviewId,
+                outcome: interview.outcome?.rawValue,
+                stage: interview.stage?.stage,
+                date: interview.date.map { dateFormatter.string(from: $0) },
+                deadline: interview.deadline.map { dateFormatter.string(from: $0) },
+                interviewer: interview.interviewer,
+                notes: interview.notes,
+                link: interview.link
+            )
         }
-        
-        let dateFormatter = ISO8601DateFormatter()
-        
+
+        guard let snapshot else { return }
+
         let request = UpdateInterviewRequest(
-            outcome: interview.outcome?.rawValue,
-            stage: interview.stage?.stage,
-            date: interview.date.map { dateFormatter.string(from: $0) },
-            deadline: interview.deadline.map { dateFormatter.string(from: $0) },
-            interviewer: interview.interviewer,
-            notes: interview.notes,
-            link: interview.link
+            outcome: snapshot.outcome,
+            stage: snapshot.stage,
+            date: snapshot.date,
+            deadline: snapshot.deadline,
+            interviewer: snapshot.interviewer,
+            notes: snapshot.notes,
+            link: snapshot.link
         )
-        
+
         do {
-            _ = try await APIService.shared.updateInterview(id: interviewId, request)
+            _ = try await APIService.shared.updateInterview(id: snapshot.id, request)
         } catch {
             print("Failed to update interview on server: \(error)")
-            // Optionally, you could show an error to the user here
         }
     }
 
@@ -188,14 +216,14 @@ struct InterviewListView: View {
         // Only sync if user is authenticated
         guard clerk.user != nil else { return }
         
-        // Snapshot the current interviews on the main actor to avoid crossing actor boundaries while iterating
-        let itemsToSync: [Interview] = await MainActor.run { interviews }
+        // Snapshot only the persistent IDs on the main actor to avoid crossing actor boundaries
+        let idsToSync: [PersistentIdentifier] = await MainActor.run { interviews.map { $0.persistentModelID } }
         
         // Perform updates concurrently and wait for all to finish before returning (so the spinner can stop)
         await withTaskGroup(of: Void.self) { group in
-            for item in itemsToSync {
+            for id in idsToSync {
                 group.addTask {
-                    await updateInterviewOnServer(item)
+                    await updateInterviewOnServer(persistentID: id)
                 }
             }
             await group.waitForAll()
@@ -601,35 +629,49 @@ struct InterviewDetailSheet: View {
         try? modelContext.save()
         
         // Sync to server if user is authenticated
+        let pid = interview.persistentModelID
         Task {
-            await updateInterviewOnServer()
+            await updateInterviewOnServer(persistentID: pid)
         }
     }
     
-    private func updateInterviewOnServer() async {
+    private func updateInterviewOnServer(persistentID: PersistentIdentifier) async {
         // Only sync if user is authenticated and interview has a server ID
-        guard clerk.user != nil,
-              let interviewId = interview.id else {
-            return
+        guard clerk.user != nil else { return }
+
+        // Snapshot only Sendable primitives on the main actor to avoid crossing non-Sendable Interview
+        let snapshot: (id: Int, outcome: String?, stage: String?, date: String?, deadline: String?, interviewer: String?, notes: String?, link: String?)? = await MainActor.run { () -> (id: Int, outcome: String?, stage: String?, date: String?, deadline: String?, interviewer: String?, notes: String?, link: String?)? in
+            guard let interview = modelContext.model(for: persistentID) as? Interview,
+                  let interviewId = interview.id else { return nil }
+            let dateFormatter = ISO8601DateFormatter()
+            return (
+                id: interviewId,
+                outcome: interview.outcome?.rawValue,
+                stage: interview.stage?.stage,
+                date: interview.date.map { dateFormatter.string(from: $0) },
+                deadline: interview.deadline.map { dateFormatter.string(from: $0) },
+                interviewer: interview.interviewer,
+                notes: interview.notes,
+                link: interview.link
+            )
         }
-        
-        let dateFormatter = ISO8601DateFormatter()
-        
+
+        guard let snapshot else { return }
+
         let request = UpdateInterviewRequest(
-            outcome: interview.outcome?.rawValue,
-            stage: interview.stage?.stage,
-            date: interview.date.map { dateFormatter.string(from: $0) },
-            deadline: interview.deadline.map { dateFormatter.string(from: $0) },
-            interviewer: interview.interviewer,
-            notes: interview.notes,
-            link: interview.link
+            outcome: snapshot.outcome,
+            stage: snapshot.stage,
+            date: snapshot.date,
+            deadline: snapshot.deadline,
+            interviewer: snapshot.interviewer,
+            notes: snapshot.notes,
+            link: snapshot.link
         )
-        
+
         do {
-            _ = try await APIService.shared.updateInterview(id: interviewId, request)
+            _ = try await APIService.shared.updateInterview(id: snapshot.id, request)
         } catch {
             print("Failed to update interview on server: \(error)")
-            // Optionally, you could show an error to the user here
         }
     }
 
