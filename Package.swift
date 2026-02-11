@@ -8,7 +8,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/flags-gg/swift.git", from: "1.0.3"),
-        .package(url: "https://github.com/clerk/clerk-ios.git", from: "0.71.4")
+        .package(url: "https://github.com/clerk/clerk-ios.git", from: "1.0.0")
     ],
     targets: [
       .target(name: "Interviews", dependencies: [
