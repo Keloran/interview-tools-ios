@@ -358,6 +358,7 @@ struct InterviewDetailSheet: View {
     @State private var showingDebrief = false
     @State private var showingPrep = false
     @State private var showingAvailability = false
+    @State private var showingRecruiter = false
 
     var body: some View {
         ScrollView {
@@ -376,6 +377,20 @@ struct InterviewDetailSheet: View {
                     Label("Client: \(clientCompany)", systemImage: "briefcase")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                }
+
+                if interview.applicationId != nil, clerk?.user != nil {
+                    Button {
+                        showingRecruiter = true
+                    } label: {
+                        if interview.viaRecruiter == true, let name = interview.recruiterName ?? interview.recruiterEmail {
+                            Label("Recruiter: \(name)", systemImage: "person.badge.shield.checkmark")
+                        } else {
+                            Label(interview.viaRecruiter == true ? "Add recruiter details" : "Through a recruiter?", systemImage: "person.badge.plus")
+                        }
+                    }
+                    .font(.subheadline)
+                    .sheet(isPresented: $showingRecruiter) { RecruiterContactForm(interview: interview) }
                 }
 
                 if let id = interview.id, clerk?.user != nil {

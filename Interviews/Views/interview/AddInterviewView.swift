@@ -38,6 +38,7 @@ struct AddInterviewView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var hasInitialized = false
+    @State private var recruiterRecords: [APIRecruiterRecord] = []
 
     // Computed properties to match React logic
     private var selectedStageName: String {
@@ -171,6 +172,13 @@ struct AddInterviewView: View {
                         }
                     }
 
+                    // Before you agree to let an agency represent you again: how they've treated you
+                    if let record = RecruiterText.record(for: selectedCompany?.name ?? companyName, in: recruiterRecords) {
+                        Label("\(record.agency): \(RecruiterText.short(record.stats))", systemImage: record.stats.ghosted > 0 ? "exclamationmark.triangle" : "person.2")
+                            .font(.caption)
+                            .foregroundStyle(record.stats.ghosted > 0 ? .orange : .secondary)
+                    }
+
                     TextField("Client Company (Optional)", text: $clientCompany)
                         .textContentType(.organizationName)
 
@@ -237,6 +245,9 @@ struct AddInterviewView: View {
                         }
                     }
                 }
+            }
+            .task {
+                if clerk?.user != nil { recruiterRecords = (try? await APIService.shared.fetchRecruiters()) ?? [] }
             }
             .navigationTitle("Add Interview")
             .navigationBarTitleDisplayMode(.inline)

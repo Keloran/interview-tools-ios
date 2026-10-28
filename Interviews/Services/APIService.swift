@@ -266,6 +266,16 @@ actor APIService {
         try await performRequest(url: URL(string: "\(baseURL)/calendar-settings")!, method: "GET")
     }
 
+    // MARK: - Recruiters
+
+    func fetchRecruiters() async throws -> [APIRecruiterRecord] {
+        try await performRequest(url: URL(string: "\(baseURL)/recruiters")!, method: "GET")
+    }
+
+    func saveRecruiterContact(applicationId: Int, _ contact: RecruiterContactRequest) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/applications/\(applicationId)/recruiter")!, method: "PUT", body: contact)
+    }
+
     // MARK: - Your data
 
     /// The server needs the same typed phrase as the website before it deletes anything

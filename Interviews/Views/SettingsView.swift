@@ -206,6 +206,11 @@ struct SettingsView: View {
                     Label("Offers", systemImage: "envelope.open")
                 }
                 NavigationLink {
+                    RecruitersView()
+                } label: {
+                    Label("Recruiters", systemImage: "person.2")
+                }
+                NavigationLink {
                     QuestionsView()
                 } label: {
                     Label("Questions asked", systemImage: "questionmark.bubble")

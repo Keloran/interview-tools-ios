@@ -27,11 +27,16 @@ struct APIInterview: Codable, Sendable {
     /// The application this stage belongs to (stages of one application share it)
     let applicationId: Int?
     let durationMinutes: Int?
+    let viaRecruiter: Bool?
+    let recruiterName: String?
+    let recruiterEmail: String?
+    let recruiterLinkedIn: String?
 
     enum CodingKeys: String, CodingKey {
         case id, jobTitle, interviewer, company, clientCompany
         case stage, stageMethod, applicationDate, date, deadline
         case outcome, notes, metadata, link, applicationId, durationMinutes
+        case viaRecruiter, recruiterName, recruiterEmail, recruiterLinkedIn
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -52,6 +57,10 @@ struct APIInterview: Codable, Sendable {
         link = try container.decodeIfPresent(String.self, forKey: .link)
         applicationId = try container.decodeIfPresent(Int.self, forKey: .applicationId)
         durationMinutes = try container.decodeIfPresent(Int.self, forKey: .durationMinutes)
+        viaRecruiter = try container.decodeIfPresent(Bool.self, forKey: .viaRecruiter)
+        recruiterName = try container.decodeIfPresent(String.self, forKey: .recruiterName)
+        recruiterEmail = try container.decodeIfPresent(String.self, forKey: .recruiterEmail)
+        recruiterLinkedIn = try container.decodeIfPresent(String.self, forKey: .recruiterLinkedIn)
     }
 
     nonisolated func encode(to encoder: Encoder) throws {
@@ -553,4 +562,37 @@ nonisolated struct ActivityEntryInput: Encodable, Sendable {
 
 nonisolated struct APICalendarSettings: Decodable, Sendable {
     let calendarUrl: String
+}
+
+// MARK: - Recruiters and agencies
+
+/// One agency (contact nil) or one recruiter at it, with their record (GET /api/recruiters)
+nonisolated struct APIRecruiterRecord: Decodable, Sendable, Identifiable {
+    nonisolated struct Contact: Decodable, Sendable {
+        let recruiterName: String?
+        let recruiterEmail: String?
+        let recruiterLinkedIn: String?
+    }
+    nonisolated struct Stats: Decodable, Sendable {
+        let roles: Int
+        let responded: Int
+        let ghosted: Int
+        let waiting: Int
+        let responseRate: Int?
+        let ghostRate: Int?
+        let feedbackRate: Int?
+    }
+    let key: String
+    let agency: String
+    let contact: Contact?
+    let stats: Stats
+    var id: String { key }
+}
+
+/// PUT /api/applications/{id}/recruiter
+nonisolated struct RecruiterContactRequest: Encodable, Sendable {
+    var viaRecruiter: Bool
+    var recruiterName: String
+    var recruiterEmail: String
+    var recruiterLinkedIn: String
 }
