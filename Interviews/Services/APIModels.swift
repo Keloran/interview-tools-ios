@@ -27,11 +27,16 @@ struct APIInterview: Codable, Sendable {
     /// The application this stage belongs to (stages of one application share it)
     let applicationId: Int?
     let durationMinutes: Int?
+    let viaRecruiter: Bool?
+    let recruiterName: String?
+    let recruiterEmail: String?
+    let recruiterLinkedIn: String?
 
     enum CodingKeys: String, CodingKey {
         case id, jobTitle, interviewer, company, clientCompany
         case stage, stageMethod, applicationDate, date, deadline
         case outcome, notes, metadata, link, applicationId, durationMinutes
+        case viaRecruiter, recruiterName, recruiterEmail, recruiterLinkedIn
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -52,6 +57,10 @@ struct APIInterview: Codable, Sendable {
         link = try container.decodeIfPresent(String.self, forKey: .link)
         applicationId = try container.decodeIfPresent(Int.self, forKey: .applicationId)
         durationMinutes = try container.decodeIfPresent(Int.self, forKey: .durationMinutes)
+        viaRecruiter = try container.decodeIfPresent(Bool.self, forKey: .viaRecruiter)
+        recruiterName = try container.decodeIfPresent(String.self, forKey: .recruiterName)
+        recruiterEmail = try container.decodeIfPresent(String.self, forKey: .recruiterEmail)
+        recruiterLinkedIn = try container.decodeIfPresent(String.self, forKey: .recruiterLinkedIn)
     }
 
     nonisolated func encode(to encoder: Encoder) throws {
@@ -343,4 +352,356 @@ nonisolated struct APIOffer: Decodable, Sendable, Identifiable {
         ("Notice period", \.offerNotice, "offerNotice"),
         ("Location / working pattern", \.offerLocation, "offerLocation"),
     ]
+}
+
+// MARK: - Follow-ups and stale applications
+
+/// An application due a chase (GET /api/follow-ups)
+nonisolated struct APIFollowUp: Decodable, Sendable, Identifiable {
+    let id: Int
+    let jobTitle: String
+    let clientCompany: String?
+    let company: String
+    let stage: String
+    let interviewer: String?
+    let date: String?
+    let nextStep: String?
+    let replyBy: String?
+    let followUps: Int
+    let lastFollowUp: String?
+    let dueAt: String
+}
+
+/// Applications that have gone quiet past your threshold (GET /api/stale-applications)
+nonisolated struct APIStaleList: Decodable, Sendable {
+    nonisolated struct Candidate: Decodable, Sendable, Identifiable {
+        let id: Int
+        let company: String
+        let jobTitle: String
+        let lastStage: String
+        let lastActivity: String
+        let quietDays: Int
+    }
+    let days: Int
+    let total: Int
+    let candidates: [Candidate]
+}
+
+nonisolated struct APICloseResult: Decodable, Sendable {
+    let closed: [Int]
+    let skipped: [Int]
+}
+
+// MARK: - After the interview: debrief, prep, questions, stories
+
+/// The debrief and feedback recorded on one stage (from GET /api/interview/{id})
+nonisolated struct APIDebrief: Decodable, Sendable {
+    let rating: Int?
+    let debriefNotes: String?
+    let peopleMet: String?
+    let questionsAsked: String?
+    let nextStep: String?
+    let replyBy: String?
+    let feedbackType: String?
+    let feedbackText: String?
+    let debriefedAt: String?
+}
+
+/// What PUT /api/interview/{id} takes for a debrief. prepNotes is left out on purpose, so saving a
+/// debrief never wipes separately saved preparation.
+nonisolated struct DebriefRequest: Encodable, Sendable {
+    nonisolated struct Debrief: Encodable, Sendable {
+        var rating: Int?
+        var debriefNotes: String
+        var peopleMet: String
+        var questionsAsked: String
+        var nextStep: String
+        var replyBy: String?
+    }
+    nonisolated struct Feedback: Encodable, Sendable {
+        var type: String?
+        var text: String
+    }
+    var debrief: Debrief
+    var feedback: Feedback?
+}
+
+nonisolated struct APIPrep: Codable, Sendable {
+    var notes: String
+    var storyIds: [Int]
+}
+
+nonisolated struct APIStory: Codable, Sendable, Identifiable, Hashable {
+    nonisolated struct Use: Codable, Sendable, Hashable { let interviewId: Int; let company: String; let stage: String }
+    var id: Int
+    var title: String
+    var situation: String
+    var task: String
+    var action: String
+    var result: String
+    var tags: [String]
+    var usedIn: [Use]
+}
+
+/// Fields for creating or editing a story
+nonisolated struct StoryInput: Encodable, Sendable {
+    var title = ""
+    var situation = ""
+    var task = ""
+    var action = ""
+    var result = ""
+    var tags: [String] = []
+}
+
+/// One stage's recorded questions (GET /api/questions)
+nonisolated struct APIQuestionEntry: Decodable, Sendable, Identifiable {
+    let interviewId: Int
+    let company: String
+    let recruiter: String?
+    let stage: String
+    let date: String
+    let jobTitle: String
+    let questions: [String]
+    let notes: String?
+    var id: Int { interviewId }
+}
+
+// MARK: - Availability links
+
+nonisolated struct APIAvailabilityList: Decodable, Sendable {
+    nonisolated struct Link: Decodable, Sendable, Identifiable {
+        let id: String
+        let slots: [String]
+        let durationMinutes: Int
+        let bookedSlot: String?
+        let viewCount: Int
+        let firstViewedAt: String?
+        let lastViewedAt: String?
+        let created_at: String
+        let sentAt: String?
+        let stage: String
+        let path: String
+    }
+    let jobTitle: String
+    let company: String
+    let links: [Link]
+}
+
+nonisolated struct APICreatedLink: Decodable, Sendable {
+    let id: String
+    let path: String
+}
+
+nonisolated struct APIBusy: Decodable, Sendable {
+    let start: String
+    let durationMinutes: Int
+}
+
+// MARK: - Report, activity log, calendar feed
+
+/// GET /api/report/summary: the website's job-search report for a period
+nonisolated struct APIReport: Decodable, Sendable {
+    nonisolated struct Step: Decodable, Sendable { let label: String; let count: Int; let conversion: Int? }
+    nonisolated struct Insights: Decodable, Sendable {
+        let roles: Int
+        let responded: Int
+        let ghosted: Int
+        let waiting: Int
+        let responseRate: Int?
+        let ghostRate: Int?
+        let feedbackRate: Int?
+        let medianReplyDays: Double?
+    }
+    nonisolated struct Week: Decodable, Sendable { let week: String; let applications: Int; let interviews: Int }
+    nonisolated struct Source: Decodable, Sendable {
+        let source: String
+        let roles: Int
+        let responseRate: Int?
+        let ghostRate: Int?
+    }
+    let from: String
+    let through: String
+    let funnel: [Step]
+    let response: Insights
+    let weekly: [Week]
+    let sources: [Source]
+}
+
+/// GET /api/activity-log/rows: the evidence log for a work coach
+nonisolated struct APIActivityLog: Decodable, Sendable {
+    nonisolated struct Totals: Decodable, Sendable { let total: Int; let applied: Int; let interviews: Int; let followUps: Int; let availability: Int; let other: Int }
+    nonisolated struct Row: Decodable, Sendable, Identifiable {
+        let id: String
+        let date: String
+        let kind: String
+        let activity: String
+        let employer: String
+        let role: String
+        let how: String
+        let outcome: String
+        let notes: String
+        /// Rows you added yourself ("entry-12") can be deleted
+        var entryId: Int? { id.hasPrefix("entry-") ? Int(id.dropFirst(6)) : nil }
+    }
+    let from: String
+    let through: String
+    let totals: Totals
+    let rows: [Row]
+}
+
+/// Something that isn't an application: a careers fair, a CV workshop, a Jobcentre appointment
+nonisolated struct ActivityEntryInput: Encodable, Sendable {
+    var date: String
+    var activity = ""
+    var employer = ""
+    var role = ""
+    var how = ""
+    var outcome = ""
+    var notes = ""
+}
+
+nonisolated struct APICalendarSettings: Decodable, Sendable {
+    let calendarUrl: String
+}
+
+// MARK: - Recruiters and agencies
+
+/// One agency (contact nil) or one recruiter at it, with their record (GET /api/recruiters)
+nonisolated struct APIRecruiterRecord: Decodable, Sendable, Identifiable {
+    nonisolated struct Contact: Decodable, Sendable {
+        let recruiterName: String?
+        let recruiterEmail: String?
+        let recruiterLinkedIn: String?
+    }
+    nonisolated struct Stats: Decodable, Sendable {
+        let roles: Int
+        let responded: Int
+        let ghosted: Int
+        let waiting: Int
+        let responseRate: Int?
+        let ghostRate: Int?
+        let feedbackRate: Int?
+    }
+    let key: String
+    let agency: String
+    let contact: Contact?
+    let stats: Stats
+    var id: String { key }
+}
+
+/// PUT /api/applications/{id}/recruiter
+nonisolated struct RecruiterContactRequest: Encodable, Sendable {
+    var viaRecruiter: Bool
+    var recruiterName: String
+    var recruiterEmail: String
+    var recruiterLinkedIn: String
+}
+
+// MARK: - Have I applied? (POST /api/check)
+
+nonisolated struct CheckRequest: Encodable, Sendable {
+    var link = ""
+    var title = ""
+    var company = ""
+    var client = ""
+    var description = ""
+}
+
+nonisolated struct APICheck: Decodable, Sendable {
+    nonisolated struct Match: Decodable, Sendable, Identifiable {
+        let id: Int
+        let companyName: String
+        let jobTitle: String
+        let clientCompany: String?
+        let applicationDate: String
+        let status: String
+        let response: String
+        let sameTitle: Bool
+        let samePosting: Bool
+        let communityEmployerId: String?
+        let communityEmployerName: String?
+    }
+    nonisolated struct Flag: Decodable, Sendable, Identifiable {
+        let id: String
+        let title: String
+        let explanation: String
+        let evidence: String?
+    }
+    let matches: [Match]
+    let flags: [Flag]
+}
+
+// MARK: - CSV import (POST /api/data/import)
+
+nonisolated struct ImportMapping: Codable, Sendable, Equatable {
+    var company: Int?
+    var jobTitle: Int?
+    var applicationDate: Int?
+    var jobPostingLink: Int?
+    var outcome: Int?
+    var clientCompany: Int?
+
+    // The server wants every field present, null when unmapped
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        for (value, key) in [(company, CodingKeys.company), (jobTitle, .jobTitle), (applicationDate, .applicationDate), (jobPostingLink, .jobPostingLink), (outcome, .outcome), (clientCompany, .clientCompany)] {
+            if let value { try container.encode(value, forKey: key) } else { try container.encodeNil(forKey: key) }
+        }
+    }
+}
+
+nonisolated struct ImportRequest: Encodable, Sendable {
+    let csv: String
+    let mapping: ImportMapping
+    let action: String
+}
+
+nonisolated struct APIImportPlan: Decodable, Sendable {
+    nonisolated struct Row: Decodable, Sendable, Identifiable {
+        let line: Int
+        let company: String
+        let jobTitle: String
+        let applicationDate: String
+        let status: String
+        let reason: String
+        var id: Int { line }
+    }
+    let rows: [Row]
+    let ready: Int
+    let duplicates: Int
+    let errors: Int
+    let imported: Int
+}
+
+// MARK: - Community sharing (opt-in, server-gated)
+
+nonisolated struct APICommunityConsent: Decodable, Sendable {
+    let enabled: Bool
+    let needsReview: Bool
+    let purgePending: Bool
+    let restricted: Bool?
+    let canEnable: Bool
+    let collectionPaused: Bool?
+    let verified: Bool
+    let noticeVersion: String
+    let agreedVersion: String?
+}
+
+nonisolated struct CommunityConsentRequest: Encodable, Sendable {
+    let enabled: Bool
+    var noticeVersion: String? = nil
+    var confirm: Bool? = nil
+}
+
+/// Only approved, thresholded summaries; nil when the employer is suppressed or unknown
+nonisolated struct APICommunitySummary: Decodable, Sendable {
+    nonisolated struct Summary: Decodable, Sendable {
+        let month: String
+        let sampleBand: String
+        let responseRate: Int?
+        let ghostingRate: Int?
+        let feedbackRate: Int?
+        let replyTimeBand: String?
+    }
+    let summary: Summary?
 }

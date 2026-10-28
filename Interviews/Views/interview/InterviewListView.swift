@@ -355,6 +355,10 @@ struct InterviewDetailSheet: View {
     @Environment(Clerk.self) private var clerk: Clerk?
     @State private var showingEditSheet = false
     @State private var showingOutcomeOptions = false
+    @State private var showingDebrief = false
+    @State private var showingPrep = false
+    @State private var showingAvailability = false
+    @State private var showingRecruiter = false
 
     var body: some View {
         ScrollView {
@@ -373,6 +377,34 @@ struct InterviewDetailSheet: View {
                     Label("Client: \(clientCompany)", systemImage: "briefcase")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                }
+
+                if interview.applicationId != nil, clerk?.user != nil {
+                    Button {
+                        showingRecruiter = true
+                    } label: {
+                        if interview.viaRecruiter == true, let name = interview.recruiterName ?? interview.recruiterEmail {
+                            Label("Recruiter: \(name)", systemImage: "person.badge.shield.checkmark")
+                        } else {
+                            Label(interview.viaRecruiter == true ? "Add recruiter details" : "Through a recruiter?", systemImage: "person.badge.plus")
+                        }
+                    }
+                    .font(.subheadline)
+                    .sheet(isPresented: $showingRecruiter) { RecruiterContactForm(interview: interview) }
+                }
+
+                if let id = interview.id, clerk?.user != nil {
+                    let title = "\(interview.stage?.stage ?? "Interview") · \(interview.company?.name ?? "")"
+                    HStack {
+                        Button { showingPrep = true } label: { Label("Prepare", systemImage: "list.clipboard") }
+                        Button { showingDebrief = true } label: { Label("Debrief", systemImage: "text.bubble") }
+                    }
+                    Button { showingAvailability = true } label: { Label("Share availability", systemImage: "calendar.badge.clock") }
+                        .sheet(isPresented: $showingAvailability) { ShareAvailabilityView(interview: interview) }
+                    .buttonStyle(.bordered)
+                    .font(.subheadline)
+                    .sheet(isPresented: $showingDebrief) { DebriefView(interviewId: id, title: title) }
+                    .sheet(isPresented: $showingPrep) { PrepView(interviewId: id, title: title) }
                 }
 
                 if let applicationId = interview.applicationId, clerk?.user != nil {
@@ -453,6 +485,20 @@ struct InterviewDetailSheet: View {
                                     .padding(.vertical, 4)
                                     .glassEffect()
                             }
+                        }
+                    }
+                }
+
+                let templates = MessageTemplate.templates(outcome: interview.outcome?.rawValue, stage: interview.stage?.stage, date: interview.date)
+                if !templates.isEmpty {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Messages").font(.headline)
+                        ForEach(templates) { template in
+                            ShareLink(item: template.render(.init(interview))) {
+                                Label(template.label, systemImage: "square.and.arrow.up")
+                            }
+                            .font(.subheadline)
                         }
                     }
                 }

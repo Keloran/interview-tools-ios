@@ -181,9 +181,55 @@ struct SettingsView: View {
         if clerk?.user != nil {
             Section("Your job search") {
                 NavigationLink {
+                    HaveIAppliedView()
+                } label: {
+                    Label("Have I applied?", systemImage: "magnifyingglass")
+                }
+                NavigationLink {
+                    ReportView()
+                } label: {
+                    Label("Job search report", systemImage: "chart.bar")
+                }
+                NavigationLink {
+                    ActivityLogView()
+                } label: {
+                    Label("Activity log (Universal Credit)", systemImage: "list.bullet.rectangle")
+                }
+                NavigationLink {
+                    FollowUpsView()
+                } label: {
+                    Label("Follow-ups", systemImage: "arrow.uturn.forward.circle")
+                }
+                NavigationLink {
+                    NoResponseView()
+                } label: {
+                    Label("No response", systemImage: "questionmark.circle")
+                }
+                NavigationLink {
                     OffersView()
                 } label: {
                     Label("Offers", systemImage: "envelope.open")
+                }
+                NavigationLink {
+                    RecruitersView()
+                } label: {
+                    Label("Recruiters", systemImage: "person.2")
+                }
+                NavigationLink {
+                    QuestionsView()
+                } label: {
+                    Label("Questions asked", systemImage: "questionmark.bubble")
+                }
+                NavigationLink {
+                    StoriesView()
+                } label: {
+                    Label("STAR stories", systemImage: "text.book.closed")
+                }
+                CalendarFeedRow()
+                NavigationLink {
+                    CommunitySharingView()
+                } label: {
+                    Label("Community sharing", systemImage: "person.3")
                 }
             }
         }
@@ -193,6 +239,7 @@ struct SettingsView: View {
     private var yourDataSection: some View {
         if clerk?.user != nil {
             Section {
+                NavigationLink("Import applications (CSV)") { CSVImportView() }
                 Button("Export applications (CSV)") {
                     Task { await export("applications") }
                 }

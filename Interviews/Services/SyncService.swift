@@ -425,6 +425,7 @@ class SyncService: ObservableObject {
                 existing.link = apiInterview.link
                 existing.applicationId = apiInterview.applicationId
                 existing.durationMinutes = apiInterview.durationMinutes
+                existing.setRecruiter(from: apiInterview)
 
                 // Update metadata JSON with merged metadata including 'applied' field.
                 // Also update jobListing property if present in metadata.
@@ -461,6 +462,7 @@ class SyncService: ObservableObject {
 
                 interview.applicationId = apiInterview.applicationId
                 interview.durationMinutes = apiInterview.durationMinutes
+                interview.setRecruiter(from: apiInterview)
                 modelContext.insert(interview)
             }
         }
@@ -617,3 +619,12 @@ class SyncService: ObservableObject {
     }
 }
 
+
+extension Interview {
+    func setRecruiter(from api: APIInterview) {
+        viaRecruiter = api.viaRecruiter
+        recruiterName = api.recruiterName
+        recruiterEmail = api.recruiterEmail
+        recruiterLinkedIn = api.recruiterLinkedIn
+    }
+}

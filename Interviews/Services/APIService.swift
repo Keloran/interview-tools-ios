@@ -150,7 +150,161 @@ actor APIService {
         _ = try await send(url: url, method: "PUT", body: body)
     }
 
+    // MARK: - Follow-ups and ghosting
+
+    func fetchFollowUps() async throws -> [APIFollowUp] {
+        try await performRequest(url: URL(string: "\(baseURL)/follow-ups")!, method: "GET")
+    }
+
+    /// Record that you chased this application today
+    func recordFollowUp(applicationId: Int) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/follow-ups")!, method: "POST", body: ["applicationId": applicationId])
+    }
+
+    func fetchStaleApplications() async throws -> APIStaleList {
+        try await performRequest(url: URL(string: "\(baseURL)/stale-applications")!, method: "GET")
+    }
+
+    /// Close applications as ghosted (NO_RESPONSE); ones that changed since the list loaded are skipped
+    func closeStaleApplications(ids: [Int], days: Int) async throws -> APICloseResult {
+        nonisolated struct Body: Encodable, Sendable { let ids: [Int]; let days: Int; let confirm = true }
+        return try await performRequest(url: URL(string: "\(baseURL)/stale-applications")!, method: "POST", body: Body(ids: ids, days: days))
+    }
+
+    // MARK: - After the interview
+
+    func fetchDebrief(interviewId: Int) async throws -> APIDebrief {
+        try await performRequest(url: URL(string: "\(baseURL)/interview/\(interviewId)")!, method: "GET")
+    }
+
+    func saveDebrief(interviewId: Int, _ request: DebriefRequest) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/interview/\(interviewId)")!, method: "PUT", body: request)
+    }
+
+    func fetchPrep(interviewId: Int) async throws -> APIPrep {
+        try await performRequest(url: URL(string: "\(baseURL)/interview/\(interviewId)/prep")!, method: "GET")
+    }
+
+    func savePrep(interviewId: Int, _ prep: APIPrep) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/interview/\(interviewId)/prep")!, method: "PUT", body: prep)
+    }
+
+    func fetchQuestions() async throws -> [APIQuestionEntry] {
+        try await performRequest(url: URL(string: "\(baseURL)/questions")!, method: "GET")
+    }
+
+    func fetchStories() async throws -> [APIStory] {
+        try await performRequest(url: URL(string: "\(baseURL)/stories")!, method: "GET")
+    }
+
+    /// Create (no id) or update a STAR story
+    func saveStory(id: Int?, _ story: StoryInput) async throws {
+        let url = URL(string: "\(baseURL)/stories" + (id.map { "/\($0)" } ?? ""))!
+        _ = try await send(url: url, method: id == nil ? "POST" : "PUT", body: story)
+    }
+
+    func deleteStory(id: Int) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/stories/\(id)")!, method: "DELETE", body: Optional<EmptyBody>.none)
+    }
+
+    // MARK: - Availability links
+
+    func fetchAvailability(interviewId: Int) async throws -> APIAvailabilityList {
+        var components = URLComponents(string: "\(baseURL)/availability")!
+        components.queryItems = [URLQueryItem(name: "interviewId", value: String(interviewId))]
+        return try await performRequest(url: components.url!, method: "GET")
+    }
+
+    func createAvailability(interviewId: Int, stage: String, durationMinutes: Int, slots: [Date]) async throws -> APICreatedLink {
+        nonisolated struct Body: Encodable, Sendable { let interviewId: Int; let stage: String; let durationMinutes: Int; let slots: [String] }
+        let body = Body(interviewId: interviewId, stage: stage, durationMinutes: durationMinutes, slots: slots.map(APIDates.instantString))
+        return try await performRequest(url: URL(string: "\(baseURL)/availability")!, method: "POST", body: body)
+    }
+
+    func markAvailabilitySent(linkId: String, sent: Bool = true) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/availability/\(linkId)/sent")!, method: "PUT", body: ["sent": sent])
+    }
+
+    /// Google Calendar busy times; [] when nothing is connected (or on any error, so slots still show)
+    func fetchBusy(from: Date, to: Date) async -> [APIBusy] {
+        var components = URLComponents(string: "\(baseURL)/busy")!
+        components.queryItems = [URLQueryItem(name: "from", value: APIDates.instantString(from)), URLQueryItem(name: "to", value: APIDates.instantString(to))]
+        return (try? await performRequest(url: components.url!, method: "GET")) ?? []
+    }
+
+    // MARK: - Report and activity log
+
+    private func periodURL(_ path: String, from: String, through: String, csv: Bool = false) -> URL {
+        var components = URLComponents(string: "\(baseURL)/\(path)")!
+        components.queryItems = [URLQueryItem(name: "from", value: from), URLQueryItem(name: "through", value: through)]
+            + (csv ? [URLQueryItem(name: "format", value: "csv")] : [])
+        return components.url!
+    }
+
+    func fetchReport(from: String, through: String) async throws -> APIReport {
+        try await performRequest(url: periodURL("report/summary", from: from, through: through), method: "GET")
+    }
+
+    func fetchActivityLog(from: String, through: String) async throws -> APIActivityLog {
+        try await performRequest(url: periodURL("activity-log/rows", from: from, through: through), method: "GET")
+    }
+
+    /// The same CSV the website exports, for a work coach
+    func exportActivityLog(from: String, through: String) async throws -> Data {
+        try await send(url: periodURL("activity-log/rows", from: from, through: through, csv: true), method: "GET", body: Optional<EmptyBody>.none)
+    }
+
+    func addActivity(_ entry: ActivityEntryInput) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/activity-log")!, method: "POST", body: entry)
+    }
+
+    func deleteActivity(id: Int) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/activity-log/\(id)")!, method: "DELETE", body: Optional<EmptyBody>.none)
+    }
+
+    func fetchCalendarSettings() async throws -> APICalendarSettings {
+        try await performRequest(url: URL(string: "\(baseURL)/calendar-settings")!, method: "GET")
+    }
+
+    // MARK: - Recruiters
+
+    func fetchRecruiters() async throws -> [APIRecruiterRecord] {
+        try await performRequest(url: URL(string: "\(baseURL)/recruiters")!, method: "GET")
+    }
+
+    func saveRecruiterContact(applicationId: Int, _ contact: RecruiterContactRequest) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/applications/\(applicationId)/recruiter")!, method: "PUT", body: contact)
+    }
+
+    // MARK: - Have I applied?
+
+    /// Previous applications for this job/company/client and the listing warning signs, using the website's matching
+    func check(_ request: CheckRequest) async throws -> APICheck {
+        try await performRequest(url: URL(string: "\(baseURL)/check")!, method: "POST", body: request)
+    }
+
+    // MARK: - Community
+
+    func fetchCommunityConsent() async throws -> APICommunityConsent {
+        try await performRequest(url: URL(string: "\(baseURL)/community/consent")!, method: "GET")
+    }
+
+    /// Turning sharing on needs the notice version you were shown and an explicit confirm
+    func setCommunityConsent(_ request: CommunityConsentRequest) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/community/consent")!, method: "PUT", body: request)
+    }
+
+    func fetchCommunitySummary(employerId: String) async throws -> APICommunitySummary {
+        try await performRequest(url: URL(string: "\(baseURL)/community/employers/\(employerId)/summary")!, method: "GET")
+    }
+
     // MARK: - Your data
+
+    /// Preview first (nothing is written), then import; the server re-checks duplicates on import
+    func importCSV(_ csv: String, mapping: ImportMapping, commit: Bool) async throws -> APIImportPlan {
+        try await performRequest(url: URL(string: "\(baseURL)/data/import")!, method: "POST",
+                                 body: ImportRequest(csv: csv, mapping: mapping, action: commit ? "import" : "preview"))
+    }
 
     /// The server needs the same typed phrase as the website before it deletes anything
     static let deleteConfirmation = "delete my account"

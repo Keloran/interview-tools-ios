@@ -19,6 +19,8 @@ struct AddInterviewView: View {
     @Query private var stageMethods: [StageMethod]
 
     let initialDate: Date
+    /// Filled in from a job you just checked
+    var prefill: CheckRequest? = nil
 
     @State private var companyName = ""
     @State private var selectedCompany: Company?
@@ -38,6 +40,7 @@ struct AddInterviewView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var hasInitialized = false
+    @State private var recruiterRecords: [APIRecruiterRecord] = []
 
     // Computed properties to match React logic
     private var selectedStageName: String {
@@ -171,6 +174,13 @@ struct AddInterviewView: View {
                         }
                     }
 
+                    // Before you agree to let an agency represent you again: how they've treated you
+                    if let record = RecruiterText.record(for: selectedCompany?.name ?? companyName, in: recruiterRecords) {
+                        Label("\(record.agency): \(RecruiterText.short(record.stats))", systemImage: record.stats.ghosted > 0 ? "exclamationmark.triangle" : "person.2")
+                            .font(.caption)
+                            .foregroundStyle(record.stats.ghosted > 0 ? .orange : .secondary)
+                    }
+
                     TextField("Client Company (Optional)", text: $clientCompany)
                         .textContentType(.organizationName)
 
@@ -237,6 +247,16 @@ struct AddInterviewView: View {
                         }
                     }
                 }
+            }
+            .onAppear {
+                guard let prefill, companyName.isEmpty, jobTitle.isEmpty else { return }
+                companyName = prefill.company
+                clientCompany = prefill.client
+                jobTitle = prefill.title
+                jobPostingLink = prefill.link
+            }
+            .task {
+                if clerk?.user != nil { recruiterRecords = (try? await APIService.shared.fetchRecruiters()) ?? [] }
             }
             .navigationTitle("Add Interview")
             .navigationBarTitleDisplayMode(.inline)

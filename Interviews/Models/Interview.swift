@@ -30,6 +30,11 @@ final class Interview {
     var applicationId: Int?
     /// How long the interview runs; nil means the default hour
     var durationMinutes: Int?
+    /// Application-level recruiter contact, from the server
+    var viaRecruiter: Bool?
+    var recruiterName: String?
+    var recruiterEmail: String?
+    var recruiterLinkedIn: String?
 
     // Outbox state. All optional so existing stores migrate without a version bump.
     /// When a local change was made that the server hasn't confirmed; nil once it has
