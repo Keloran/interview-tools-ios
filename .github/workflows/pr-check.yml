@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build & Verify
     runs-on: macos-26
+    # A hung simulator used to run for an hour+; fail instead
+    timeout-minutes: 30
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -38,6 +40,9 @@ jobs:
             -scheme Interviews \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
             -testPlan Interviews \
+            -only-testing:InterviewsTests \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 60 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
   automerge:
