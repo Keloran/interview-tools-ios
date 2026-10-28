@@ -168,11 +168,13 @@ struct CreateInterviewRequest: Codable, Sendable {
     let notes: String?
     /// The stage this follows; the server adds it to that application instead of creating a new one
     var previousInterviewId: Int? = nil
+    /// An offer's respond-by day, "yyyy-MM-dd" (offers ignore `deadline`)
+    var offerDeadline: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case stage, companyName, clientCompany, jobTitle
         case jobPostingLink, date, deadline, interviewer
-        case locationType, interviewLink, notes, previousInterviewId
+        case locationType, interviewLink, notes, previousInterviewId, offerDeadline
     }
 
     nonisolated func encode(to encoder: Encoder) throws {
@@ -189,6 +191,7 @@ struct CreateInterviewRequest: Codable, Sendable {
         try container.encodeIfPresent(interviewLink, forKey: .interviewLink)
         try container.encodeIfPresent(notes, forKey: .notes)
         try container.encodeIfPresent(previousInterviewId, forKey: .previousInterviewId)
+        try container.encodeIfPresent(offerDeadline, forKey: .offerDeadline)
     }
 }
 

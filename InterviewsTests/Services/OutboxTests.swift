@@ -154,4 +154,22 @@ struct OutboxTests {
         }
         #expect(body?["outcome"] == nil) // unknown or unset outcomes are never overwritten
     }
+
+    @Test("An offer's respond-by goes up as the local day, both on create and on edit")
+    func testOfferDeadlineIsSentAsADay() throws {
+        let f = try Self.setup()
+        let offer = Stage(id: 2, stage: "Offer")
+        f.context.insert(offer)
+        var parts = DateComponents(year: 2026, month: 11, day: 6)
+        let respondBy = try #require(Calendar.current.date(from: parts))
+        parts.hour = 0
+        let interview = Interview(id: 5, company: f.company, jobTitle: "iOS Engineer", applicationDate: Date(), stage: offer, deadline: respondBy)
+        f.context.insert(interview)
+
+        let sync = SyncService(modelContext: f.context)
+        #expect(sync.updateRequest(for: interview).deadline == "2026-11-06")
+        let create = try sync.createRequest(for: interview)
+        #expect(create.offerDeadline == "2026-11-06")
+        #expect(create.deadline == nil)
+    }
 }

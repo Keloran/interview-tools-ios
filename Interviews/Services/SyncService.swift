@@ -356,13 +356,14 @@ class SyncService: ObservableObject {
                 stageMethod = try modelContext.fetch(methodDescriptor).first
             }
 
-            // Parse dates - configure formatter to handle fractional seconds
-            let dateFormatter = ISO8601DateFormatter()
-            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            
-            let applicationDate = dateFormatter.date(from: apiInterview.applicationDate) ?? Date()
-            let date = apiInterview.date.flatMap { dateFormatter.date(from: $0) }
-            let deadline = apiInterview.deadline.flatMap { dateFormatter.date(from: $0) }
+            // Interview times are moments; application dates and offer respond-by dates are calendar days
+            guard let applicationDate = APIDates.day(apiInterview.applicationDate) else {
+                // Never invent "today" for history; keep whatever is here and move on
+                print("⚠️ Skipping interview \(apiInterview.id): unreadable applicationDate \(apiInterview.applicationDate)")
+                continue
+            }
+            let date = APIDates.instant(apiInterview.date)
+            let deadline = APIDates.isOffer(apiInterview.stage?.stage) ? APIDates.day(apiInterview.deadline) : APIDates.instant(apiInterview.deadline)
 
             // Parse outcome
             let outcome: InterviewOutcome?
@@ -470,12 +471,13 @@ class SyncService: ObservableObject {
 
     /// Everything the edit screen can change, with cleared fields sent as cleared
     func updateRequest(for interview: Interview) -> UpdateInterviewRequest {
-        let dateFormatter = ISO8601DateFormatter()
+        // The server keeps an offer's respond-by as a day (the first 10 characters), so send the local day
+        let isOffer = APIDates.isOffer(interview.stage?.stage)
         return UpdateInterviewRequest(
             outcome: interview.outcome?.rawValue,
             stage: nil,
-            date: interview.date.map { dateFormatter.string(from: $0) },
-            deadline: interview.deadline.map { dateFormatter.string(from: $0) },
+            date: interview.date.map(APIDates.instantString),
+            deadline: interview.deadline.map { isOffer ? APIDates.dayString($0) : APIDates.instantString($0) },
             interviewer: interview.interviewer,
             notes: interview.notes,
             link: interview.link,
@@ -535,8 +537,6 @@ class SyncService: ObservableObject {
         let uncertain = try modelContext.fetch(FetchDescriptor<Interview>(predicate: #Predicate { $0.createUncertain == true && $0.id == nil }))
         guard !uncertain.isEmpty else { return }
         let known = Set(try modelContext.fetch(FetchDescriptor<Interview>(predicate: #Predicate { $0.id != nil })).compactMap(\.id))
-        let parse = ISO8601DateFormatter()
-        parse.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         var claimed = known
         for interview in uncertain {
             let match = apiInterviews.first { api in
@@ -544,7 +544,7 @@ class SyncService: ObservableObject {
                     && api.company.name == interview.company?.name
                     && api.jobTitle == interview.jobTitle
                     && api.stage?.stage == (interview.stage?.stage ?? "Applied")
-                    && api.date.flatMap { parse.date(from: $0) } == interview.date
+                    && APIDates.instant(api.date) == interview.date
             }
             if let match {
                 interview.id = match.id
@@ -561,7 +561,7 @@ class SyncService: ObservableObject {
             throw APIError.serverError("Interview must have a company")
         }
 
-        let dateFormatter = ISO8601DateFormatter()
+        let isOffer = APIDates.isOffer(interview.stage?.stage)
 
         return CreateInterviewRequest(
             stage: interview.stage?.stage ?? "Applied",
@@ -569,13 +569,14 @@ class SyncService: ObservableObject {
             clientCompany: interview.clientCompany,
             jobTitle: interview.jobTitle,
             jobPostingLink: extractJobListing(from: interview.metadataJSON),
-            date: interview.date.map { dateFormatter.string(from: $0) },
-            deadline: interview.deadline.map { dateFormatter.string(from: $0) },
+            date: interview.date.map(APIDates.instantString),
+            deadline: isOffer ? nil : interview.deadline.map(APIDates.instantString),
             interviewer: interview.interviewer,
             locationType: interview.stageMethod?.method.lowercased().contains("video") == true ? "link" : "phone",
             interviewLink: interview.link,
             notes: interview.notes,
-            previousInterviewId: previousInterviewId
+            previousInterviewId: previousInterviewId,
+            offerDeadline: isOffer ? interview.deadline.map { APIDates.dayString($0) } : nil
         )
     }
 
