@@ -457,6 +457,20 @@ struct InterviewDetailSheet: View {
                     }
                 }
 
+                let templates = MessageTemplate.templates(outcome: interview.outcome?.rawValue, stage: interview.stage?.stage, date: interview.date)
+                if !templates.isEmpty {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Messages").font(.headline)
+                        ForEach(templates) { template in
+                            ShareLink(item: template.render(.init(interview))) {
+                                Label(template.label, systemImage: "square.and.arrow.up")
+                            }
+                            .font(.subheadline)
+                        }
+                    }
+                }
+
                 Divider()
 
                 // Dates Section

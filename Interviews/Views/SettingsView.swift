@@ -181,6 +181,16 @@ struct SettingsView: View {
         if clerk?.user != nil {
             Section("Your job search") {
                 NavigationLink {
+                    FollowUpsView()
+                } label: {
+                    Label("Follow-ups", systemImage: "arrow.uturn.forward.circle")
+                }
+                NavigationLink {
+                    NoResponseView()
+                } label: {
+                    Label("No response", systemImage: "questionmark.circle")
+                }
+                NavigationLink {
                     OffersView()
                 } label: {
                     Label("Offers", systemImage: "envelope.open")

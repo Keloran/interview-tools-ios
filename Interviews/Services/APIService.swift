@@ -150,6 +150,27 @@ actor APIService {
         _ = try await send(url: url, method: "PUT", body: body)
     }
 
+    // MARK: - Follow-ups and ghosting
+
+    func fetchFollowUps() async throws -> [APIFollowUp] {
+        try await performRequest(url: URL(string: "\(baseURL)/follow-ups")!, method: "GET")
+    }
+
+    /// Record that you chased this application today
+    func recordFollowUp(applicationId: Int) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/follow-ups")!, method: "POST", body: ["applicationId": applicationId])
+    }
+
+    func fetchStaleApplications() async throws -> APIStaleList {
+        try await performRequest(url: URL(string: "\(baseURL)/stale-applications")!, method: "GET")
+    }
+
+    /// Close applications as ghosted (NO_RESPONSE); ones that changed since the list loaded are skipped
+    func closeStaleApplications(ids: [Int], days: Int) async throws -> APICloseResult {
+        struct Body: Encodable, Sendable { let ids: [Int]; let days: Int; let confirm = true }
+        return try await performRequest(url: URL(string: "\(baseURL)/stale-applications")!, method: "POST", body: Body(ids: ids, days: days))
+    }
+
     // MARK: - Your data
 
     /// The server needs the same typed phrase as the website before it deletes anything

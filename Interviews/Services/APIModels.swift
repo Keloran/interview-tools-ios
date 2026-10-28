@@ -344,3 +344,41 @@ struct APIOffer: Decodable, Sendable, Identifiable {
         ("Location / working pattern", \.offerLocation, "offerLocation"),
     ]
 }
+
+// MARK: - Follow-ups and stale applications
+
+/// An application due a chase (GET /api/follow-ups)
+struct APIFollowUp: Decodable, Sendable, Identifiable {
+    let id: Int
+    let jobTitle: String
+    let clientCompany: String?
+    let company: String
+    let stage: String
+    let interviewer: String?
+    let date: String?
+    let nextStep: String?
+    let replyBy: String?
+    let followUps: Int
+    let lastFollowUp: String?
+    let dueAt: String
+}
+
+/// Applications that have gone quiet past your threshold (GET /api/stale-applications)
+struct APIStaleList: Decodable, Sendable {
+    struct Candidate: Decodable, Sendable, Identifiable {
+        let id: Int
+        let company: String
+        let jobTitle: String
+        let lastStage: String
+        let lastActivity: String
+        let quietDays: Int
+    }
+    let days: Int
+    let total: Int
+    let candidates: [Candidate]
+}
+
+struct APICloseResult: Decodable, Sendable {
+    let closed: [Int]
+    let skipped: [Int]
+}
