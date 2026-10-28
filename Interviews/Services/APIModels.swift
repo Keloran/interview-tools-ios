@@ -628,3 +628,45 @@ nonisolated struct APICheck: Decodable, Sendable {
     let matches: [Match]
     let flags: [Flag]
 }
+
+// MARK: - CSV import (POST /api/data/import)
+
+nonisolated struct ImportMapping: Codable, Sendable, Equatable {
+    var company: Int?
+    var jobTitle: Int?
+    var applicationDate: Int?
+    var jobPostingLink: Int?
+    var outcome: Int?
+    var clientCompany: Int?
+
+    // The server wants every field present, null when unmapped
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        for (value, key) in [(company, CodingKeys.company), (jobTitle, .jobTitle), (applicationDate, .applicationDate), (jobPostingLink, .jobPostingLink), (outcome, .outcome), (clientCompany, .clientCompany)] {
+            if let value { try container.encode(value, forKey: key) } else { try container.encodeNil(forKey: key) }
+        }
+    }
+}
+
+nonisolated struct ImportRequest: Encodable, Sendable {
+    let csv: String
+    let mapping: ImportMapping
+    let action: String
+}
+
+nonisolated struct APIImportPlan: Decodable, Sendable {
+    nonisolated struct Row: Decodable, Sendable, Identifiable {
+        let line: Int
+        let company: String
+        let jobTitle: String
+        let applicationDate: String
+        let status: String
+        let reason: String
+        var id: Int { line }
+    }
+    let rows: [Row]
+    let ready: Int
+    let duplicates: Int
+    let errors: Int
+    let imported: Int
+}

@@ -285,6 +285,12 @@ actor APIService {
 
     // MARK: - Your data
 
+    /// Preview first (nothing is written), then import; the server re-checks duplicates on import
+    func importCSV(_ csv: String, mapping: ImportMapping, commit: Bool) async throws -> APIImportPlan {
+        try await performRequest(url: URL(string: "\(baseURL)/data/import")!, method: "POST",
+                                 body: ImportRequest(csv: csv, mapping: mapping, action: commit ? "import" : "preview"))
+    }
+
     /// The server needs the same typed phrase as the website before it deletes anything
     static let deleteConfirmation = "delete my account"
 

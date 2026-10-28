@@ -234,6 +234,7 @@ struct SettingsView: View {
     private var yourDataSection: some View {
         if clerk?.user != nil {
             Section {
+                NavigationLink("Import applications (CSV)") { CSVImportView() }
                 Button("Export applications (CSV)") {
                     Task { await export("applications") }
                 }
