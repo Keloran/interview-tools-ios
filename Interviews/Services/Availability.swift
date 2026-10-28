@@ -27,12 +27,11 @@ enum Availability {
 
     /// Free start times on a day, every 30 minutes from 9:00, finishing by 18:00
     static func suggestSlots(day: Date, durationMinutes: Int, busy: [Busy], now: Date = Date(), calendar: Calendar = .current) -> [Date] {
-        let midnight = calendar.startOfDay(for: day)
         var slots: [Date] = []
         var minutes = dayStartHour * 60
         while minutes + durationMinutes <= dayEndHour * 60 {
-            // Built from the day's own midnight so it stays right across clock changes
-            if let start = calendar.date(byAdding: .minute, value: minutes, to: midnight),
+            // Set the wall-clock time on that day (adding minutes to midnight is an hour out on clock-change days)
+            if let start = calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: day),
                start >= now.addingTimeInterval(TimeInterval(prepMinutes * 60)),
                !clashes(Busy(start: start, durationMinutes: durationMinutes), busy) {
                 slots.append(start)
