@@ -99,6 +99,13 @@ struct StatsView: View {
                         color: colorForOutcomeString("Withdrew"),
                         icon: "arrow.uturn.backward.circle.fill"
                     )
+
+                    StatRow(
+                        label: "No Response",
+                        value: stats.noResponse,
+                        color: colorForOutcomeString("No Response"),
+                        icon: "questionmark.circle.fill"
+                    )
                 }
             }
             

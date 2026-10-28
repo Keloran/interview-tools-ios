@@ -10,16 +10,18 @@ import SwiftData
 
 /// Represents computed statistics about interviews
 struct InterviewStats {
-    let totalInterviews: Int
-    let applied: Int
-    let scheduled: Int
-    let awaitingResponse: Int
-    let passed: Int
-    let rejected: Int
-    let offerReceived: Int
-    let offerAccepted: Int
-    let offerDeclined: Int
-    let withdrew: Int
+    var totalInterviews: Int
+    var applied: Int
+    var scheduled: Int
+    var awaitingResponse: Int
+    var passed: Int
+    var rejected: Int
+    var offerReceived: Int
+    var offerAccepted: Int
+    var offerDeclined: Int
+    var withdrew: Int
+    /// Closed as ghosted: they never replied
+    var noResponse: Int = 0
     
     /// Success rate as a percentage (passed / (passed + rejected))
     var successRate: Double {
@@ -45,160 +47,23 @@ struct InterviewStats {
     
     /// Compute statistics from a list of interviews
     static func compute(from interviews: [Interview]) -> InterviewStats {
-        var stats = InterviewStats(
-            totalInterviews: interviews.count,
-            applied: 0,
-            scheduled: 0,
-            awaitingResponse: 0,
-            passed: 0,
-            rejected: 0,
-            offerReceived: 0,
-            offerAccepted: 0,
-            offerDeclined: 0,
-            withdrew: 0
-        )
-        
+        var stats = InterviewStats(totalInterviews: interviews.count, applied: 0, scheduled: 0, awaitingResponse: 0,
+                                   passed: 0, rejected: 0, offerReceived: 0, offerAccepted: 0, offerDeclined: 0, withdrew: 0)
         for interview in interviews {
-            // Special case: "Applied" stage with no outcome
-            if interview.stage?.stage == "Applied" && interview.outcome == nil {
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied + 1,
-                    scheduled: stats.scheduled,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew
-                )
-                continue
-            }
-            
-            // Count by outcome
             switch interview.outcome {
-            case .scheduled:
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled + 1,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew
-                )
-            case .passed:
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed + 1,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew
-                )
-            case .rejected:
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed,
-                    rejected: stats.rejected + 1,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew
-                )
-            case .awaitingResponse:
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled,
-                    awaitingResponse: stats.awaitingResponse + 1,
-                    passed: stats.passed,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew
-                )
-            case .offerReceived:
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived + 1,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew
-                )
-            case .offerAccepted:
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted + 1,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew
-                )
-            case .offerDeclined:
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined + 1,
-                    withdrew: stats.withdrew
-                )
-            case .withdrew:
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew + 1
-                )
-            case .none:
-                // If no outcome and not in "Applied" stage, count as scheduled
-                stats = InterviewStats(
-                    totalInterviews: stats.totalInterviews,
-                    applied: stats.applied,
-                    scheduled: stats.scheduled + 1,
-                    awaitingResponse: stats.awaitingResponse,
-                    passed: stats.passed,
-                    rejected: stats.rejected,
-                    offerReceived: stats.offerReceived,
-                    offerAccepted: stats.offerAccepted,
-                    offerDeclined: stats.offerDeclined,
-                    withdrew: stats.withdrew
-                )
+            // "Applied" stage with no outcome yet; any other stage without one counts as scheduled
+            case .none where interview.stage?.stage == "Applied": stats.applied += 1
+            case .none, .scheduled: stats.scheduled += 1
+            case .awaitingResponse: stats.awaitingResponse += 1
+            case .passed: stats.passed += 1
+            case .rejected: stats.rejected += 1
+            case .offerReceived: stats.offerReceived += 1
+            case .offerAccepted: stats.offerAccepted += 1
+            case .offerDeclined: stats.offerDeclined += 1
+            case .withdrew: stats.withdrew += 1
+            case .noResponse: stats.noResponse += 1
             }
         }
-        
         return stats
     }
 }
