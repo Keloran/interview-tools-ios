@@ -22,11 +22,13 @@ struct ReportTests {
 
     @Test("Report decodes from /api/report/summary")
     func testReportDecodes() throws {
-        let json = #"{"from": "2026-10-01", "through": "2026-10-28",
-          "funnel": [{"label": "Applied", "count": 10, "conversion": null}, {"label": "Heard back", "count": 4, "conversion": 40}],
-          "response": {"roles": 10, "responded": 4, "ghosted": 3, "waiting": 3, "responseRate": 57, "ghostRate": 43, "feedback": 1, "feedbackNoted": 2, "feedbackRate": 50, "medianReplyDays": 4.5, "replyDates": 4, "furthestStage": "Final", "ignoredLinks": 0},
-          "weekly": [{"week": "2026-09-28", "applications": 3, "interviews": 1}],
-          "sources": [{"source": "Direct", "roles": 6, "responseRate": 60, "ghostRate": 40}, {"source": "Recruiter / agency", "roles": 4, "responseRate": null, "ghostRate": null}]}"#
+        let json = #"""
+            {"from": "2026-10-01", "through": "2026-10-28",
+            "funnel": [{"label": "Applied", "count": 10, "conversion": null}, {"label": "Heard back", "count": 4, "conversion": 40}],
+            "response": {"roles": 10, "responded": 4, "ghosted": 3, "waiting": 3, "responseRate": 57, "ghostRate": 43, "feedback": 1, "feedbackNoted": 2, "feedbackRate": 50, "medianReplyDays": 4.5, "replyDates": 4, "furthestStage": "Final", "ignoredLinks": 0},
+            "weekly": [{"week": "2026-09-28", "applications": 3, "interviews": 1}],
+            "sources": [{"source": "Direct", "roles": 6, "responseRate": 60, "ghostRate": 40}, {"source": "Recruiter / agency", "roles": 4, "responseRate": null, "ghostRate": null}]}
+            """#
         let report = try JSONDecoder().decode(APIReport.self, from: Data(json.utf8))
         #expect(report.funnel[1].conversion == 40)
         #expect(ReportText.percent(report.response.responseRate, of: report.response.responded) == "4 (57%)")
@@ -36,9 +38,11 @@ struct ReportTests {
 
     @Test("Only your own entries can be deleted from the log")
     func testEntryIds() throws {
-        let json = #"{"from": "2026-10-01", "through": "2026-10-14", "totals": {"total": 2, "applied": 1, "interviews": 0, "followUps": 0, "availability": 0, "other": 1},
-          "rows": [{"id": "applied-3", "date": "2026-10-02", "kind": "applied", "activity": "Applied", "employer": "Acme", "role": "iOS", "how": "Online", "outcome": "Applied", "notes": ""},
-                   {"id": "entry-12", "date": "2026-10-05", "kind": "other", "activity": "Careers fair", "employer": "", "role": "", "how": "In person", "outcome": "", "notes": ""}]}"#
+        let json = #"""
+            {"from": "2026-10-01", "through": "2026-10-14", "totals": {"total": 2, "applied": 1, "interviews": 0, "followUps": 0, "availability": 0, "other": 1},
+            "rows": [{"id": "applied-3", "date": "2026-10-02", "kind": "applied", "activity": "Applied", "employer": "Acme", "role": "iOS", "how": "Online", "outcome": "Applied", "notes": ""},
+            {"id": "entry-12", "date": "2026-10-05", "kind": "other", "activity": "Careers fair", "employer": "", "role": "", "how": "In person", "outcome": "", "notes": ""}]}
+            """#
         let log = try JSONDecoder().decode(APIActivityLog.self, from: Data(json.utf8))
         #expect(log.rows.map(\.entryId) == [nil, 12])
     }
