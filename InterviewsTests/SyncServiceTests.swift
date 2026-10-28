@@ -478,4 +478,47 @@ struct SyncServiceTests {
         #expect(parsed1 == .scheduled, "Valid outcome should parse")
         #expect(parsed2 == nil, "Nil outcome should result in nil")
     }
+
+    // MARK: - Next stage (IT-92)
+
+    @Test("A next stage is sent with the stage it follows, so it joins the same application")
+    func testNextStageRequestCarriesPreviousId() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        let company = Company(id: 1, name: "Apple")
+        let next = Interview(company: company, jobTitle: "iOS Engineer", applicationDate: Date(), stage: Stage(stage: "Technical Interview"))
+        context.insert(company)
+        context.insert(next)
+
+        let syncService = SyncService(modelContext: context)
+        let request = try syncService.createRequest(for: next, previousInterviewId: 42)
+        #expect(request.previousInterviewId == 42)
+        #expect(request.stage == "Technical Interview")
+
+        let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
+        #expect(body?["previousInterviewId"] as? Int == 42)
+    }
+
+    @Test("A brand-new interview doesn't send previousInterviewId, so it starts a new application")
+    func testNewInterviewHasNoPreviousId() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+        let company = Company(id: 1, name: "Apple")
+        let interview = Interview(company: company, jobTitle: "iOS Engineer", applicationDate: Date())
+        context.insert(company)
+        context.insert(interview)
+
+        let request = try SyncService(modelContext: context).createRequest(for: interview)
+        let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
+        #expect(body?["previousInterviewId"] == nil)
+        #expect(body?["stage"] as? String == "Applied")
+    }
 }

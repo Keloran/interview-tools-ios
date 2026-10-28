@@ -21,15 +21,8 @@ actor APIService {
     static let shared = APIService()
 
     private let baseURL = "https://interviews.tools/api"
-    private var authToken: String?
 
     private init() {}
-
-    // MARK: - Authentication
-
-    func setAuthToken(_ token: String?) {
-        self.authToken = token
-    }
 
     // MARK: - Companies
 
@@ -61,7 +54,9 @@ actor APIService {
         includePast: Bool? = nil,
         companyId: Int? = nil,
         companyName: String? = nil,
-        outcome: String? = nil
+        outcome: String? = nil,
+        take: Int? = nil,
+        skip: Int? = nil
     ) async throws -> [APIInterview] {
         var components = URLComponents(string: "\(baseURL)/interviews")!
         var queryItems: [URLQueryItem] = []
@@ -87,6 +82,12 @@ actor APIService {
         if let outcome = outcome {
             queryItems.append(URLQueryItem(name: "outcome", value: outcome))
         }
+        if let take = take {
+            queryItems.append(URLQueryItem(name: "take", value: String(take)))
+        }
+        if let skip = skip {
+            queryItems.append(URLQueryItem(name: "skip", value: String(skip)))
+        }
 
         if !queryItems.isEmpty {
             components.queryItems = queryItems
@@ -107,6 +108,25 @@ actor APIService {
     func updateInterview(id: Int, _ request: UpdateInterviewRequest) async throws -> APIInterview {
         let url = URL(string: "\(baseURL)/interview/\(id)")!
         return try await performRequest(url: url, method: "PUT", body: request)
+    }
+
+    // MARK: - Your data
+
+    /// The server needs the same typed phrase as the website before it deletes anything
+    static let deleteConfirmation = "delete my account"
+
+    /// Deletes everything on the server, then the login. Throws with the server's message if either part fails,
+    /// and retrying is safe.
+    func deleteAccount() async throws {
+        let url = URL(string: "\(baseURL)/account")!
+        _ = try await send(url: url, method: "DELETE", body: ["confirm": Self.deleteConfirmation])
+    }
+
+    /// CSV of your applications (with stages and notes) or your STAR stories, fetched with the Bearer token
+    func exportData(kind: String) async throws -> Data {
+        var components = URLComponents(string: "\(baseURL)/data/export")!
+        components.queryItems = [URLQueryItem(name: "kind", value: kind)]
+        return try await send(url: components.url!, method: "GET", body: Optional<EmptyBody>.none)
     }
 
     // MARK: - Private Helpers
@@ -131,12 +151,28 @@ actor APIService {
         method: String,
         body: Body?
     ) async throws -> T {
+        let data = try await send(url: url, method: method, body: body)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw APIError.decodingError(error)
+        }
+    }
+
+    /// Sends the request and returns the raw body of a 2xx response
+    private func send<Body: Encodable & Sendable>(
+        url: URL,
+        method: String,
+        body: Body?
+    ) async throws -> Data {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Add auth token if available
-        if let token = authToken {
+        // A fresh token from the current session each time; signed out means no token
+        if let token = await AuthToken.current() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -155,13 +191,7 @@ actor APIService {
 
         switch httpResponse.statusCode {
         case 200...299:
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            do {
-                return try decoder.decode(T.self, from: data)
-            } catch {
-                throw APIError.decodingError(error)
-            }
+            return data
         case 401:
             throw APIError.unauthorized
         default:

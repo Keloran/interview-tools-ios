@@ -14,6 +14,9 @@ import FlagsGG
 struct InterviewsApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var modelContainer: ModelContainer?
+    /// Whose store is open: a Clerk user id, or nil for guest mode
+    @State private var storeOwner: String?
+    @State private var clerk = Clerk.shared
     @State private var showLaunchScreen = true
     private let flagsClient: Flags?
     
@@ -38,7 +41,10 @@ struct InterviewsApp: App {
                 // Main app - always present after launch screen
                 if let modelContainer {
                     ContentView()
+                        // A new account gets a fresh view tree, so nothing from the last one lingers
+                        .id(storeOwner ?? "guest")
                         .modelContainer(modelContainer)
+                        .environment(\.clerk, clerk)
                         .onOpenURL { url in
                             // Log the callback URL for debugging
                             print("Received URL callback: \(url)")
@@ -69,35 +75,24 @@ struct InterviewsApp: App {
                 }
             }
             .task {
-                // Initialize container immediately (doesn't block launch screen)
-                await initializeModelContainer()
+                // Clerk first, so the right account's store opens (a cached session loads without the network)
+                clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
+                try? await clerk.load()
+                openStore(for: clerk.user?.id)
+            }
+            .onChange(of: clerk.user?.id) { _, userId in
+                guard modelContainer != nil else { return }
+                openStore(for: userId)
             }
         }
     }
     
     @MainActor
-    private func initializeModelContainer() async {
-        // Quick initialization - just create the container
-        let schema = Schema([
-            Interview.self,
-            Company.self,
-            Stage.self,
-            StageMethod.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
+    private func openStore(for userId: String?) {
+        guard modelContainer == nil || userId != storeOwner else { return }
         do {
-            let container = try await Task.detached(priority: .high) {
-                try ModelContainer(for: schema, configurations: [modelConfiguration])
-            }.value
-
-            // Set the container - this will show the main UI
-            self.modelContainer = container
-            
-            // Seed default data synchronously before showing UI
-            // This ensures stages and methods are available immediately
-            let mainContext = container.mainContext
-            DataSeeder.seedDefaultData(context: mainContext)
+            modelContainer = try AccountStore.container(for: userId)
+            storeOwner = userId
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

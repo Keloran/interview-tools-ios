@@ -16,6 +16,8 @@ enum InterviewOutcome: String, Codable, CaseIterable {
     case offerAccepted = "OFFER_ACCEPTED"
     case offerDeclined = "OFFER_DECLINED"
     case withdrew = "WITHDREW"
+    /// Closed as ghosted on the website: they never replied
+    case noResponse = "NO_RESPONSE"
 
     var displayName: String {
         switch self {
@@ -27,6 +29,7 @@ enum InterviewOutcome: String, Codable, CaseIterable {
         case .offerAccepted: return "Offer Accepted"
         case .offerDeclined: return "Offer Declined"
         case .withdrew: return "Withdrew"
+        case .noResponse: return "No Response"
         }
     }
 
@@ -40,6 +43,7 @@ enum InterviewOutcome: String, Codable, CaseIterable {
         case .offerAccepted: return "green"
         case .offerDeclined: return "orange"
         case .withdrew: return "gray"
+        case .noResponse: return "brown"
         }
     }
 }

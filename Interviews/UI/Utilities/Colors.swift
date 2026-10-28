@@ -14,6 +14,8 @@ public func colorForOutcomeString(_ label: String) -> Color {
         return .red
     case "withdrew", "withdrawn":
         return .gray
+    case "no response", "ghosted":
+        return .brown
     case "offer received", "offers":
         return .purple
     case "active":
@@ -41,6 +43,8 @@ func colorForOutcomeInterview(_ outcome: InterviewOutcome) -> Color {
         return .orange
     case .withdrew:
         return .gray
+    case .noResponse:
+        return .brown
     case .awaitingResponse:
         return .yellow
     }

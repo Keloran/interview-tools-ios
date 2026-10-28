@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import SwiftData
+import Clerk
 
 @MainActor
 class SyncService: ObservableObject {
@@ -18,8 +19,18 @@ class SyncService: ObservableObject {
     @Published var lastSyncDate: Date?
     @Published var syncError: Error?
 
+    /// The account this store belongs to, when the sync started
+    private let owner: String?
+    var currentOwner: () -> String? = { Clerk.shared.user?.id }
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+        self.owner = Clerk.shared.user?.id
+    }
+
+    /// A response that arrives after a sign-out or a switch to another account is dropped, not saved
+    func ensureSameAccount() throws {
+        guard currentOwner() == owner else { throw CancellationError() }
     }
 
     // MARK: - Sync All Data
@@ -34,6 +45,7 @@ class SyncService: ObservableObject {
             try await syncStages()
             try await syncStageMethods()
             try await syncInterviews()
+            try ensureSameAccount()
 
             lastSyncDate = Date()
         } catch {
@@ -48,6 +60,7 @@ class SyncService: ObservableObject {
 
     private func syncCompanies() async throws {
         let apiCompanies = try await apiService.fetchCompanies()
+        try ensureSameAccount()
 
         // Create a set of server company IDs for deletion check
         let serverCompanyIds = Set(apiCompanies.map { $0.id })
@@ -113,6 +126,7 @@ class SyncService: ObservableObject {
 
     private func syncStages() async throws {
         let apiStages = try await apiService.fetchStages()
+        try ensureSameAccount()
 
         // Create a set of server stage IDs for deletion check
         let serverStageIds = Set(apiStages.map { $0.id })
@@ -178,6 +192,7 @@ class SyncService: ObservableObject {
 
     private func syncStageMethods() async throws {
         let apiMethods = try await apiService.fetchStageMethods()
+        try ensureSameAccount()
 
         // Create a set of server method IDs for deletion check
         let serverMethodIds = Set(apiMethods.map { $0.id })
@@ -241,8 +256,33 @@ class SyncService: ObservableObject {
 
     // MARK: - Sync Interviews
 
+    /// Every page of the user's interviews, deduplicated by id. Throws if any page fails, so the caller never
+    /// treats a partial list as "everything else was deleted on the server".
+    /// ponytail: a stage added mid-fetch can shift a row past a page edge; the next sync puts it back.
+    static func fetchAllInterviews(
+        pageSize: Int = 500,
+        fetchPage: (_ skip: Int, _ take: Int) async throws -> [APIInterview]
+    ) async throws -> [APIInterview] {
+        var all: [APIInterview] = []
+        var seen = Set<Int>()
+        var skip = 0
+        while true {
+            try Task.checkCancellation()
+            let page = try await fetchPage(skip, pageSize)
+            for interview in page where seen.insert(interview.id).inserted {
+                all.append(interview)
+            }
+            if page.count < pageSize { return all }
+            skip += pageSize
+        }
+    }
+
     private func syncInterviews() async throws {
-        let apiInterviews = try await apiService.fetchInterviews(includePast: true)
+        let apiService = self.apiService
+        let apiInterviews = try await Self.fetchAllInterviews { skip, take in
+            try await apiService.fetchInterviews(includePast: true, take: take, skip: skip)
+        }
+        try ensureSameAccount()
 
         // Create a set of server interview IDs for deletion check
         let serverInterviewIds = Set(apiInterviews.map { $0.id })
@@ -407,14 +447,18 @@ class SyncService: ObservableObject {
 
     // MARK: - Push Interview to API
 
-    func pushInterview(_ interview: Interview) async throws -> APIInterview {
+    func pushInterview(_ interview: Interview, previousInterviewId: Int? = nil) async throws -> APIInterview {
+        try await apiService.createInterview(createRequest(for: interview, previousInterviewId: previousInterviewId))
+    }
+
+    func createRequest(for interview: Interview, previousInterviewId: Int? = nil) throws -> CreateInterviewRequest {
         guard let company = interview.company else {
             throw APIError.serverError("Interview must have a company")
         }
 
         let dateFormatter = ISO8601DateFormatter()
 
-        let request = CreateInterviewRequest(
+        return CreateInterviewRequest(
             stage: interview.stage?.stage ?? "Applied",
             companyName: company.name,
             clientCompany: interview.clientCompany,
@@ -425,10 +469,28 @@ class SyncService: ObservableObject {
             interviewer: interview.interviewer,
             locationType: interview.stageMethod?.method.lowercased().contains("video") == true ? "link" : "phone",
             interviewLink: interview.link,
-            notes: interview.notes
+            notes: interview.notes,
+            previousInterviewId: previousInterviewId
         )
+    }
 
-        return try await apiService.createInterview(request)
+    /// Sends a next stage as part of the same application, then marks the stage before it passed.
+    /// If the earlier stage never reached the server, it goes first so there's an application to join.
+    func pushNextStage(_ next: Interview, after previous: Interview) async throws {
+        if previous.id == nil {
+            previous.id = try await pushInterview(previous).id
+            try modelContext.save()
+        }
+        guard let previousId = previous.id else { return }
+
+        next.id = try await pushInterview(next, previousInterviewId: previousId).id
+        next.updatedAt = Date()
+        try modelContext.save()
+
+        _ = try await apiService.updateInterview(id: previousId, UpdateInterviewRequest(
+            outcome: InterviewOutcome.passed.rawValue, stage: nil, date: nil, deadline: nil,
+            interviewer: nil, notes: nil, link: nil
+        ))
     }
 
     // MARK: - Helpers

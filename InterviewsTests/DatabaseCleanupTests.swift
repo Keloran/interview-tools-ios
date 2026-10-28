@@ -378,4 +378,52 @@ struct DatabaseCleanupTests {
         let technicalInterviews = allStages.filter { $0.stage == "Technical Interview" }
         #expect(technicalInterviews.count == 1)
     }
+
+    // MARK: - Account Deletion Tests
+
+    @Test("Remove synced data clears server records but keeps guest data")
+    func testRemoveSyncedDataKeepsGuestData() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        let context = container.mainContext
+
+        let synced = Company(id: 1, name: "Synced Co")
+        let shared = Company(id: 2, name: "Shared Co")
+        let guest = Company(name: "Guest Co")
+        let stage = Stage(id: 1, stage: "Applied")
+        [synced, shared, guest].forEach { context.insert($0) }
+        context.insert(stage)
+        context.insert(Interview(id: 10, company: synced, jobTitle: "Synced role", applicationDate: Date(), stage: stage))
+        context.insert(Interview(id: 11, company: shared, jobTitle: "Synced at shared", applicationDate: Date(), stage: stage))
+        context.insert(Interview(company: shared, jobTitle: "Guest at shared", applicationDate: Date(), stage: stage))
+        context.insert(Interview(company: guest, jobTitle: "Guest role", applicationDate: Date(), stage: stage))
+        try context.save()
+
+        try DatabaseCleanup.removeSyncedData(context: context)
+
+        let interviews = try context.fetch(FetchDescriptor<Interview>())
+        #expect(Set(interviews.map(\.jobTitle)) == ["Guest at shared", "Guest role"])
+        #expect(interviews.allSatisfy { $0.id == nil })
+
+        // A synced company still used by guest data stays, so the cascade can't take the guest interview with it
+        let companies = try context.fetch(FetchDescriptor<Company>())
+        #expect(Set(companies.map(\.name)) == ["Shared Co", "Guest Co"])
+
+        // Reference data isn't account data
+        #expect(try context.fetch(FetchDescriptor<Stage>()).count == 1)
+    }
+
+    @Test("Remove synced data handles empty database")
+    func testRemoveSyncedDataEmpty() async throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: Interview.self, Company.self, Stage.self, StageMethod.self,
+            configurations: config
+        )
+        try DatabaseCleanup.removeSyncedData(context: container.mainContext)
+        #expect(try container.mainContext.fetch(FetchDescriptor<Interview>()).isEmpty)
+    }
 }

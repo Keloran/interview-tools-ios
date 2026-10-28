@@ -91,6 +91,8 @@ struct InterviewStats {
                     offerDeclined += 1
                 case .withdrew:
                     withdrew += 1
+                case .noResponse:
+                    break
                 }
             }
         }
