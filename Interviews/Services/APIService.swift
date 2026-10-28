@@ -61,7 +61,9 @@ actor APIService {
         includePast: Bool? = nil,
         companyId: Int? = nil,
         companyName: String? = nil,
-        outcome: String? = nil
+        outcome: String? = nil,
+        take: Int? = nil,
+        skip: Int? = nil
     ) async throws -> [APIInterview] {
         var components = URLComponents(string: "\(baseURL)/interviews")!
         var queryItems: [URLQueryItem] = []
@@ -86,6 +88,12 @@ actor APIService {
         }
         if let outcome = outcome {
             queryItems.append(URLQueryItem(name: "outcome", value: outcome))
+        }
+        if let take = take {
+            queryItems.append(URLQueryItem(name: "take", value: String(take)))
+        }
+        if let skip = skip {
+            queryItems.append(URLQueryItem(name: "skip", value: String(skip)))
         }
 
         if !queryItems.isEmpty {
