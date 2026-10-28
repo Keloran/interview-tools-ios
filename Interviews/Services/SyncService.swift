@@ -241,8 +241,32 @@ class SyncService: ObservableObject {
 
     // MARK: - Sync Interviews
 
+    /// Every page of the user's interviews, deduplicated by id. Throws if any page fails, so the caller never
+    /// treats a partial list as "everything else was deleted on the server".
+    /// ponytail: a stage added mid-fetch can shift a row past a page edge; the next sync puts it back.
+    static func fetchAllInterviews(
+        pageSize: Int = 500,
+        fetchPage: (_ skip: Int, _ take: Int) async throws -> [APIInterview]
+    ) async throws -> [APIInterview] {
+        var all: [APIInterview] = []
+        var seen = Set<Int>()
+        var skip = 0
+        while true {
+            try Task.checkCancellation()
+            let page = try await fetchPage(skip, pageSize)
+            for interview in page where seen.insert(interview.id).inserted {
+                all.append(interview)
+            }
+            if page.count < pageSize { return all }
+            skip += pageSize
+        }
+    }
+
     private func syncInterviews() async throws {
-        let apiInterviews = try await apiService.fetchInterviews(includePast: true)
+        let apiService = self.apiService
+        let apiInterviews = try await Self.fetchAllInterviews { skip, take in
+            try await apiService.fetchInterviews(includePast: true, take: take, skip: skip)
+        }
 
         // Create a set of server interview IDs for deletion check
         let serverInterviewIds = Set(apiInterviews.map { $0.id })
