@@ -456,3 +456,34 @@ nonisolated struct APIQuestionEntry: Decodable, Sendable, Identifiable {
     let notes: String?
     var id: Int { interviewId }
 }
+
+// MARK: - Availability links
+
+nonisolated struct APIAvailabilityList: Decodable, Sendable {
+    nonisolated struct Link: Decodable, Sendable, Identifiable {
+        let id: String
+        let slots: [String]
+        let durationMinutes: Int
+        let bookedSlot: String?
+        let viewCount: Int
+        let firstViewedAt: String?
+        let lastViewedAt: String?
+        let created_at: String
+        let sentAt: String?
+        let stage: String
+        let path: String
+    }
+    let jobTitle: String
+    let company: String
+    let links: [Link]
+}
+
+nonisolated struct APICreatedLink: Decodable, Sendable {
+    let id: String
+    let path: String
+}
+
+nonisolated struct APIBusy: Decodable, Sendable {
+    let start: String
+    let durationMinutes: Int
+}

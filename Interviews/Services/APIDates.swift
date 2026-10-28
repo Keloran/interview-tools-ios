@@ -8,7 +8,7 @@ import Foundation
 /// The API sends two kinds of date: real moments (interview times, take-home deadlines) and calendar days
 /// (application dates from imports, offer respond-by days) sent as UTC midnight. A day must stay the same day in
 /// every timezone, so it's kept as local midnight of that day, never as the UTC instant.
-enum APIDates {
+nonisolated enum APIDates {
     private static let withFraction: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

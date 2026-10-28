@@ -357,6 +357,7 @@ struct InterviewDetailSheet: View {
     @State private var showingOutcomeOptions = false
     @State private var showingDebrief = false
     @State private var showingPrep = false
+    @State private var showingAvailability = false
 
     var body: some View {
         ScrollView {
@@ -383,6 +384,8 @@ struct InterviewDetailSheet: View {
                         Button { showingPrep = true } label: { Label("Prepare", systemImage: "list.clipboard") }
                         Button { showingDebrief = true } label: { Label("Debrief", systemImage: "text.bubble") }
                     }
+                    Button { showingAvailability = true } label: { Label("Share availability", systemImage: "calendar.badge.clock") }
+                        .sheet(isPresented: $showingAvailability) { ShareAvailabilityView(interview: interview) }
                     .buttonStyle(.bordered)
                     .font(.subheadline)
                     .sheet(isPresented: $showingDebrief) { DebriefView(interviewId: id, title: title) }

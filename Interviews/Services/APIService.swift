@@ -207,6 +207,31 @@ actor APIService {
         _ = try await send(url: URL(string: "\(baseURL)/stories/\(id)")!, method: "DELETE", body: Optional<EmptyBody>.none)
     }
 
+    // MARK: - Availability links
+
+    func fetchAvailability(interviewId: Int) async throws -> APIAvailabilityList {
+        var components = URLComponents(string: "\(baseURL)/availability")!
+        components.queryItems = [URLQueryItem(name: "interviewId", value: String(interviewId))]
+        return try await performRequest(url: components.url!, method: "GET")
+    }
+
+    func createAvailability(interviewId: Int, stage: String, durationMinutes: Int, slots: [Date]) async throws -> APICreatedLink {
+        nonisolated struct Body: Encodable, Sendable { let interviewId: Int; let stage: String; let durationMinutes: Int; let slots: [String] }
+        let body = Body(interviewId: interviewId, stage: stage, durationMinutes: durationMinutes, slots: slots.map(APIDates.instantString))
+        return try await performRequest(url: URL(string: "\(baseURL)/availability")!, method: "POST", body: body)
+    }
+
+    func markAvailabilitySent(linkId: String, sent: Bool = true) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/availability/\(linkId)/sent")!, method: "PUT", body: ["sent": sent])
+    }
+
+    /// Google Calendar busy times; [] when nothing is connected (or on any error, so slots still show)
+    func fetchBusy(from: Date, to: Date) async -> [APIBusy] {
+        var components = URLComponents(string: "\(baseURL)/busy")!
+        components.queryItems = [URLQueryItem(name: "from", value: APIDates.instantString(from)), URLQueryItem(name: "to", value: APIDates.instantString(to))]
+        return (try? await performRequest(url: components.url!, method: "GET")) ?? []
+    }
+
     // MARK: - Your data
 
     /// The server needs the same typed phrase as the website before it deletes anything
