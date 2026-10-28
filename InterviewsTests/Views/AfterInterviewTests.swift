@@ -31,8 +31,10 @@ struct AfterInterviewTests {
 
     @Test("Question search covers questions, company, stage and notes")
     func testQuestionSearch() throws {
-        let json = #"[{"interviewId": 1, "company": "Acme", "recruiter": null, "stage": "Technical", "date": "2026-10-01T10:00:00Z", "jobTitle": "iOS", "questions": ["Tell me about a conflict"], "notes": null},
-                      {"interviewId": 2, "company": "Beta", "recruiter": "Recruit Co", "stage": "Final", "date": "2026-10-02T10:00:00Z", "jobTitle": "iOS", "questions": ["Why us?"], "notes": "Panel of three"}]"#
+        let json = #"""
+            [{"interviewId": 1, "company": "Acme", "recruiter": null, "stage": "Technical", "date": "2026-10-01T10:00:00Z", "jobTitle": "iOS", "questions": ["Tell me about a conflict"], "notes": null},
+            {"interviewId": 2, "company": "Beta", "recruiter": "Recruit Co", "stage": "Final", "date": "2026-10-02T10:00:00Z", "jobTitle": "iOS", "questions": ["Why us?"], "notes": "Panel of three"}]
+            """#
         let entries = try JSONDecoder().decode([APIQuestionEntry].self, from: Data(json.utf8))
         #expect(QuestionBank.filter(entries, search: "").count == 2)
         #expect(QuestionBank.filter(entries, search: "CONFLICT").map(\.id) == [1])
