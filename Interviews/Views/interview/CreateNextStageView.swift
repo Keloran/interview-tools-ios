@@ -7,10 +7,12 @@
 
 import SwiftUI
 import SwiftData
+import Clerk
 
 struct CreateNextStageView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.clerk) private var clerk
     @Query private var allStages: [Stage]
     @Query private var allMethods: [StageMethod]
     
@@ -272,7 +274,20 @@ struct CreateNextStageView: View {
         
         modelContext.insert(newInterview)
         try? modelContext.save()
-        
+
+        // Guest mode stays local; sign-in pushes it later
+        if clerk.user != nil {
+            let previous = interview
+            Task { @MainActor in
+                do {
+                    try await SyncService(modelContext: modelContext).pushNextStage(newInterview, after: previous)
+                } catch {
+                    // Still saved locally with no server id, so sync won't remove it
+                    print("❌ Failed to push next stage: \(error)")
+                }
+            }
+        }
+
         dismiss()
     }
     

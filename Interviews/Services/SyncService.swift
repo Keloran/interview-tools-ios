@@ -431,14 +431,18 @@ class SyncService: ObservableObject {
 
     // MARK: - Push Interview to API
 
-    func pushInterview(_ interview: Interview) async throws -> APIInterview {
+    func pushInterview(_ interview: Interview, previousInterviewId: Int? = nil) async throws -> APIInterview {
+        try await apiService.createInterview(createRequest(for: interview, previousInterviewId: previousInterviewId))
+    }
+
+    func createRequest(for interview: Interview, previousInterviewId: Int? = nil) throws -> CreateInterviewRequest {
         guard let company = interview.company else {
             throw APIError.serverError("Interview must have a company")
         }
 
         let dateFormatter = ISO8601DateFormatter()
 
-        let request = CreateInterviewRequest(
+        return CreateInterviewRequest(
             stage: interview.stage?.stage ?? "Applied",
             companyName: company.name,
             clientCompany: interview.clientCompany,
@@ -449,10 +453,28 @@ class SyncService: ObservableObject {
             interviewer: interview.interviewer,
             locationType: interview.stageMethod?.method.lowercased().contains("video") == true ? "link" : "phone",
             interviewLink: interview.link,
-            notes: interview.notes
+            notes: interview.notes,
+            previousInterviewId: previousInterviewId
         )
+    }
 
-        return try await apiService.createInterview(request)
+    /// Sends a next stage as part of the same application, then marks the stage before it passed.
+    /// If the earlier stage never reached the server, it goes first so there's an application to join.
+    func pushNextStage(_ next: Interview, after previous: Interview) async throws {
+        if previous.id == nil {
+            previous.id = try await pushInterview(previous).id
+            try modelContext.save()
+        }
+        guard let previousId = previous.id else { return }
+
+        next.id = try await pushInterview(next, previousInterviewId: previousId).id
+        next.updatedAt = Date()
+        try modelContext.save()
+
+        _ = try await apiService.updateInterview(id: previousId, UpdateInterviewRequest(
+            outcome: InterviewOutcome.passed.rawValue, stage: nil, date: nil, deadline: nil,
+            interviewer: nil, notes: nil, link: nil
+        ))
     }
 
     // MARK: - Helpers
