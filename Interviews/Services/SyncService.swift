@@ -6,9 +6,10 @@
 //
 
 import Foundation
+import OSLog
 import Combine
 import SwiftData
-import Clerk
+import ClerkKit
 
 @MainActor
 class SyncService: ObservableObject {
@@ -58,7 +59,7 @@ class SyncService: ObservableObject {
             lastSyncDate = Date()
         } catch {
             syncError = error
-            print("Sync error: \(error)")
+            appLog.error("Sync error: \(String(describing: error))")
         }
 
         isSyncing = false
@@ -359,7 +360,7 @@ class SyncService: ObservableObject {
             // Interview times are moments; application dates and offer respond-by dates are calendar days
             guard let applicationDate = APIDates.day(apiInterview.applicationDate) else {
                 // Never invent "today" for history; keep whatever is here and move on
-                print("⚠️ Skipping interview \(apiInterview.id): unreadable applicationDate \(apiInterview.applicationDate)")
+                appLog.notice("⚠️ Skipping interview \(apiInterview.id): unreadable applicationDate \(apiInterview.applicationDate)")
                 continue
             }
             let date = APIDates.instant(apiInterview.date)

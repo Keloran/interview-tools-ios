@@ -6,13 +6,14 @@
 //
 
 import SwiftUI
+import OSLog
 import SwiftData
-import Clerk
+import ClerkKit
 
 struct AddInterviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @Query private var companies: [Company]
     @Query private var stages: [Stage]
     @Query private var stageMethods: [StageMethod]
@@ -291,7 +292,7 @@ struct AddInterviewView: View {
                 selectedStage = firstStage
 //                print("⚠️ 'Applied' not found, defaulting to: \(firstStage.stage)")
             } else {
-                print("❌ No stages available!")
+                appLog.error("❌ No stages available!")
             }
         }
         
@@ -420,7 +421,7 @@ struct AddInterviewView: View {
 //            print("   Stage: \(stage.stage)")
             
             // Only push to API if user is authenticated
-            if clerk.user != nil {
+            if clerk?.user != nil {
                 // Keep a reference to the interview to update it after API push
                 let savedInterview = interview
                 
@@ -429,7 +430,7 @@ struct AddInterviewView: View {
                     await pushToAPI(savedInterview)
                 }
             } else {
-                print("👋 Guest mode: Interview saved locally only (will sync when user signs in)")
+                appLog.notice("👋 Guest mode: Interview saved locally only (will sync when user signs in)")
             }
             
             dismiss()

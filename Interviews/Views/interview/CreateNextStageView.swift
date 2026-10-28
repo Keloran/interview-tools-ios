@@ -6,13 +6,14 @@
 //
 
 import SwiftUI
+import OSLog
 import SwiftData
-import Clerk
+import ClerkKit
 
 struct CreateNextStageView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @Query private var allStages: [Stage]
     @Query private var allMethods: [StageMethod]
     
@@ -224,7 +225,7 @@ struct CreateNextStageView: View {
                     mergedMetadata = jsonObject
                 }
             } catch {
-                print("⚠️ createNextStage: Failed to parse previous metadataJSON: \(error.localizedDescription)")
+                appLog.error("⚠️ createNextStage: Failed to parse previous metadataJSON: \(error.localizedDescription)")
             }
         }
         
@@ -250,7 +251,7 @@ struct CreateNextStageView: View {
             let jsonData = try JSONSerialization.data(withJSONObject: mergedMetadata, options: [])
             newMetadataJSON = String(data: jsonData, encoding: .utf8)
         } catch {
-            print("⚠️ createNextStage: Failed to serialize merged metadataJSON: \(error.localizedDescription)")
+            appLog.error("⚠️ createNextStage: Failed to serialize merged metadataJSON: \(error.localizedDescription)")
             newMetadataJSON = nil
         }
         
@@ -276,14 +277,14 @@ struct CreateNextStageView: View {
         try? modelContext.save()
 
         // Guest mode stays local; sign-in pushes it later
-        if clerk.user != nil {
+        if clerk?.user != nil {
             let previous = interview
             Task { @MainActor in
                 do {
                     try await SyncService(modelContext: modelContext).pushNextStage(newInterview, after: previous)
                 } catch {
                     // Still saved locally with no server id, so sync won't remove it
-                    print("❌ Failed to push next stage: \(error)")
+                    appLog.error("❌ Failed to push next stage: \(String(describing: error))")
                 }
             }
         }

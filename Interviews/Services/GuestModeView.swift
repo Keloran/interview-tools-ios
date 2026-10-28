@@ -6,18 +6,20 @@
 //
 
 import SwiftUI
+import OSLog
 import SwiftData
-import Clerk
+import ClerkKit
+import ClerkKitUI
 
 /// A view that shows guest mode status and allows users to sign in
 struct GuestModeBanner: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @State private var showingSignIn = false
     @State private var showingMigrationStatus = false
     
     var body: some View {
-        if clerk.user == nil {
+        if clerk?.user == nil {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     Image(systemName: "person.crop.circle.badge.questionmark")
@@ -36,7 +38,7 @@ struct GuestModeBanner: View {
                     
                     Spacer()
                     
-                    if clerk.user != nil {
+                    if clerk?.user != nil {
                         // User is authenticated, show sync button
                         Button("Sync Now") {
                             showingMigrationStatus = true
@@ -72,7 +74,7 @@ struct GuestModeBanner: View {
 /// View for signing in
 struct SignInView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @State private var authIsPresented = true
     
     var body: some View {
@@ -115,7 +117,7 @@ struct SignInView: View {
             .sheet(isPresented: $authIsPresented) {
                 AuthView()
             }
-            .onChange(of: clerk.user) { oldValue, newValue in
+            .onChange(of: clerk?.user) { oldValue, newValue in
                 // When user signs in, dismiss this view
                 if oldValue == nil && newValue != nil {
                     authIsPresented = false
@@ -130,7 +132,7 @@ struct SignInView: View {
 struct MigrationView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @State private var syncService: SyncService?
     @State private var isProcessing = false
     @State private var error: Error?
@@ -244,7 +246,7 @@ struct MigrationView: View {
     
     private func performMigration() {
         guard let syncService = syncService else { return }
-        guard clerk.user != nil else {
+        guard clerk?.user != nil else {
             error = NSError(domain: "com.interviews", code: 401, userInfo: [NSLocalizedDescriptionKey: "You must be signed in to sync"])
             return
         }
@@ -286,7 +288,7 @@ struct MigrationView: View {
             return
         }
         
-        print("📤 Pushing \(localInterviews.count) local interview(s) to server...")
+        appLog.notice("📤 Pushing \(localInterviews.count) local interview(s) to server...")
         
         var successCount = 0
         var failureCount = 0

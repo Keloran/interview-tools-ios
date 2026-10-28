@@ -8,7 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		F3372BC82EFD9792009DECED /* FlagsGG in Frameworks */ = {isa = PBXBuildFile; productRef = F3372BC72EFD9792009DECED /* FlagsGG */; };
-		F3F3C1DD2EE3A7F80000102D /* Clerk in Frameworks */ = {isa = PBXBuildFile; productRef = F3F3C1DC2EE3A7F80000102D /* Clerk */; };
+		F3F3C1DD2EE3A7F80000102D /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = F3F3C1DC2EE3A7F80000102D /* ClerkKit */; };
+		A1B2C3D4E5F6A7B8C9D0E101 /* ClerkKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6A7B8C9D0E102 /* ClerkKitUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,7 +73,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F3372BC82EFD9792009DECED /* FlagsGG in Frameworks */,
-				F3F3C1DD2EE3A7F80000102D /* Clerk in Frameworks */,
+				F3F3C1DD2EE3A7F80000102D /* ClerkKit in Frameworks */,
+				A1B2C3D4E5F6A7B8C9D0E101 /* ClerkKitUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -134,7 +136,8 @@
 			);
 			name = Interviews;
 			packageProductDependencies = (
-				F3F3C1DC2EE3A7F80000102D /* Clerk */,
+				F3F3C1DC2EE3A7F80000102D /* ClerkKit */,
+				A1B2C3D4E5F6A7B8C9D0E102 /* ClerkKitUI */,
 				F3372BC72EFD9792009DECED /* FlagsGG */,
 			);
 			productName = Interviews;
@@ -624,8 +627,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/flags-gg/swift.git";
 			requirement = {
-				branch = main;
-				kind = branch;
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.3;
 			};
 		};
 		F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */ = {
@@ -633,7 +636,7 @@
 			repositoryURL = "https://github.com/clerk/clerk-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.71.2;
+				minimumVersion = 1.6.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -644,10 +647,15 @@
 			package = F3372BC62EFD9792009DECED /* XCRemoteSwiftPackageReference "swift" */;
 			productName = FlagsGG;
 		};
-		F3F3C1DC2EE3A7F80000102D /* Clerk */ = {
+		F3F3C1DC2EE3A7F80000102D /* ClerkKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */;
-			productName = Clerk;
+			productName = ClerkKit;
+		};
+		A1B2C3D4E5F6A7B8C9D0E102 /* ClerkKitUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */;
+			productName = ClerkKitUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

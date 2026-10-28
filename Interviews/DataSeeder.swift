@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 import SwiftData
 
 struct DataSeeder {
@@ -24,20 +25,20 @@ struct DataSeeder {
 //                print("📦 Seeding default stages...")
                 seedStages(context: context)
             } else {
-                print("✅ Stages already exist, skipping seed")
+                appLog.notice("✅ Stages already exist, skipping seed")
             }
 
             if existingMethods.isEmpty {
 //                print("📦 Seeding default methods...")
                 seedStageMethods(context: context)
             } else {
-                print("✅ Methods already exist, skipping seed")
+                appLog.notice("✅ Methods already exist, skipping seed")
             }
 
             try context.save()
 //            print("✅ Default data seeding complete")
         } catch {
-            print("❌ Error seeding data: \(error)")
+            appLog.error("❌ Error seeding data: \(String(describing: error))")
         }
     }
 

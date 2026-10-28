@@ -7,7 +7,7 @@
 
 import SwiftUI
 import SwiftData
-import Clerk
+import ClerkKit
 
 private struct InterviewItem: Identifiable, Equatable {
     let id: PersistentIdentifier
@@ -15,7 +15,7 @@ private struct InterviewItem: Identifiable, Equatable {
 
 struct InterviewListView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @Query private var interviews: [Interview]
     
     @Binding var selectedDate: Date?
@@ -99,7 +99,7 @@ struct InterviewListView: View {
                     // Immediately end the system spinner and show our own syncing popup
                     isSyncing = true
                     Task {
-                        if clerk.user != nil {
+                        if clerk?.user != nil {
                             await SyncService(modelContext: modelContext).syncAll()
                         }
                         isSyncing = false
@@ -165,7 +165,7 @@ struct InterviewListView: View {
         interview.outcome = outcome
         interview.markChanged()
         try? modelContext.save()
-        guard clerk.user != nil else { return }
+        guard clerk?.user != nil else { return }
         Task { await SyncService(modelContext: modelContext).pushPending() }
     }
     
@@ -352,7 +352,7 @@ struct InterviewListRow: View {
 struct InterviewDetailSheet: View {
     let interview: Interview
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @State private var showingEditSheet = false
     @State private var showingOutcomeOptions = false
 
@@ -500,15 +500,16 @@ struct InterviewDetailSheet: View {
                                 .font(.subheadline)
                         }
 
-                        if let link = interview.link {
-                            Link(destination: URL(string: link) ?? URL(string: "https://")!) {
+                        // A link that isn't a URL gets no button rather than one that opens nothing
+                        if let link = interview.link, let url = URL(string: link) {
+                            Link(destination: url) {
                                 Label("Join Interview", systemImage: "video")
                                     .font(.subheadline)
                             }
                         }
                         
-                        if let jobPostingLink = interview.jobListing {
-                            Link(destination: URL(string: jobPostingLink) ?? URL(string: "https://")!) {
+                        if let jobPostingLink = interview.jobListing, let url = URL(string: jobPostingLink) {
+                            Link(destination: url) {
                                 Label("View Job Posting", systemImage: "doc.text")
                                     .font(.subheadline)
                             }
@@ -586,7 +587,7 @@ struct InterviewDetailSheet: View {
         interview.outcome = outcome
         interview.markChanged()
         try? modelContext.save()
-        guard clerk.user != nil else { return }
+        guard clerk?.user != nil else { return }
         Task { await SyncService(modelContext: modelContext).pushPending() }
     }
     

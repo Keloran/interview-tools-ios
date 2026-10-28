@@ -6,8 +6,9 @@
 //
 
 import SwiftUI
+import OSLog
 import SwiftData
-import Clerk
+import ClerkKit
 import FlagsGG
 
 struct ContentView: View {
@@ -15,7 +16,7 @@ struct ContentView: View {
     @Query private var interviews: [Interview]
 
     @State private var showingSettings = false
-    @State private var clerk = Clerk.shared
+    @Environment(Clerk.self) private var clerk: Clerk?
     @State private var hasPerformedInitialSync = false
     @State private var isSyncing = false
     @State private var isInitialLoad = true
@@ -218,9 +219,6 @@ struct ContentView: View {
             .overlay { syncOverlay }
             .sheet(isPresented: $showingSettings) { SettingsView(modelContext: modelContext) }
             .sheet(isPresented: $showingAddInterview) { AddInterviewSheet(selectedDate: selectedDate) }
-            .onChange(of: showingAddInterview) { _, newValue in
-                print("🪟 showingAddInterview changed -> \(newValue)")
-            }
             .onAppear { Task { await performInitialSyncIfNeeded() } }
             .alert("Add your guest interviews?", isPresented: $showingGuestImport) {
                 Button("Add to this account") {
@@ -250,22 +248,15 @@ struct ContentView: View {
         let selectedDate: Date?
 
         var body: some View {
-            let dateToUse = selectedDate ?? Date()
-            let formatted = dateToUse.formatted(date: .abbreviated, time: .omitted)
-
-            return NavigationStack {
-                AddInterviewView(initialDate: dateToUse)
-                    .task {
-                        // Keeping the debug print localized reduces inference in main body
-                        print("🧾 Presenting AddInterviewView with initialDate=\(formatted). selectedDate was \(selectedDate?.formatted(date: .abbreviated, time: .omitted) ?? "nil")")
-                    }
+            NavigationStack {
+                AddInterviewView(initialDate: selectedDate ?? Date())
             }
         }
     }
 
     private func performInitialSyncIfNeeded() async {
         // In guest mode (no user), just finish loading without syncing
-        guard clerk.user != nil else {
+        guard clerk?.user != nil else {
             await MainActor.run {
                 withAnimation {
                     isInitialLoad = false
@@ -277,7 +268,7 @@ struct ContentView: View {
         
         // Only sync once per app launch and only if user is authenticated
         guard !hasPerformedInitialSync,
-              clerk.session != nil else {
+              clerk?.session != nil else {
             // If no session, we're done loading
             await MainActor.run {
                 withAnimation {
@@ -316,7 +307,7 @@ struct ContentView: View {
 //                print("✅ Sync completed successfully")
 //            }
         } catch {
-            print("Initial sync failed: \(error)")
+            appLog.error("Initial sync failed: \(String(describing: error))")
         }
         
         await MainActor.run {
@@ -332,7 +323,7 @@ struct ContentView: View {
         let failed = await AccountStore.importGuestInterviews(using: syncService)
         await syncService.syncAll()
         if failed > 0 {
-            print("❌ \(failed) guest interview(s) couldn't be added; they're still in guest mode")
+            appLog.error("❌ \(failed) guest interview(s) couldn't be added; they're still in guest mode")
         }
     }
 }
