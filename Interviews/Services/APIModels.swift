@@ -596,3 +596,35 @@ nonisolated struct RecruiterContactRequest: Encodable, Sendable {
     var recruiterEmail: String
     var recruiterLinkedIn: String
 }
+
+// MARK: - Have I applied? (POST /api/check)
+
+nonisolated struct CheckRequest: Encodable, Sendable {
+    var link = ""
+    var title = ""
+    var company = ""
+    var client = ""
+    var description = ""
+}
+
+nonisolated struct APICheck: Decodable, Sendable {
+    nonisolated struct Match: Decodable, Sendable, Identifiable {
+        let id: Int
+        let companyName: String
+        let jobTitle: String
+        let clientCompany: String?
+        let applicationDate: String
+        let status: String
+        let response: String
+        let sameTitle: Bool
+        let samePosting: Bool
+    }
+    nonisolated struct Flag: Decodable, Sendable, Identifiable {
+        let id: String
+        let title: String
+        let explanation: String
+        let evidence: String?
+    }
+    let matches: [Match]
+    let flags: [Flag]
+}

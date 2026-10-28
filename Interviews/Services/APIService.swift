@@ -276,6 +276,13 @@ actor APIService {
         _ = try await send(url: URL(string: "\(baseURL)/applications/\(applicationId)/recruiter")!, method: "PUT", body: contact)
     }
 
+    // MARK: - Have I applied?
+
+    /// Previous applications for this job/company/client and the listing warning signs, using the website's matching
+    func check(_ request: CheckRequest) async throws -> APICheck {
+        try await performRequest(url: URL(string: "\(baseURL)/check")!, method: "POST", body: request)
+    }
+
     // MARK: - Your data
 
     /// The server needs the same typed phrase as the website before it deletes anything

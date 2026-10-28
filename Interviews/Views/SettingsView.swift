@@ -181,6 +181,11 @@ struct SettingsView: View {
         if clerk?.user != nil {
             Section("Your job search") {
                 NavigationLink {
+                    HaveIAppliedView()
+                } label: {
+                    Label("Have I applied?", systemImage: "magnifyingglass")
+                }
+                NavigationLink {
                     ReportView()
                 } label: {
                     Label("Job search report", systemImage: "chart.bar")

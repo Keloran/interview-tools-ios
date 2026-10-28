@@ -19,6 +19,8 @@ struct AddInterviewView: View {
     @Query private var stageMethods: [StageMethod]
 
     let initialDate: Date
+    /// Filled in from a job you just checked
+    var prefill: CheckRequest? = nil
 
     @State private var companyName = ""
     @State private var selectedCompany: Company?
@@ -245,6 +247,13 @@ struct AddInterviewView: View {
                         }
                     }
                 }
+            }
+            .onAppear {
+                guard let prefill, companyName.isEmpty, jobTitle.isEmpty else { return }
+                companyName = prefill.company
+                clientCompany = prefill.client
+                jobTitle = prefill.title
+                jobPostingLink = prefill.link
             }
             .task {
                 if clerk?.user != nil { recruiterRecords = (try? await APIService.shared.fetchRecruiters()) ?? [] }
