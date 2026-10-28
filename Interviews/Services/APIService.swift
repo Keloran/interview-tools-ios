@@ -21,15 +21,8 @@ actor APIService {
     static let shared = APIService()
 
     private let baseURL = "https://interviews.tools/api"
-    private var authToken: String?
 
     private init() {}
-
-    // MARK: - Authentication
-
-    func setAuthToken(_ token: String?) {
-        self.authToken = token
-    }
 
     // MARK: - Companies
 
@@ -178,8 +171,8 @@ actor APIService {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Add auth token if available
-        if let token = authToken {
+        // A fresh token from the current session each time; signed out means no token
+        if let token = await AuthToken.current() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 

@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import SwiftData
+import Clerk
 
 @MainActor
 class SyncService: ObservableObject {
@@ -18,8 +19,18 @@ class SyncService: ObservableObject {
     @Published var lastSyncDate: Date?
     @Published var syncError: Error?
 
+    /// The account this store belongs to, when the sync started
+    private let owner: String?
+    var currentOwner: () -> String? = { Clerk.shared.user?.id }
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+        self.owner = Clerk.shared.user?.id
+    }
+
+    /// A response that arrives after a sign-out or a switch to another account is dropped, not saved
+    func ensureSameAccount() throws {
+        guard currentOwner() == owner else { throw CancellationError() }
     }
 
     // MARK: - Sync All Data
@@ -34,6 +45,7 @@ class SyncService: ObservableObject {
             try await syncStages()
             try await syncStageMethods()
             try await syncInterviews()
+            try ensureSameAccount()
 
             lastSyncDate = Date()
         } catch {
@@ -48,6 +60,7 @@ class SyncService: ObservableObject {
 
     private func syncCompanies() async throws {
         let apiCompanies = try await apiService.fetchCompanies()
+        try ensureSameAccount()
 
         // Create a set of server company IDs for deletion check
         let serverCompanyIds = Set(apiCompanies.map { $0.id })
@@ -113,6 +126,7 @@ class SyncService: ObservableObject {
 
     private func syncStages() async throws {
         let apiStages = try await apiService.fetchStages()
+        try ensureSameAccount()
 
         // Create a set of server stage IDs for deletion check
         let serverStageIds = Set(apiStages.map { $0.id })
@@ -178,6 +192,7 @@ class SyncService: ObservableObject {
 
     private func syncStageMethods() async throws {
         let apiMethods = try await apiService.fetchStageMethods()
+        try ensureSameAccount()
 
         // Create a set of server method IDs for deletion check
         let serverMethodIds = Set(apiMethods.map { $0.id })
@@ -267,6 +282,7 @@ class SyncService: ObservableObject {
         let apiInterviews = try await Self.fetchAllInterviews { skip, take in
             try await apiService.fetchInterviews(includePast: true, take: take, skip: skip)
         }
+        try ensureSameAccount()
 
         // Create a set of server interview IDs for deletion check
         let serverInterviewIds = Set(apiInterviews.map { $0.id })

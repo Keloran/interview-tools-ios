@@ -28,6 +28,8 @@ struct ContentView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
     @State private var statsEnabled: Bool = false
     @State private var calendarHeight: CGFloat = 0
+    @State private var guestInterviewCount = 0
+    @State private var showingGuestImport = false
     
     @Environment(\.flagsAgent) private var flagsAgent
 
@@ -219,10 +221,14 @@ struct ContentView: View {
             .onChange(of: showingAddInterview) { _, newValue in
                 print("🪟 showingAddInterview changed -> \(newValue)")
             }
-            .environment(\.clerk, clerk)
-            .onAppear { configureClerkAndMaybeSync() }
-            .onChange(of: clerk.user) { oldValue, newValue in
-                handleClerkUserChange(oldValue: oldValue, newValue: newValue)
+            .onAppear { Task { await performInitialSyncIfNeeded() } }
+            .alert("Add your guest interviews?", isPresented: $showingGuestImport) {
+                Button("Add to this account") {
+                    Task { await importGuestInterviews() }
+                }
+                Button("Not now", role: .cancel) { }
+            } message: {
+                Text("You added \(guestInterviewCount) interview(s) before signing in. Add them to this account? If you don't, they stay in guest mode on this phone.")
             }
     }
 
@@ -257,33 +263,6 @@ struct ContentView: View {
         }
     }
 
-    private func configureClerkAndMaybeSync() {
-        clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
-        Task {
-            try? await clerk.load()
-            await performInitialSyncIfNeeded()
-        }
-    }
-
-    private func handleClerkUserChange(oldValue: User?, newValue: User?) {
-        if oldValue == nil && newValue != nil {
-            Task {
-                if let session = clerk.session,
-                   let token = try? await session.getToken() {
-                    await APIService.shared.setAuthToken(token.jwt)
-                    await performInitialSyncIfNeeded()
-                }
-            }
-        } else if oldValue != nil && newValue == nil {
-            Task {
-                await APIService.shared.setAuthToken(nil)
-                await MainActor.run {
-                    hasPerformedInitialSync = false
-                }
-            }
-        }
-    }
-    
     private func performInitialSyncIfNeeded() async {
         // In guest mode (no user), just finish loading without syncing
         guard clerk.user != nil else {
@@ -298,7 +277,7 @@ struct ContentView: View {
         
         // Only sync once per app launch and only if user is authenticated
         guard !hasPerformedInitialSync,
-              let session = clerk.session else {
+              clerk.session != nil else {
             // If no session, we're done loading
             await MainActor.run {
                 withAnimation {
@@ -317,34 +296,21 @@ struct ContentView: View {
         }
         
         do {
-            // Get the auth token and set it in APIService
-            guard let token = try await session.getToken() else {
-                print("Failed to get auth token")
-                await MainActor.run {
-                    withAnimation {
-                        isSyncing = false
-                        isInitialLoad = false
-                    }
-                }
-                return
-            }
-            
-            await APIService.shared.setAuthToken(token.jwt)
-            
-            // FIRST: Check if there are guest interviews to migrate
-            let guestInterviews = try modelContext.fetch(FetchDescriptor<Interview>(
+            // FIRST: this account's own interviews that never reached the server (each account has its own store,
+            // so these can't be another account's or guest data)
+            let unsynced = try modelContext.fetch(FetchDescriptor<Interview>(
                 predicate: #Predicate { interview in
                     interview.id == nil
                 }
             ))
             
-            if !guestInterviews.isEmpty {
+            if !unsynced.isEmpty {
 //                print("📤 Found \(guestInterviews.count) guest interview(s) - migrating to server first...")
                 
                 // Create sync service and push guest data
                 let syncService = SyncService(modelContext: modelContext)
                 
-                for interview in guestInterviews {
+                for interview in unsynced {
                     do {
                         // Push the interview to the server
                         let apiInterview = try await syncService.pushInterview(interview)
@@ -367,6 +333,10 @@ struct ContentView: View {
             
             // Clean up any duplicates that may have been created
             try? DatabaseCleanup.cleanupAll(context: modelContext)
+
+            // Guest-mode interviews only join the account if the person says so
+            guestInterviewCount = AccountStore.guestInterviewCount()
+            showingGuestImport = guestInterviewCount > 0
             
             // Log summary
 //            let descriptor = FetchDescriptor<Interview>()
@@ -385,6 +355,15 @@ struct ContentView: View {
                 isSyncing = false
                 isInitialLoad = false
             }
+        }
+    }
+
+    private func importGuestInterviews() async {
+        let syncService = SyncService(modelContext: modelContext)
+        let failed = await AccountStore.importGuestInterviews(using: syncService)
+        await syncService.syncAll()
+        if failed > 0 {
+            print("❌ \(failed) guest interview(s) couldn't be added; they're still in guest mode")
         }
     }
 }

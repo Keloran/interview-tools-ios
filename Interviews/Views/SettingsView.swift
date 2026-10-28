@@ -257,9 +257,7 @@ struct SettingsView: View {
     }
 
     private func performSync() async {
-        if let session = clerk.session,
-           let token = try? await session.getToken() {
-            await APIService.shared.setAuthToken(token.jwt)
+        if clerk.session != nil {
             await syncService.syncAll()
             
             // Automatically clean up duplicates after sync
@@ -271,12 +269,8 @@ struct SettingsView: View {
         deleteConfirmText.trimmingCharacters(in: .whitespaces).lowercased() == APIService.deleteConfirmation
     }
 
-    /// A fresh token per call, so a long-open Settings screen doesn't send an expired one
     private func authorize() async throws {
-        guard let session = clerk.session, let token = try await session.getToken() else {
-            throw APIError.unauthorized
-        }
-        await APIService.shared.setAuthToken(token.jwt)
+        guard clerk.session != nil else { throw APIError.unauthorized }
     }
 
     private func export(_ kind: String) async {
@@ -314,7 +308,6 @@ struct SettingsView: View {
         }
         // The login no longer exists on the server, so a failed sign-out just means the local session is already gone
         try? await clerk.signOut()
-        await APIService.shared.setAuthToken(nil)
         if !showingError { dismiss() }
     }
 
