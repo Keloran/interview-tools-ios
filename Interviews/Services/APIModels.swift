@@ -275,10 +275,10 @@ enum APIError: Error, LocalizedError {
 
 // MARK: - Application timeline (GET /api/applications/{id}/timeline)
 
-struct APITimeline: Decodable, Sendable {
-    struct Named: Decodable, Sendable { let name: String }
-    struct StageName: Decodable, Sendable { let stage: String }
-    struct Stage: Decodable, Sendable {
+nonisolated struct APITimeline: Decodable, Sendable {
+    nonisolated struct Named: Decodable, Sendable { let name: String }
+    nonisolated struct StageName: Decodable, Sendable { let stage: String }
+    nonisolated struct Stage: Decodable, Sendable {
         let id: Int
         let parentId: Int?
         let date: String?
@@ -289,8 +289,8 @@ struct APITimeline: Decodable, Sendable {
         let interviewer: String?
         let stage: StageName
     }
-    struct FollowUp: Decodable, Sendable { let id: Int; let sentAt: String }
-    struct Link: Decodable, Sendable {
+    nonisolated struct FollowUp: Decodable, Sendable { let id: Int; let sentAt: String }
+    nonisolated struct Link: Decodable, Sendable {
         let id: Int
         let created_at: String
         let bookedSlot: String?
@@ -312,7 +312,7 @@ struct APITimeline: Decodable, Sendable {
 // MARK: - Offers (GET /api/offers)
 
 /// An open offer: the latest stage of an application is an Offer still waiting on your decision
-struct APIOffer: Decodable, Sendable, Identifiable {
+nonisolated struct APIOffer: Decodable, Sendable, Identifiable {
     let applicationId: Int
     let interviewId: Int
     let jobTitle: String
