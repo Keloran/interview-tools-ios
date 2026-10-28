@@ -61,7 +61,7 @@ struct InterviewListView: View {
                     ForEach(sortedInterviews, id: \.persistentModelID) { interview in
                         InterviewListRow(interview: interview)
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                if interview.outcome != .awaitingResponse && interview.outcome != .passed && interview.outcome != .rejected {
+                                if interview.outcome != .awaitingResponse && interview.outcome != .passed && interview.outcome != .rejected && interview.outcome != .noResponse {
                                     Button {
                                         setAwaiting(interview)
                                     } label: {
@@ -605,6 +605,9 @@ struct InterviewDetailSheet: View {
             Button("Withdrew") {
                 setOutcome(.withdrew)
             }
+            Button("No Response (Ghosted)") {
+                setOutcome(.noResponse)
+            }
             Button("Cancel", role: .cancel) { }
         }
     }
@@ -685,6 +688,7 @@ struct InterviewDetailSheet: View {
         case .offerAccepted: return .green
         case .offerDeclined: return .orange
         case .withdrew: return .gray
+        case .noResponse: return .brown
         }
     }
 }
