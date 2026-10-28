@@ -275,10 +275,10 @@ enum APIError: Error, LocalizedError {
 
 // MARK: - Application timeline (GET /api/applications/{id}/timeline)
 
-struct APITimeline: Decodable, Sendable {
-    struct Named: Decodable, Sendable { let name: String }
-    struct StageName: Decodable, Sendable { let stage: String }
-    struct Stage: Decodable, Sendable {
+nonisolated struct APITimeline: Decodable, Sendable {
+    nonisolated struct Named: Decodable, Sendable { let name: String }
+    nonisolated struct StageName: Decodable, Sendable { let stage: String }
+    nonisolated struct Stage: Decodable, Sendable {
         let id: Int
         let parentId: Int?
         let date: String?
@@ -289,8 +289,8 @@ struct APITimeline: Decodable, Sendable {
         let interviewer: String?
         let stage: StageName
     }
-    struct FollowUp: Decodable, Sendable { let id: Int; let sentAt: String }
-    struct Link: Decodable, Sendable {
+    nonisolated struct FollowUp: Decodable, Sendable { let id: Int; let sentAt: String }
+    nonisolated struct Link: Decodable, Sendable {
         let id: Int
         let created_at: String
         let bookedSlot: String?
@@ -312,7 +312,7 @@ struct APITimeline: Decodable, Sendable {
 // MARK: - Offers (GET /api/offers)
 
 /// An open offer: the latest stage of an application is an Offer still waiting on your decision
-struct APIOffer: Decodable, Sendable, Identifiable {
+nonisolated struct APIOffer: Decodable, Sendable, Identifiable {
     let applicationId: Int
     let interviewId: Int
     let jobTitle: String
@@ -348,7 +348,7 @@ struct APIOffer: Decodable, Sendable, Identifiable {
 // MARK: - Follow-ups and stale applications
 
 /// An application due a chase (GET /api/follow-ups)
-struct APIFollowUp: Decodable, Sendable, Identifiable {
+nonisolated struct APIFollowUp: Decodable, Sendable, Identifiable {
     let id: Int
     let jobTitle: String
     let clientCompany: String?
@@ -364,8 +364,8 @@ struct APIFollowUp: Decodable, Sendable, Identifiable {
 }
 
 /// Applications that have gone quiet past your threshold (GET /api/stale-applications)
-struct APIStaleList: Decodable, Sendable {
-    struct Candidate: Decodable, Sendable, Identifiable {
+nonisolated struct APIStaleList: Decodable, Sendable {
+    nonisolated struct Candidate: Decodable, Sendable, Identifiable {
         let id: Int
         let company: String
         let jobTitle: String
@@ -378,7 +378,7 @@ struct APIStaleList: Decodable, Sendable {
     let candidates: [Candidate]
 }
 
-struct APICloseResult: Decodable, Sendable {
+nonisolated struct APICloseResult: Decodable, Sendable {
     let closed: [Int]
     let skipped: [Int]
 }

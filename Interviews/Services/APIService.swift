@@ -126,7 +126,7 @@ actor APIService {
 
     /// Set or clear the respond-by day ("yyyy-MM-dd"), or record accepting/declining
     func updateOffer(interviewId: Int, deadline: String?? = nil, decision: InterviewOutcome? = nil) async throws {
-        struct Body: Encodable, Sendable {
+        nonisolated struct Body: Encodable, Sendable {
             let deadline: String??
             let decision: String?
             func encode(to encoder: Encoder) throws {
@@ -167,7 +167,7 @@ actor APIService {
 
     /// Close applications as ghosted (NO_RESPONSE); ones that changed since the list loaded are skipped
     func closeStaleApplications(ids: [Int], days: Int) async throws -> APICloseResult {
-        struct Body: Encodable, Sendable { let ids: [Int]; let days: Int; let confirm = true }
+        nonisolated struct Body: Encodable, Sendable { let ids: [Int]; let days: Int; let confirm = true }
         return try await performRequest(url: URL(string: "\(baseURL)/stale-applications")!, method: "POST", body: Body(ids: ids, days: days))
     }
 
