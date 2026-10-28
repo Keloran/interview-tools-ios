@@ -226,6 +226,11 @@ struct SettingsView: View {
                     Label("STAR stories", systemImage: "text.book.closed")
                 }
                 CalendarFeedRow()
+                NavigationLink {
+                    CommunitySharingView()
+                } label: {
+                    Label("Community sharing", systemImage: "person.3")
+                }
             }
         }
     }

@@ -618,6 +618,8 @@ nonisolated struct APICheck: Decodable, Sendable {
         let response: String
         let sameTitle: Bool
         let samePosting: Bool
+        let communityEmployerId: String?
+        let communityEmployerName: String?
     }
     nonisolated struct Flag: Decodable, Sendable, Identifiable {
         let id: String
@@ -669,4 +671,37 @@ nonisolated struct APIImportPlan: Decodable, Sendable {
     let duplicates: Int
     let errors: Int
     let imported: Int
+}
+
+// MARK: - Community sharing (opt-in, server-gated)
+
+nonisolated struct APICommunityConsent: Decodable, Sendable {
+    let enabled: Bool
+    let needsReview: Bool
+    let purgePending: Bool
+    let restricted: Bool?
+    let canEnable: Bool
+    let collectionPaused: Bool?
+    let verified: Bool
+    let noticeVersion: String
+    let agreedVersion: String?
+}
+
+nonisolated struct CommunityConsentRequest: Encodable, Sendable {
+    let enabled: Bool
+    var noticeVersion: String? = nil
+    var confirm: Bool? = nil
+}
+
+/// Only approved, thresholded summaries; nil when the employer is suppressed or unknown
+nonisolated struct APICommunitySummary: Decodable, Sendable {
+    nonisolated struct Summary: Decodable, Sendable {
+        let month: String
+        let sampleBand: String
+        let responseRate: Int?
+        let ghostingRate: Int?
+        let feedbackRate: Int?
+        let replyTimeBand: String?
+    }
+    let summary: Summary?
 }

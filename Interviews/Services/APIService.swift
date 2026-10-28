@@ -283,6 +283,21 @@ actor APIService {
         try await performRequest(url: URL(string: "\(baseURL)/check")!, method: "POST", body: request)
     }
 
+    // MARK: - Community
+
+    func fetchCommunityConsent() async throws -> APICommunityConsent {
+        try await performRequest(url: URL(string: "\(baseURL)/community/consent")!, method: "GET")
+    }
+
+    /// Turning sharing on needs the notice version you were shown and an explicit confirm
+    func setCommunityConsent(_ request: CommunityConsentRequest) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/community/consent")!, method: "PUT", body: request)
+    }
+
+    func fetchCommunitySummary(employerId: String) async throws -> APICommunitySummary {
+        try await performRequest(url: URL(string: "\(baseURL)/community/employers/\(employerId)/summary")!, method: "GET")
+    }
+
     // MARK: - Your data
 
     /// Preview first (nothing is written), then import; the server re-checks duplicates on import

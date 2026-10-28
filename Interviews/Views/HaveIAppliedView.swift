@@ -46,6 +46,12 @@ struct HaveIAppliedView: View {
                         }
                     }
                 }
+                let employers = HaveIApplied.communityEmployers(result)
+                if !employers.isEmpty {
+                    Section {
+                        ForEach(employers, id: \.id) { CommunityRecordView(employerId: $0.id, name: $0.name) }
+                    }
+                }
                 if !result.flags.isEmpty {
                     Section("Worth knowing") {
                         ForEach(result.flags) { flag in
@@ -95,6 +101,15 @@ enum HaveIApplied {
         if result.matches.contains(where: \.sameTitle) { return "You've applied for this role there before" }
         if !result.matches.isEmpty { return "You've applied there before" }
         return "No previous applications"
+    }
+
+    /// Each confirmed employer once, for its community record
+    static func communityEmployers(_ result: APICheck) -> [(id: String, name: String?)] {
+        var seen = Set<String>()
+        return result.matches.compactMap { match in
+            guard let id = match.communityEmployerId, seen.insert(id).inserted else { return nil }
+            return (id, match.communityEmployerName)
+        }
     }
 
     static func detail(_ match: APICheck.Match) -> String {
