@@ -22,6 +22,7 @@ struct OutboxTests {
         return try JSONDecoder().decode(APIInterview.self, from: Data(json.utf8))
     }
 
+    @MainActor
     private struct Fixture {
         let container: ModelContainer
         let company = Company(id: 1, name: "Apple")
