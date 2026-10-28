@@ -167,7 +167,7 @@ actor APIService {
 
     /// Close applications as ghosted (NO_RESPONSE); ones that changed since the list loaded are skipped
     func closeStaleApplications(ids: [Int], days: Int) async throws -> APICloseResult {
-        struct Body: Encodable, Sendable { let ids: [Int]; let days: Int; let confirm = true }
+        nonisolated struct Body: Encodable, Sendable { let ids: [Int]; let days: Int; let confirm = true }
         return try await performRequest(url: URL(string: "\(baseURL)/stale-applications")!, method: "POST", body: Body(ids: ids, days: days))
     }
 

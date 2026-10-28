@@ -348,7 +348,7 @@ nonisolated struct APIOffer: Decodable, Sendable, Identifiable {
 // MARK: - Follow-ups and stale applications
 
 /// An application due a chase (GET /api/follow-ups)
-struct APIFollowUp: Decodable, Sendable, Identifiable {
+nonisolated struct APIFollowUp: Decodable, Sendable, Identifiable {
     let id: Int
     let jobTitle: String
     let clientCompany: String?
@@ -364,8 +364,8 @@ struct APIFollowUp: Decodable, Sendable, Identifiable {
 }
 
 /// Applications that have gone quiet past your threshold (GET /api/stale-applications)
-struct APIStaleList: Decodable, Sendable {
-    struct Candidate: Decodable, Sendable, Identifiable {
+nonisolated struct APIStaleList: Decodable, Sendable {
+    nonisolated struct Candidate: Decodable, Sendable, Identifiable {
         let id: Int
         let company: String
         let jobTitle: String
@@ -378,7 +378,7 @@ struct APIStaleList: Decodable, Sendable {
     let candidates: [Candidate]
 }
 
-struct APICloseResult: Decodable, Sendable {
+nonisolated struct APICloseResult: Decodable, Sendable {
     let closed: [Int]
     let skipped: [Int]
 }
