@@ -487,3 +487,70 @@ nonisolated struct APIBusy: Decodable, Sendable {
     let start: String
     let durationMinutes: Int
 }
+
+// MARK: - Report, activity log, calendar feed
+
+/// GET /api/report/summary: the website's job-search report for a period
+nonisolated struct APIReport: Decodable, Sendable {
+    nonisolated struct Step: Decodable, Sendable { let label: String; let count: Int; let conversion: Int? }
+    nonisolated struct Insights: Decodable, Sendable {
+        let roles: Int
+        let responded: Int
+        let ghosted: Int
+        let waiting: Int
+        let responseRate: Int?
+        let ghostRate: Int?
+        let feedbackRate: Int?
+        let medianReplyDays: Double?
+    }
+    nonisolated struct Week: Decodable, Sendable { let week: String; let applications: Int; let interviews: Int }
+    nonisolated struct Source: Decodable, Sendable {
+        let source: String
+        let roles: Int
+        let responseRate: Int?
+        let ghostRate: Int?
+    }
+    let from: String
+    let through: String
+    let funnel: [Step]
+    let response: Insights
+    let weekly: [Week]
+    let sources: [Source]
+}
+
+/// GET /api/activity-log/rows: the evidence log for a work coach
+nonisolated struct APIActivityLog: Decodable, Sendable {
+    nonisolated struct Totals: Decodable, Sendable { let total: Int; let applied: Int; let interviews: Int; let followUps: Int; let availability: Int; let other: Int }
+    nonisolated struct Row: Decodable, Sendable, Identifiable {
+        let id: String
+        let date: String
+        let kind: String
+        let activity: String
+        let employer: String
+        let role: String
+        let how: String
+        let outcome: String
+        let notes: String
+        /// Rows you added yourself ("entry-12") can be deleted
+        var entryId: Int? { id.hasPrefix("entry-") ? Int(id.dropFirst(6)) : nil }
+    }
+    let from: String
+    let through: String
+    let totals: Totals
+    let rows: [Row]
+}
+
+/// Something that isn't an application: a careers fair, a CV workshop, a Jobcentre appointment
+nonisolated struct ActivityEntryInput: Encodable, Sendable {
+    var date: String
+    var activity = ""
+    var employer = ""
+    var role = ""
+    var how = ""
+    var outcome = ""
+    var notes = ""
+}
+
+nonisolated struct APICalendarSettings: Decodable, Sendable {
+    let calendarUrl: String
+}

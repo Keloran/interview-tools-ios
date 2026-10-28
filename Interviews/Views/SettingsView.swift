@@ -181,6 +181,16 @@ struct SettingsView: View {
         if clerk?.user != nil {
             Section("Your job search") {
                 NavigationLink {
+                    ReportView()
+                } label: {
+                    Label("Job search report", systemImage: "chart.bar")
+                }
+                NavigationLink {
+                    ActivityLogView()
+                } label: {
+                    Label("Activity log (Universal Credit)", systemImage: "list.bullet.rectangle")
+                }
+                NavigationLink {
                     FollowUpsView()
                 } label: {
                     Label("Follow-ups", systemImage: "arrow.uturn.forward.circle")
@@ -205,6 +215,7 @@ struct SettingsView: View {
                 } label: {
                     Label("STAR stories", systemImage: "text.book.closed")
                 }
+                CalendarFeedRow()
             }
         }
     }

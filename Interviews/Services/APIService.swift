@@ -232,6 +232,40 @@ actor APIService {
         return (try? await performRequest(url: components.url!, method: "GET")) ?? []
     }
 
+    // MARK: - Report and activity log
+
+    private func periodURL(_ path: String, from: String, through: String, csv: Bool = false) -> URL {
+        var components = URLComponents(string: "\(baseURL)/\(path)")!
+        components.queryItems = [URLQueryItem(name: "from", value: from), URLQueryItem(name: "through", value: through)]
+            + (csv ? [URLQueryItem(name: "format", value: "csv")] : [])
+        return components.url!
+    }
+
+    func fetchReport(from: String, through: String) async throws -> APIReport {
+        try await performRequest(url: periodURL("report/summary", from: from, through: through), method: "GET")
+    }
+
+    func fetchActivityLog(from: String, through: String) async throws -> APIActivityLog {
+        try await performRequest(url: periodURL("activity-log/rows", from: from, through: through), method: "GET")
+    }
+
+    /// The same CSV the website exports, for a work coach
+    func exportActivityLog(from: String, through: String) async throws -> Data {
+        try await send(url: periodURL("activity-log/rows", from: from, through: through, csv: true), method: "GET", body: Optional<EmptyBody>.none)
+    }
+
+    func addActivity(_ entry: ActivityEntryInput) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/activity-log")!, method: "POST", body: entry)
+    }
+
+    func deleteActivity(id: Int) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/activity-log/\(id)")!, method: "DELETE", body: Optional<EmptyBody>.none)
+    }
+
+    func fetchCalendarSettings() async throws -> APICalendarSettings {
+        try await performRequest(url: URL(string: "\(baseURL)/calendar-settings")!, method: "GET")
+    }
+
     // MARK: - Your data
 
     /// The server needs the same typed phrase as the website before it deletes anything
