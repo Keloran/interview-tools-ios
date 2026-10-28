@@ -200,7 +200,7 @@ struct CreateInterviewRequest: Codable, Sendable {
     }
 }
 
-struct UpdateInterviewRequest: Codable, Sendable {
+struct UpdateInterviewRequest: Encodable, Sendable {
     let outcome: String?
     let stage: String?
     let date: String?
