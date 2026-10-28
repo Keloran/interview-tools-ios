@@ -110,6 +110,46 @@ actor APIService {
         return try await performRequest(url: url, method: "PUT", body: request)
     }
 
+    // MARK: - Applications
+
+    func fetchTimeline(applicationId: Int) async throws -> APITimeline {
+        let url = URL(string: "\(baseURL)/applications/\(applicationId)/timeline")!
+        return try await performRequest(url: url, method: "GET")
+    }
+
+    // MARK: - Offers
+
+    func fetchOffers() async throws -> [APIOffer] {
+        let url = URL(string: "\(baseURL)/offers")!
+        return try await performRequest(url: url, method: "GET")
+    }
+
+    /// Set or clear the respond-by day ("yyyy-MM-dd"), or record accepting/declining
+    func updateOffer(interviewId: Int, deadline: String?? = nil, decision: InterviewOutcome? = nil) async throws {
+        nonisolated struct Body: Encodable, Sendable {
+            let deadline: String??
+            let decision: String?
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: Keys.self)
+                if let deadline { if let day = deadline { try container.encode(day, forKey: .deadline) } else { try container.encodeNil(forKey: .deadline) } }
+                if let decision {
+                    try container.encode(decision, forKey: .decision)
+                    try container.encode(true, forKey: .confirmDecision)
+                }
+            }
+            enum Keys: String, CodingKey { case deadline, decision, confirmDecision }
+        }
+        let url = URL(string: "\(baseURL)/offers/\(interviewId)")!
+        _ = try await send(url: url, method: "PUT", body: Body(deadline: deadline, decision: decision?.rawValue))
+    }
+
+    /// Save salary and offer details; an empty field clears it
+    func updateCompensation(interviewId: Int, _ fields: [String: String]) async throws {
+        let url = URL(string: "\(baseURL)/interview/\(interviewId)/compensation")!
+        let body = fields.mapValues { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.mapValues { $0.isEmpty ? nil : $0 }
+        _ = try await send(url: url, method: "PUT", body: body)
+    }
+
     // MARK: - Your data
 
     /// The server needs the same typed phrase as the website before it deletes anything

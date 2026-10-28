@@ -7,10 +7,12 @@
 
 import SwiftUI
 import SwiftData
+import ClerkKit
 
 struct EditInterviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(Clerk.self) private var clerk: Clerk?
     
     let interview: Interview
     
@@ -23,6 +25,8 @@ struct EditInterviewView: View {
     @State private var deadline: Date?
     @State private var hasDate: Bool
     @State private var hasDeadline: Bool
+    @State private var jobListing: String
+    @State private var durationMinutes: Int
     
     init(interview: Interview) {
         self.interview = interview
@@ -35,6 +39,8 @@ struct EditInterviewView: View {
         _deadline = State(initialValue: interview.deadline)
         _hasDate = State(initialValue: interview.date != nil)
         _hasDeadline = State(initialValue: interview.deadline != nil)
+        _jobListing = State(initialValue: interview.jobListing ?? "")
+        _durationMinutes = State(initialValue: interview.durationMinutes ?? 60)
     }
     
     var body: some View {
@@ -43,6 +49,9 @@ struct EditInterviewView: View {
                 Section("Basic Information") {
                     TextField("Job Title", text: $jobTitle)
                     TextField("Client Company (optional)", text: $clientCompany)
+                    TextField("Job Posting Link (optional)", text: $jobListing)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
                 }
                 
                 Section("Interview Details") {
@@ -65,6 +74,8 @@ struct EditInterviewView: View {
                             get: { date ?? Date() },
                             set: { date = $0 }
                         ), displayedComponents: [.date, .hourAndMinute])
+                        // The server accepts 15 minutes to 8 hours
+                        Stepper("Length: \(durationMinutes) min", value: $durationMinutes, in: 15...480, step: 15)
                     }
                     
                     Toggle("Has Deadline", isOn: $hasDeadline)
@@ -108,9 +119,16 @@ struct EditInterviewView: View {
         interview.notes = notes.isEmpty ? nil : notes
         interview.date = hasDate ? date : nil
         interview.deadline = hasDeadline ? deadline : nil
-        interview.updatedAt = Date()
-        
+        interview.jobListing = jobListing.isEmpty ? nil : jobListing
+        // Only stored once it differs from the default hour, so untouched interviews don't send it
+        if interview.durationMinutes != nil || durationMinutes != 60 { interview.durationMinutes = durationMinutes }
+        interview.markChanged()
+
         try? modelContext.save()
+        if clerk?.user != nil {
+            let context = modelContext
+            Task { await SyncService(modelContext: context).pushPending() }
+        }
         dismiss()
     }
     

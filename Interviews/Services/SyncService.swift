@@ -6,9 +6,10 @@
 //
 
 import Foundation
+import OSLog
 import Combine
 import SwiftData
-import Clerk
+import ClerkKit
 
 @MainActor
 class SyncService: ObservableObject {
@@ -22,6 +23,12 @@ class SyncService: ObservableObject {
     /// The account this store belongs to, when the sync started
     private let owner: String?
     var currentOwner: () -> String? = { Clerk.shared.user?.id }
+
+    // The two calls the outbox makes, replaceable in tests
+    var sendCreate: (CreateInterviewRequest) async throws -> APIInterview = { try await APIService.shared.createInterview($0) }
+    var sendUpdate: (Int, UpdateInterviewRequest) async throws -> APIInterview = { try await APIService.shared.updateInterview(id: $0, $1) }
+    /// One outbox run at a time, so a create can't go out twice
+    private static var isPushing = false
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -40,6 +47,8 @@ class SyncService: ObservableObject {
         syncError = nil
 
         do {
+            // Local changes go up first, so the pull below can't overwrite them
+            await pushPending()
             // Sync in order: Companies -> Stages -> Methods -> Interviews
             try await syncCompanies()
             try await syncStages()
@@ -50,7 +59,7 @@ class SyncService: ObservableObject {
             lastSyncDate = Date()
         } catch {
             syncError = error
-            print("Sync error: \(error)")
+            appLog.error("Sync error: \(String(describing: error))")
         }
 
         isSyncing = false
@@ -283,6 +292,12 @@ class SyncService: ObservableObject {
             try await apiService.fetchInterviews(includePast: true, take: take, skip: skip)
         }
         try ensureSameAccount()
+        try apply(apiInterviews)
+    }
+
+    /// Bring the local store in line with a complete list from the server, without losing unsent local changes
+    func apply(_ apiInterviews: [APIInterview]) throws {
+        try reconcileUncertainCreates(with: apiInterviews)
 
         // Create a set of server interview IDs for deletion check
         let serverInterviewIds = Set(apiInterviews.map { $0.id })
@@ -296,7 +311,7 @@ class SyncService: ObservableObject {
         let allLocalInterviews = try modelContext.fetch(allLocalInterviewsDescriptor)
         
         // Delete local interviews that no longer exist on the server
-        for localInterview in allLocalInterviews {
+        for localInterview in allLocalInterviews where localInterview.pendingSince == nil {
             if let localId = localInterview.id, !serverInterviewIds.contains(localId) {
 //                print("🗑️ Deleting interview '\(localInterview.jobTitle)' (ID: \(localId)) - no longer on server")
                 modelContext.delete(localInterview)
@@ -342,13 +357,14 @@ class SyncService: ObservableObject {
                 stageMethod = try modelContext.fetch(methodDescriptor).first
             }
 
-            // Parse dates - configure formatter to handle fractional seconds
-            let dateFormatter = ISO8601DateFormatter()
-            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            
-            let applicationDate = dateFormatter.date(from: apiInterview.applicationDate) ?? Date()
-            let date = apiInterview.date.flatMap { dateFormatter.date(from: $0) }
-            let deadline = apiInterview.deadline.flatMap { dateFormatter.date(from: $0) }
+            // Interview times are moments; application dates and offer respond-by dates are calendar days
+            guard let applicationDate = APIDates.day(apiInterview.applicationDate) else {
+                // Never invent "today" for history; keep whatever is here and move on
+                appLog.notice("⚠️ Skipping interview \(apiInterview.id): unreadable applicationDate \(apiInterview.applicationDate)")
+                continue
+            }
+            let date = APIDates.instant(apiInterview.date)
+            let deadline = APIDates.isOffer(apiInterview.stage?.stage) ? APIDates.day(apiInterview.deadline) : APIDates.instant(apiInterview.deadline)
 
             // Parse outcome
             let outcome: InterviewOutcome?
@@ -390,7 +406,10 @@ class SyncService: ObservableObject {
                 metadataJSON = "{}"
             }
 
-            if let existing = existing {
+            if let existing, existing.pendingSince != nil {
+                // An unsent local edit wins until the server has confirmed it
+                continue
+            } else if let existing = existing {
                 // Update existing
                 existing.company = company
                 existing.clientCompany = apiInterview.clientCompany
@@ -404,6 +423,8 @@ class SyncService: ObservableObject {
                 existing.outcome = outcome
                 existing.notes = apiInterview.notes
                 existing.link = apiInterview.link
+                existing.applicationId = apiInterview.applicationId
+                existing.durationMinutes = apiInterview.durationMinutes
 
                 // Update metadata JSON with merged metadata including 'applied' field.
                 // Also update jobListing property if present in metadata.
@@ -438,6 +459,8 @@ class SyncService: ObservableObject {
                     interview.jobListing = jobListing
                 }
 
+                interview.applicationId = apiInterview.applicationId
+                interview.durationMinutes = apiInterview.durationMinutes
                 modelContext.insert(interview)
             }
         }
@@ -448,7 +471,96 @@ class SyncService: ObservableObject {
     // MARK: - Push Interview to API
 
     func pushInterview(_ interview: Interview, previousInterviewId: Int? = nil) async throws -> APIInterview {
-        try await apiService.createInterview(createRequest(for: interview, previousInterviewId: previousInterviewId))
+        try await sendCreate(createRequest(for: interview, previousInterviewId: previousInterviewId))
+    }
+
+    /// Everything the edit screen can change, with cleared fields sent as cleared
+    func updateRequest(for interview: Interview) -> UpdateInterviewRequest {
+        // The server keeps an offer's respond-by as a day (the first 10 characters), so send the local day
+        let isOffer = APIDates.isOffer(interview.stage?.stage)
+        return UpdateInterviewRequest(
+            outcome: interview.outcome?.rawValue,
+            stage: nil,
+            date: interview.date.map(APIDates.instantString),
+            deadline: interview.deadline.map { isOffer ? APIDates.dayString($0) : APIDates.instantString($0) },
+            interviewer: interview.interviewer,
+            notes: interview.notes,
+            link: interview.link,
+            jobTitle: interview.jobTitle,
+            clientCompany: interview.clientCompany,
+            jobListing: interview.jobListing,
+            durationMinutes: interview.durationMinutes,
+            clearsEmptyFields: true
+        )
+    }
+
+    // MARK: - Outbox
+
+    /// Send every local change the server hasn't confirmed. Each account has its own store (and so its own
+    /// queue), and the token comes from the current session, so nothing goes out under another account.
+    func pushPending() async {
+        guard !Self.isPushing else { return }
+        Self.isPushing = true
+        defer { Self.isPushing = false }
+
+        // In an account's store a row without a server id is always an unsent create
+        let descriptor = FetchDescriptor<Interview>(
+            predicate: #Predicate { $0.pendingSince != nil || $0.id == nil },
+            sortBy: [SortDescriptor(\.createdAt)]
+        )
+        for interview in (try? modelContext.fetch(descriptor)) ?? [] where interview.createUncertain != true {
+            guard (try? ensureSameAccount()) != nil else { return }
+            let started = interview.pendingSince
+            do {
+                if let id = interview.id {
+                    _ = try await sendUpdate(id, updateRequest(for: interview))
+                } else {
+                    do {
+                        interview.id = try await pushInterview(interview, previousInterviewId: interview.pendingPreviousId).id
+                    } catch is URLError {
+                        // It may have been created; don't send it again until a full sync says whether it was
+                        interview.createUncertain = true
+                        interview.syncError = "Waiting to confirm with the server"
+                        try? modelContext.save()
+                        continue
+                    }
+                }
+                // An edit made while this was in flight stays queued
+                if interview.pendingSince == started {
+                    interview.pendingSince = nil
+                    interview.pendingPreviousId = nil
+                }
+                interview.syncError = nil
+            } catch {
+                interview.syncError = error.localizedDescription
+            }
+            try? modelContext.save()
+        }
+    }
+
+    /// A create whose answer never came: if the full list has it, adopt that id; if not, it wasn't created
+    /// and is safe to send again
+    private func reconcileUncertainCreates(with apiInterviews: [APIInterview]) throws {
+        let uncertain = try modelContext.fetch(FetchDescriptor<Interview>(predicate: #Predicate { $0.createUncertain == true && $0.id == nil }))
+        guard !uncertain.isEmpty else { return }
+        let known = Set(try modelContext.fetch(FetchDescriptor<Interview>(predicate: #Predicate { $0.id != nil })).compactMap(\.id))
+        var claimed = known
+        for interview in uncertain {
+            let match = apiInterviews.first { api in
+                !claimed.contains(api.id)
+                    && api.company.name == interview.company?.name
+                    && api.jobTitle == interview.jobTitle
+                    && api.stage?.stage == (interview.stage?.stage ?? "Applied")
+                    && APIDates.instant(api.date) == interview.date
+            }
+            if let match {
+                interview.id = match.id
+                claimed.insert(match.id)
+            }
+            interview.createUncertain = nil
+            interview.syncError = nil
+        }
+        try modelContext.save()
     }
 
     func createRequest(for interview: Interview, previousInterviewId: Int? = nil) throws -> CreateInterviewRequest {
@@ -456,7 +568,7 @@ class SyncService: ObservableObject {
             throw APIError.serverError("Interview must have a company")
         }
 
-        let dateFormatter = ISO8601DateFormatter()
+        let isOffer = APIDates.isOffer(interview.stage?.stage)
 
         return CreateInterviewRequest(
             stage: interview.stage?.stage ?? "Applied",
@@ -464,33 +576,32 @@ class SyncService: ObservableObject {
             clientCompany: interview.clientCompany,
             jobTitle: interview.jobTitle,
             jobPostingLink: extractJobListing(from: interview.metadataJSON),
-            date: interview.date.map { dateFormatter.string(from: $0) },
-            deadline: interview.deadline.map { dateFormatter.string(from: $0) },
+            date: interview.date.map(APIDates.instantString),
+            deadline: isOffer ? nil : interview.deadline.map(APIDates.instantString),
             interviewer: interview.interviewer,
             locationType: interview.stageMethod?.method.lowercased().contains("video") == true ? "link" : "phone",
             interviewLink: interview.link,
             notes: interview.notes,
-            previousInterviewId: previousInterviewId
+            previousInterviewId: previousInterviewId,
+            offerDeadline: isOffer ? interview.deadline.map { APIDates.dayString($0) } : nil
         )
     }
 
-    /// Sends a next stage as part of the same application, then marks the stage before it passed.
+    /// Queues a next stage to join the earlier stage's application, and the earlier stage's PASSED.
     /// If the earlier stage never reached the server, it goes first so there's an application to join.
+    /// ponytail: offline with an unsynced earlier stage, the next stage can't know its parent id and becomes
+    /// its own application; store a relationship if that turns out to matter.
     func pushNextStage(_ next: Interview, after previous: Interview) async throws {
+        previous.markChanged()
+        next.markChanged()
+        try modelContext.save()
         if previous.id == nil {
             previous.id = try await pushInterview(previous).id
             try modelContext.save()
         }
-        guard let previousId = previous.id else { return }
-
-        next.id = try await pushInterview(next, previousInterviewId: previousId).id
-        next.updatedAt = Date()
+        next.pendingPreviousId = previous.id
         try modelContext.save()
-
-        _ = try await apiService.updateInterview(id: previousId, UpdateInterviewRequest(
-            outcome: InterviewOutcome.passed.rawValue, stage: nil, date: nil, deadline: nil,
-            interviewer: nil, notes: nil, link: nil
-        ))
+        await pushPending()
     }
 
     // MARK: - Helpers

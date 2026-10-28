@@ -6,14 +6,16 @@
 //
 
 import SwiftUI
+import OSLog
 import SwiftData
-import Clerk
+import ClerkKit
+import ClerkKitUI
 import FlagsGG
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @Environment(\.flagsAgent) private var flagsAgent
 
     @StateObject private var syncService: SyncService
@@ -42,6 +44,7 @@ struct SettingsView: View {
                     statsSection
                 }
                 syncSection
+                jobSearchSection
                 yourDataSection
                 aboutSection
             }
@@ -84,18 +87,18 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var authSection: some View {
-        if clerk.user != nil {
+        if clerk?.user != nil {
             Section("Authentication") {
                 HStack {
                     UserButton()
                         .frame(width: 36, height: 36)
                     
-                    Text(clerk.user?.username ?? "Interviews")
+                    Text(clerk?.user?.username ?? "Interviews")
                 }
                 .sheet(isPresented: $authIsPresented) {
                     AuthView()
                 }
-                .onChange(of: clerk.user) { oldValue, newValue in
+                .onChange(of: clerk?.user) { oldValue, newValue in
                     handleAuthChange(oldValue: oldValue, newValue: newValue)
                 }
             }
@@ -114,7 +117,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var syncSection: some View {
-        if clerk.user != nil {
+        if clerk?.user != nil {
             Section("Sync") {
                 if syncService.isSyncing {
                     HStack {
@@ -135,7 +138,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var syncButton: some View {
-        if clerk.user != nil {
+        if clerk?.user != nil {
             Button("Sync Now") {
                 Task {
                     await performSync()
@@ -172,9 +175,23 @@ struct SettingsView: View {
         }
     }
 
+    /// Screens for the parts of the job search that live on interviews.tools
+    @ViewBuilder
+    private var jobSearchSection: some View {
+        if clerk?.user != nil {
+            Section("Your job search") {
+                NavigationLink {
+                    OffersView()
+                } label: {
+                    Label("Offers", systemImage: "envelope.open")
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private var yourDataSection: some View {
-        if clerk.user != nil {
+        if clerk?.user != nil {
             Section {
                 Button("Export applications (CSV)") {
                     Task { await export("applications") }
@@ -257,7 +274,7 @@ struct SettingsView: View {
     }
 
     private func performSync() async {
-        if clerk.session != nil {
+        if clerk?.session != nil {
             await syncService.syncAll()
             
             // Automatically clean up duplicates after sync
@@ -270,7 +287,7 @@ struct SettingsView: View {
     }
 
     private func authorize() async throws {
-        guard clerk.session != nil else { throw APIError.unauthorized }
+        guard clerk?.session != nil else { throw APIError.unauthorized }
     }
 
     private func export(_ kind: String) async {
@@ -307,7 +324,7 @@ struct SettingsView: View {
             showingError = true
         }
         // The login no longer exists on the server, so a failed sign-out just means the local session is already gone
-        try? await clerk.signOut()
+        try? await clerk?.auth.signOut()
         if !showingError { dismiss() }
     }
 
@@ -345,7 +362,7 @@ struct SettingsView: View {
             info += "\n\nCompanies: \(companies.count)"
             info += "\nInterviews: \(interviews.count)"
             
-            print(info)
+            appLog.notice("\(info)")
             
             errorMessage = info
             showingError = true

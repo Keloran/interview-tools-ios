@@ -5,7 +5,7 @@
 
 import Foundation
 import SwiftData
-import Clerk
+import ClerkKit
 
 /// One SwiftData store per signed-in account, plus the guest store, so one account's cached history can never
 /// show up under another account or in guest mode.
@@ -62,6 +62,6 @@ enum AccountStore {
 @MainActor
 enum AuthToken {
     static func current() async -> String? {
-        try? await Clerk.shared.session?.getToken()?.jwt
+        try? await Clerk.shared.session?.getToken()
     }
 }

@@ -6,8 +6,9 @@
 //
 
 import SwiftUI
+import OSLog
 import SwiftData
-import Clerk
+import ClerkKit
 import FlagsGG
 
 @main
@@ -16,11 +17,12 @@ struct InterviewsApp: App {
     @State private var modelContainer: ModelContainer?
     /// Whose store is open: a Clerk user id, or nil for guest mode
     @State private var storeOwner: String?
-    @State private var clerk = Clerk.shared
     @State private var showLaunchScreen = true
     private let flagsClient: Flags?
     
     init() {
+        // Once, before anything reads Clerk.shared; it restores the saved session and loads by itself
+        Clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
         do {
             flagsClient = try Flags.builder().withAuth(Auth(
                 projectId: "198ba0bd-e7e1-4219-beee-9bd82de0e03c",
@@ -29,7 +31,7 @@ struct InterviewsApp: App {
             )).build()
         } catch {
             #if DEBUG
-            print("Failed to initialize Flags client: \(error)")
+            appLog.error("Failed to initialize Flags client: \(String(describing: error))")
             #endif
             flagsClient = nil
         }
@@ -44,10 +46,10 @@ struct InterviewsApp: App {
                         // A new account gets a fresh view tree, so nothing from the last one lingers
                         .id(storeOwner ?? "guest")
                         .modelContainer(modelContainer)
-                        .environment(\.clerk, clerk)
+                        .environment(Clerk.shared)
                         .onOpenURL { url in
                             // Log the callback URL for debugging
-                            print("Received URL callback: \(url)")
+                            appLog.notice("Received URL callback: \(url)")
 
                             // Clerk should handle the OAuth callback automatically
                             // when it detects the matching URL scheme
@@ -75,12 +77,10 @@ struct InterviewsApp: App {
                 }
             }
             .task {
-                // Clerk first, so the right account's store opens (a cached session loads without the network)
-                clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
-                try? await clerk.load()
-                openStore(for: clerk.user?.id)
+                // The saved session (if any) picks the store; a sign-in that lands later swaps it below
+                openStore(for: Clerk.shared.user?.id)
             }
-            .onChange(of: clerk.user?.id) { _, userId in
+            .onChange(of: Clerk.shared.user?.id) { _, userId in
                 guard modelContainer != nil else { return }
                 openStore(for: userId)
             }

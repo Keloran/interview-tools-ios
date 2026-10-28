@@ -7,7 +7,7 @@
 
 import SwiftUI
 import SwiftData
-import Clerk
+import ClerkKit
 
 private struct InterviewItem: Identifiable, Equatable {
     let id: PersistentIdentifier
@@ -15,7 +15,7 @@ private struct InterviewItem: Identifiable, Equatable {
 
 struct InterviewListView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @Query private var interviews: [Interview]
     
     @Binding var selectedDate: Date?
@@ -99,8 +99,10 @@ struct InterviewListView: View {
                     // Immediately end the system spinner and show our own syncing popup
                     isSyncing = true
                     Task {
-                        await syncAllInterviews()
-                        await MainActor.run { isSyncing = false }
+                        if clerk?.user != nil {
+                            await SyncService(modelContext: modelContext).syncAll()
+                        }
+                        isSyncing = false
                     }
                 }
                 .listStyle(.inset)
@@ -151,83 +153,20 @@ struct InterviewListView: View {
     }
     
     private func rejectInterview(_ interview: Interview) {
-        interview.outcome = .rejected
-        interview.updatedAt = Date()
-        try? modelContext.save()
-        
-        let pid = interview.persistentModelID
-        Task {
-            await updateInterviewOnServer(persistentID: pid)
-        }
+        setOutcome(.rejected, on: interview)
     }
-    
+
     private func setAwaiting(_ interview: Interview) {
-        interview.outcome = .awaitingResponse
-        interview.updatedAt = Date()
+        setOutcome(.awaitingResponse, on: interview)
+    }
+
+    /// Saved locally and queued, so it reaches the server even if this attempt fails
+    private func setOutcome(_ outcome: InterviewOutcome, on interview: Interview) {
+        interview.outcome = outcome
+        interview.markChanged()
         try? modelContext.save()
-        
-        let pid = interview.persistentModelID
-        Task {
-            await updateInterviewOnServer(persistentID: pid)
-        }
-    }
-    
-    private func updateInterviewOnServer(persistentID: PersistentIdentifier) async {
-        // Only sync if user is authenticated and interview has a server ID
-        guard clerk.user != nil else { return }
-
-        // Snapshot only Sendable primitives on the main actor to avoid crossing non-Sendable Interview
-        let snapshot: (id: Int, outcome: String?, stage: String?, date: String?, deadline: String?, interviewer: String?, notes: String?, link: String?)? = await MainActor.run { () -> (id: Int, outcome: String?, stage: String?, date: String?, deadline: String?, interviewer: String?, notes: String?, link: String?)? in
-            guard let interview = modelContext.model(for: persistentID) as? Interview,
-                  let interviewId = interview.id else { return nil }
-            let dateFormatter = ISO8601DateFormatter()
-            return (
-                id: interviewId,
-                outcome: interview.outcome?.rawValue,
-                stage: interview.stage?.stage,
-                date: interview.date.map { dateFormatter.string(from: $0) },
-                deadline: interview.deadline.map { dateFormatter.string(from: $0) },
-                interviewer: interview.interviewer,
-                notes: interview.notes,
-                link: interview.link
-            )
-        }
-
-        guard let snapshot else { return }
-
-        let request = UpdateInterviewRequest(
-            outcome: snapshot.outcome,
-            stage: snapshot.stage,
-            date: snapshot.date,
-            deadline: snapshot.deadline,
-            interviewer: snapshot.interviewer,
-            notes: snapshot.notes,
-            link: snapshot.link
-        )
-
-        do {
-            _ = try await APIService.shared.updateInterview(id: snapshot.id, request)
-        } catch {
-            print("Failed to update interview on server: \(error)")
-        }
-    }
-
-    private func syncAllInterviews() async {
-        // Only sync if user is authenticated
-        guard clerk.user != nil else { return }
-        
-        // Snapshot only the persistent IDs on the main actor to avoid crossing actor boundaries
-        let idsToSync: [PersistentIdentifier] = await MainActor.run { interviews.map { $0.persistentModelID } }
-        
-        // Perform updates concurrently and wait for all to finish before returning (so the spinner can stop)
-        await withTaskGroup(of: Void.self) { group in
-            for id in idsToSync {
-                group.addTask {
-                    await updateInterviewOnServer(persistentID: id)
-                }
-            }
-            await group.waitForAll()
-        }
+        guard clerk?.user != nil else { return }
+        Task { await SyncService(modelContext: modelContext).pushPending() }
     }
     
     private var headerTitle: String {
@@ -312,6 +251,20 @@ struct InterviewListView: View {
 struct InterviewListRow: View {
     let interview: Interview
 
+    /// Unsent changes: waiting, or failed with the reason
+    @ViewBuilder
+    private var syncBadge: some View {
+        if let error = interview.syncError {
+            Image(systemName: "exclamationmark.icloud")
+                .foregroundStyle(.red)
+                .accessibilityLabel("Not saved to interviews.tools: \(error)")
+        } else if interview.pendingSince != nil {
+            Image(systemName: "arrow.triangle.2.circlepath.icloud")
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("Waiting to save to interviews.tools")
+        }
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             // Outcome indicator
@@ -323,8 +276,11 @@ struct InterviewListRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 // Title and company
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(interview.jobTitle)
-                        .font(.headline)
+                    HStack(spacing: 6) {
+                        Text(interview.jobTitle)
+                            .font(.headline)
+                        syncBadge
+                    }
 
                     HStack {
                         if let company = interview.company {
@@ -396,7 +352,7 @@ struct InterviewListRow: View {
 struct InterviewDetailSheet: View {
     let interview: Interview
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.clerk) private var clerk
+    @Environment(Clerk.self) private var clerk: Clerk?
     @State private var showingEditSheet = false
     @State private var showingOutcomeOptions = false
 
@@ -417,6 +373,15 @@ struct InterviewDetailSheet: View {
                     Label("Client: \(clientCompany)", systemImage: "briefcase")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                }
+
+                if let applicationId = interview.applicationId, clerk?.user != nil {
+                    NavigationLink {
+                        ApplicationTimelineView(applicationId: applicationId)
+                    } label: {
+                        Label("Application timeline", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                            .font(.subheadline)
+                    }
                 }
 
                 Divider()
@@ -508,7 +473,7 @@ struct InterviewDetailSheet: View {
 
                     if let date = interview.date {
                         Label(
-                            "Interview: \(date.formatted(date: .long, time: .shortened))",
+                            "Interview: \(date.formatted(date: .long, time: .shortened)) · \(interview.durationMinutes ?? 60) min",
                             systemImage: "calendar"
                         )
                         .font(.subheadline)
@@ -544,15 +509,16 @@ struct InterviewDetailSheet: View {
                                 .font(.subheadline)
                         }
 
-                        if let link = interview.link {
-                            Link(destination: URL(string: link) ?? URL(string: "https://")!) {
+                        // A link that isn't a URL gets no button rather than one that opens nothing
+                        if let link = interview.link, let url = URL(string: link) {
+                            Link(destination: url) {
                                 Label("Join Interview", systemImage: "video")
                                     .font(.subheadline)
                             }
                         }
                         
-                        if let jobPostingLink = interview.jobListing {
-                            Link(destination: URL(string: jobPostingLink) ?? URL(string: "https://")!) {
+                        if let jobPostingLink = interview.jobListing, let url = URL(string: jobPostingLink) {
+                            Link(destination: url) {
                                 Label("View Job Posting", systemImage: "doc.text")
                                     .font(.subheadline)
                             }
@@ -628,56 +594,12 @@ struct InterviewDetailSheet: View {
     
     private func setOutcome(_ outcome: InterviewOutcome) {
         interview.outcome = outcome
-        interview.updatedAt = Date()
+        interview.markChanged()
         try? modelContext.save()
-        
-        // Sync to server if user is authenticated
-        let pid = interview.persistentModelID
-        Task {
-            await updateInterviewOnServer(persistentID: pid)
-        }
+        guard clerk?.user != nil else { return }
+        Task { await SyncService(modelContext: modelContext).pushPending() }
     }
     
-    private func updateInterviewOnServer(persistentID: PersistentIdentifier) async {
-        // Only sync if user is authenticated and interview has a server ID
-        guard clerk.user != nil else { return }
-
-        // Snapshot only Sendable primitives on the main actor to avoid crossing non-Sendable Interview
-        let snapshot: (id: Int, outcome: String?, stage: String?, date: String?, deadline: String?, interviewer: String?, notes: String?, link: String?)? = await MainActor.run { () -> (id: Int, outcome: String?, stage: String?, date: String?, deadline: String?, interviewer: String?, notes: String?, link: String?)? in
-            guard let interview = modelContext.model(for: persistentID) as? Interview,
-                  let interviewId = interview.id else { return nil }
-            let dateFormatter = ISO8601DateFormatter()
-            return (
-                id: interviewId,
-                outcome: interview.outcome?.rawValue,
-                stage: interview.stage?.stage,
-                date: interview.date.map { dateFormatter.string(from: $0) },
-                deadline: interview.deadline.map { dateFormatter.string(from: $0) },
-                interviewer: interview.interviewer,
-                notes: interview.notes,
-                link: interview.link
-            )
-        }
-
-        guard let snapshot else { return }
-
-        let request = UpdateInterviewRequest(
-            outcome: snapshot.outcome,
-            stage: snapshot.stage,
-            date: snapshot.date,
-            deadline: snapshot.deadline,
-            interviewer: snapshot.interviewer,
-            notes: snapshot.notes,
-            link: snapshot.link
-        )
-
-        do {
-            _ = try await APIService.shared.updateInterview(id: snapshot.id, request)
-        } catch {
-            print("Failed to update interview on server: \(error)")
-        }
-    }
-
     private func colorForOutcome(_ outcome: InterviewOutcome) -> Color {
         switch outcome {
         case .scheduled: return .blue

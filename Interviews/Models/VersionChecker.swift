@@ -1,4 +1,5 @@
 @preconcurrency import Foundation
+import OSLog
 
 struct AppStoreLookupResponse: Decodable, Sendable {
     let resultCount: Int
@@ -98,7 +99,7 @@ struct UpdateAlertModifier: ViewModifier {
             }
         } catch {
             // Silently ignore errors; we don't want to block launch
-            print("Version check failed: \(error)")
+            appLog.error("Version check failed: \(String(describing: error))")
         }
     }
 }
