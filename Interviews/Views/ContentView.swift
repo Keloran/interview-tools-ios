@@ -293,6 +293,7 @@ struct ContentView: View {
             
             // Clean up any duplicates that may have been created
             try? DatabaseCleanup.cleanupAll(context: modelContext)
+            await DebriefReminders.schedule(interviews)
 
             // Guest-mode interviews only join the account if the person says so
             guestInterviewCount = AccountStore.guestInterviewCount()

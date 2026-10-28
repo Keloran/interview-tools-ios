@@ -382,3 +382,77 @@ struct APICloseResult: Decodable, Sendable {
     let closed: [Int]
     let skipped: [Int]
 }
+
+// MARK: - After the interview: debrief, prep, questions, stories
+
+/// The debrief and feedback recorded on one stage (from GET /api/interview/{id})
+struct APIDebrief: Decodable, Sendable {
+    let rating: Int?
+    let debriefNotes: String?
+    let peopleMet: String?
+    let questionsAsked: String?
+    let nextStep: String?
+    let replyBy: String?
+    let feedbackType: String?
+    let feedbackText: String?
+    let debriefedAt: String?
+}
+
+/// What PUT /api/interview/{id} takes for a debrief. prepNotes is left out on purpose, so saving a
+/// debrief never wipes separately saved preparation.
+struct DebriefRequest: Encodable, Sendable {
+    struct Debrief: Encodable, Sendable {
+        var rating: Int?
+        var debriefNotes: String
+        var peopleMet: String
+        var questionsAsked: String
+        var nextStep: String
+        var replyBy: String?
+    }
+    struct Feedback: Encodable, Sendable {
+        var type: String?
+        var text: String
+    }
+    var debrief: Debrief
+    var feedback: Feedback?
+}
+
+struct APIPrep: Codable, Sendable {
+    var notes: String
+    var storyIds: [Int]
+}
+
+struct APIStory: Codable, Sendable, Identifiable, Hashable {
+    struct Use: Codable, Sendable, Hashable { let interviewId: Int; let company: String; let stage: String }
+    var id: Int
+    var title: String
+    var situation: String
+    var task: String
+    var action: String
+    var result: String
+    var tags: [String]
+    var usedIn: [Use]
+}
+
+/// Fields for creating or editing a story
+struct StoryInput: Encodable, Sendable {
+    var title = ""
+    var situation = ""
+    var task = ""
+    var action = ""
+    var result = ""
+    var tags: [String] = []
+}
+
+/// One stage's recorded questions (GET /api/questions)
+struct APIQuestionEntry: Decodable, Sendable, Identifiable {
+    let interviewId: Int
+    let company: String
+    let recruiter: String?
+    let stage: String
+    let date: String
+    let jobTitle: String
+    let questions: [String]
+    let notes: String?
+    var id: Int { interviewId }
+}

@@ -195,6 +195,16 @@ struct SettingsView: View {
                 } label: {
                     Label("Offers", systemImage: "envelope.open")
                 }
+                NavigationLink {
+                    QuestionsView()
+                } label: {
+                    Label("Questions asked", systemImage: "questionmark.bubble")
+                }
+                NavigationLink {
+                    StoriesView()
+                } label: {
+                    Label("STAR stories", systemImage: "text.book.closed")
+                }
             }
         }
     }

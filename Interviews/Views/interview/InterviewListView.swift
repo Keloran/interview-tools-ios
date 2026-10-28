@@ -355,6 +355,8 @@ struct InterviewDetailSheet: View {
     @Environment(Clerk.self) private var clerk: Clerk?
     @State private var showingEditSheet = false
     @State private var showingOutcomeOptions = false
+    @State private var showingDebrief = false
+    @State private var showingPrep = false
 
     var body: some View {
         ScrollView {
@@ -373,6 +375,18 @@ struct InterviewDetailSheet: View {
                     Label("Client: \(clientCompany)", systemImage: "briefcase")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                }
+
+                if let id = interview.id, clerk?.user != nil {
+                    let title = "\(interview.stage?.stage ?? "Interview") · \(interview.company?.name ?? "")"
+                    HStack {
+                        Button { showingPrep = true } label: { Label("Prepare", systemImage: "list.clipboard") }
+                        Button { showingDebrief = true } label: { Label("Debrief", systemImage: "text.bubble") }
+                    }
+                    .buttonStyle(.bordered)
+                    .font(.subheadline)
+                    .sheet(isPresented: $showingDebrief) { DebriefView(interviewId: id, title: title) }
+                    .sheet(isPresented: $showingPrep) { PrepView(interviewId: id, title: title) }
                 }
 
                 if let applicationId = interview.applicationId, clerk?.user != nil {

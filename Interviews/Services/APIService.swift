@@ -171,6 +171,42 @@ actor APIService {
         return try await performRequest(url: URL(string: "\(baseURL)/stale-applications")!, method: "POST", body: Body(ids: ids, days: days))
     }
 
+    // MARK: - After the interview
+
+    func fetchDebrief(interviewId: Int) async throws -> APIDebrief {
+        try await performRequest(url: URL(string: "\(baseURL)/interview/\(interviewId)")!, method: "GET")
+    }
+
+    func saveDebrief(interviewId: Int, _ request: DebriefRequest) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/interview/\(interviewId)")!, method: "PUT", body: request)
+    }
+
+    func fetchPrep(interviewId: Int) async throws -> APIPrep {
+        try await performRequest(url: URL(string: "\(baseURL)/interview/\(interviewId)/prep")!, method: "GET")
+    }
+
+    func savePrep(interviewId: Int, _ prep: APIPrep) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/interview/\(interviewId)/prep")!, method: "PUT", body: prep)
+    }
+
+    func fetchQuestions() async throws -> [APIQuestionEntry] {
+        try await performRequest(url: URL(string: "\(baseURL)/questions")!, method: "GET")
+    }
+
+    func fetchStories() async throws -> [APIStory] {
+        try await performRequest(url: URL(string: "\(baseURL)/stories")!, method: "GET")
+    }
+
+    /// Create (no id) or update a STAR story
+    func saveStory(id: Int?, _ story: StoryInput) async throws {
+        let url = URL(string: "\(baseURL)/stories" + (id.map { "/\($0)" } ?? ""))!
+        _ = try await send(url: url, method: id == nil ? "POST" : "PUT", body: story)
+    }
+
+    func deleteStory(id: Int) async throws {
+        _ = try await send(url: URL(string: "\(baseURL)/stories/\(id)")!, method: "DELETE", body: Optional<EmptyBody>.none)
+    }
+
     // MARK: - Your data
 
     /// The server needs the same typed phrase as the website before it deletes anything
