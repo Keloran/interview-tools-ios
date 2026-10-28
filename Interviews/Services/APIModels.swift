@@ -386,7 +386,7 @@ nonisolated struct APICloseResult: Decodable, Sendable {
 // MARK: - After the interview: debrief, prep, questions, stories
 
 /// The debrief and feedback recorded on one stage (from GET /api/interview/{id})
-struct APIDebrief: Decodable, Sendable {
+nonisolated struct APIDebrief: Decodable, Sendable {
     let rating: Int?
     let debriefNotes: String?
     let peopleMet: String?
@@ -400,8 +400,8 @@ struct APIDebrief: Decodable, Sendable {
 
 /// What PUT /api/interview/{id} takes for a debrief. prepNotes is left out on purpose, so saving a
 /// debrief never wipes separately saved preparation.
-struct DebriefRequest: Encodable, Sendable {
-    struct Debrief: Encodable, Sendable {
+nonisolated struct DebriefRequest: Encodable, Sendable {
+    nonisolated struct Debrief: Encodable, Sendable {
         var rating: Int?
         var debriefNotes: String
         var peopleMet: String
@@ -409,7 +409,7 @@ struct DebriefRequest: Encodable, Sendable {
         var nextStep: String
         var replyBy: String?
     }
-    struct Feedback: Encodable, Sendable {
+    nonisolated struct Feedback: Encodable, Sendable {
         var type: String?
         var text: String
     }
@@ -417,13 +417,13 @@ struct DebriefRequest: Encodable, Sendable {
     var feedback: Feedback?
 }
 
-struct APIPrep: Codable, Sendable {
+nonisolated struct APIPrep: Codable, Sendable {
     var notes: String
     var storyIds: [Int]
 }
 
-struct APIStory: Codable, Sendable, Identifiable, Hashable {
-    struct Use: Codable, Sendable, Hashable { let interviewId: Int; let company: String; let stage: String }
+nonisolated struct APIStory: Codable, Sendable, Identifiable, Hashable {
+    nonisolated struct Use: Codable, Sendable, Hashable { let interviewId: Int; let company: String; let stage: String }
     var id: Int
     var title: String
     var situation: String
@@ -435,7 +435,7 @@ struct APIStory: Codable, Sendable, Identifiable, Hashable {
 }
 
 /// Fields for creating or editing a story
-struct StoryInput: Encodable, Sendable {
+nonisolated struct StoryInput: Encodable, Sendable {
     var title = ""
     var situation = ""
     var task = ""
@@ -445,7 +445,7 @@ struct StoryInput: Encodable, Sendable {
 }
 
 /// One stage's recorded questions (GET /api/questions)
-struct APIQuestionEntry: Decodable, Sendable, Identifiable {
+nonisolated struct APIQuestionEntry: Decodable, Sendable, Identifiable {
     let interviewId: Int
     let company: String
     let recruiter: String?
