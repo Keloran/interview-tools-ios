@@ -44,6 +44,7 @@ struct SettingsView: View {
                     statsSection
                 }
                 syncSection
+                jobSearchSection
                 yourDataSection
                 aboutSection
             }
@@ -171,6 +172,20 @@ struct SettingsView: View {
             Text("Error: \(error.localizedDescription)")
                 .font(.caption)
                 .foregroundStyle(.red)
+        }
+    }
+
+    /// Screens for the parts of the job search that live on interviews.tools
+    @ViewBuilder
+    private var jobSearchSection: some View {
+        if clerk?.user != nil {
+            Section("Your job search") {
+                NavigationLink {
+                    OffersView()
+                } label: {
+                    Label("Offers", systemImage: "envelope.open")
+                }
+            }
         }
     }
 

@@ -308,3 +308,39 @@ struct APITimeline: Decodable, Sendable {
     let followUps: [FollowUp]
     let availabilityLinks: [Link]
 }
+
+// MARK: - Offers (GET /api/offers)
+
+/// An open offer: the latest stage of an application is an Offer still waiting on your decision
+struct APIOffer: Decodable, Sendable, Identifiable {
+    let applicationId: Int
+    let interviewId: Int
+    let jobTitle: String
+    /// The employer (the client, for agency roles)
+    let company: String
+    let agency: String?
+    let interviewer: String?
+    /// Respond-by day, "yyyy-MM-dd"
+    let deadline: String?
+    let outcome: String?
+    let advertisedSalary: String?
+    let offerBase: String?
+    let offerBonus: String?
+    let offerEquity: String?
+    let offerBenefits: String?
+    let offerNotice: String?
+    let offerLocation: String?
+
+    var id: Int { interviewId }
+
+    /// The comparison rows, in the website's order and wording
+    static let details: [(label: String, value: KeyPath<APIOffer, String?>, key: String)] = [
+        ("Advertised salary", \.advertisedSalary, "advertisedSalary"),
+        ("Base salary", \.offerBase, "offerBase"),
+        ("Bonus", \.offerBonus, "offerBonus"),
+        ("Equity", \.offerEquity, "offerEquity"),
+        ("Benefits", \.offerBenefits, "offerBenefits"),
+        ("Notice period", \.offerNotice, "offerNotice"),
+        ("Location / working pattern", \.offerLocation, "offerLocation"),
+    ]
+}
