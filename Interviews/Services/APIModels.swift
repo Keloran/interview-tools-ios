@@ -312,7 +312,7 @@ nonisolated struct APITimeline: Decodable, Sendable {
 // MARK: - Offers (GET /api/offers)
 
 /// An open offer: the latest stage of an application is an Offer still waiting on your decision
-struct APIOffer: Decodable, Sendable, Identifiable {
+nonisolated struct APIOffer: Decodable, Sendable, Identifiable {
     let applicationId: Int
     let interviewId: Int
     let jobTitle: String

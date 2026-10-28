@@ -126,7 +126,7 @@ actor APIService {
 
     /// Set or clear the respond-by day ("yyyy-MM-dd"), or record accepting/declining
     func updateOffer(interviewId: Int, deadline: String?? = nil, decision: InterviewOutcome? = nil) async throws {
-        struct Body: Encodable, Sendable {
+        nonisolated struct Body: Encodable, Sendable {
             let deadline: String??
             let decision: String?
             func encode(to encoder: Encoder) throws {
