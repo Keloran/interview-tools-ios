@@ -423,6 +423,8 @@ class SyncService: ObservableObject {
                 existing.outcome = outcome
                 existing.notes = apiInterview.notes
                 existing.link = apiInterview.link
+                existing.applicationId = apiInterview.applicationId
+                existing.durationMinutes = apiInterview.durationMinutes
 
                 // Update metadata JSON with merged metadata including 'applied' field.
                 // Also update jobListing property if present in metadata.
@@ -457,6 +459,8 @@ class SyncService: ObservableObject {
                     interview.jobListing = jobListing
                 }
 
+                interview.applicationId = apiInterview.applicationId
+                interview.durationMinutes = apiInterview.durationMinutes
                 modelContext.insert(interview)
             }
         }
@@ -484,6 +488,8 @@ class SyncService: ObservableObject {
             link: interview.link,
             jobTitle: interview.jobTitle,
             clientCompany: interview.clientCompany,
+            jobListing: interview.jobListing,
+            durationMinutes: interview.durationMinutes,
             clearsEmptyFields: true
         )
     }

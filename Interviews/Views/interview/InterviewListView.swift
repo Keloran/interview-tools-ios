@@ -375,6 +375,15 @@ struct InterviewDetailSheet: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if let applicationId = interview.applicationId, clerk?.user != nil {
+                    NavigationLink {
+                        ApplicationTimelineView(applicationId: applicationId)
+                    } label: {
+                        Label("Application timeline", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                            .font(.subheadline)
+                    }
+                }
+
                 Divider()
 
                 // Interview Details Section
@@ -464,7 +473,7 @@ struct InterviewDetailSheet: View {
 
                     if let date = interview.date {
                         Label(
-                            "Interview: \(date.formatted(date: .long, time: .shortened))",
+                            "Interview: \(date.formatted(date: .long, time: .shortened)) · \(interview.durationMinutes ?? 60) min",
                             systemImage: "calendar"
                         )
                         .font(.subheadline)

@@ -26,6 +26,11 @@ final class Interview {
     var link: String?
     var jobListing: String?
 
+    /// The server's application id, shared by every stage of one application
+    var applicationId: Int?
+    /// How long the interview runs; nil means the default hour
+    var durationMinutes: Int?
+
     // Outbox state. All optional so existing stores migrate without a version bump.
     /// When a local change was made that the server hasn't confirmed; nil once it has
     var pendingSince: Date?

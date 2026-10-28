@@ -24,11 +24,14 @@ struct APIInterview: Codable, Sendable {
     let notes: String?
     let metadata: APIMetadata?
     let link: String?
+    /// The application this stage belongs to (stages of one application share it)
+    let applicationId: Int?
+    let durationMinutes: Int?
 
     enum CodingKeys: String, CodingKey {
         case id, jobTitle, interviewer, company, clientCompany
         case stage, stageMethod, applicationDate, date, deadline
-        case outcome, notes, metadata, link
+        case outcome, notes, metadata, link, applicationId, durationMinutes
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -47,6 +50,8 @@ struct APIInterview: Codable, Sendable {
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
         metadata = try container.decodeIfPresent(APIMetadata.self, forKey: .metadata)
         link = try container.decodeIfPresent(String.self, forKey: .link)
+        applicationId = try container.decodeIfPresent(Int.self, forKey: .applicationId)
+        durationMinutes = try container.decodeIfPresent(Int.self, forKey: .durationMinutes)
     }
 
     nonisolated func encode(to encoder: Encoder) throws {
@@ -205,19 +210,28 @@ struct UpdateInterviewRequest: Codable, Sendable {
     let link: String?
     var jobTitle: String? = nil
     var clientCompany: String? = nil
+    var jobListing: String? = nil
+    var durationMinutes: Int? = nil
     /// A full snapshot of the edit screen: empty fields are sent as cleared (null, or "" for notes, which the
     /// server only takes as a string) instead of being left out and silently kept on the server
     var clearsEmptyFields = false
 
     enum CodingKeys: String, CodingKey {
-        case outcome, stage, date, deadline, interviewer, notes, link, jobTitle, clientCompany
+        case outcome, stage, date, deadline, interviewer, notes, link, jobTitle, clientCompany, metadata, durationMinutes
     }
+    private enum MetadataKeys: String, CodingKey { case jobListing }
 
     nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(outcome, forKey: .outcome)
         try container.encodeIfPresent(stage, forKey: .stage)
         try container.encodeIfPresent(jobTitle, forKey: .jobTitle)
+        try container.encodeIfPresent(durationMinutes, forKey: .durationMinutes)
+        // The job link lives on the application; the server reads it from metadata.jobListing
+        if clearsEmptyFields || jobListing != nil {
+            var metadata = container.nestedContainer(keyedBy: MetadataKeys.self, forKey: .metadata)
+            if let jobListing { try metadata.encode(jobListing, forKey: .jobListing) } else { try metadata.encodeNil(forKey: .jobListing) }
+        }
         if clearsEmptyFields {
             for (value, key) in [(date, CodingKeys.date), (deadline, .deadline), (interviewer, .interviewer), (link, .link), (clientCompany, .clientCompany)] {
                 if let value { try container.encode(value, forKey: key) } else { try container.encodeNil(forKey: key) }
@@ -257,4 +271,40 @@ enum APIError: Error, LocalizedError {
             return "Failed to parse response: \(error.localizedDescription)"
         }
     }
+}
+
+// MARK: - Application timeline (GET /api/applications/{id}/timeline)
+
+struct APITimeline: Decodable, Sendable {
+    struct Named: Decodable, Sendable { let name: String }
+    struct StageName: Decodable, Sendable { let stage: String }
+    struct Stage: Decodable, Sendable {
+        let id: Int
+        let parentId: Int?
+        let date: String?
+        let deadline: String?
+        let created_at: String
+        let updated_at: String
+        let outcome: String?
+        let interviewer: String?
+        let stage: StageName
+    }
+    struct FollowUp: Decodable, Sendable { let id: Int; let sentAt: String }
+    struct Link: Decodable, Sendable {
+        let id: Int
+        let created_at: String
+        let bookedSlot: String?
+        let viewCount: Int
+        let firstViewedAt: String?
+        let stage: StageName
+    }
+
+    let id: Int
+    let jobTitle: String
+    let clientCompany: String?
+    let applicationDate: String
+    let company: Named
+    let interviews: [Stage]
+    let followUps: [FollowUp]
+    let availabilityLinks: [Link]
 }

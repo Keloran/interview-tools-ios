@@ -110,6 +110,13 @@ actor APIService {
         return try await performRequest(url: url, method: "PUT", body: request)
     }
 
+    // MARK: - Applications
+
+    func fetchTimeline(applicationId: Int) async throws -> APITimeline {
+        let url = URL(string: "\(baseURL)/applications/\(applicationId)/timeline")!
+        return try await performRequest(url: url, method: "GET")
+    }
+
     // MARK: - Your data
 
     /// The server needs the same typed phrase as the website before it deletes anything
