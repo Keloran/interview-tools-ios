@@ -230,6 +230,21 @@ class DatabaseCleanup {
 //        print("🧹 Cleaned up \(companiesToDelete.count) duplicate company(ies)")
     }
     
+    /// After the account is deleted, remove everything that came from the server (it has a server id).
+    /// Guest-mode data never left the phone, so it stays; removing that is the user's separate choice.
+    static func removeSyncedData(context: ModelContext) throws {
+        for interview in try context.fetch(FetchDescriptor<Interview>()) where interview.id != nil {
+            context.delete(interview)
+        }
+        // Companies cascade to their interviews, so only drop ones no guest interview still uses
+        for company in try context.fetch(FetchDescriptor<Company>()) where company.id != nil {
+            if (company.interviews ?? []).allSatisfy({ $0.id != nil }) {
+                context.delete(company)
+            }
+        }
+        try context.save()
+    }
+
     /// Run all cleanup operations
     static func cleanupAll(context: ModelContext) throws {
 //        print("🧹 Starting database cleanup...")

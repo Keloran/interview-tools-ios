@@ -24,6 +24,12 @@ struct SettingsView: View {
     
     @State private var statsEnabled: Bool = false
 
+    @State private var exportFile: ExportFile?
+    @State private var isExporting = false
+    @State private var showingDeleteConfirm = false
+    @State private var deleteConfirmText = ""
+    @State private var isDeleting = false
+
     init(modelContext: ModelContext) {
         _syncService = StateObject(wrappedValue: SyncService(modelContext: modelContext))
     }
@@ -36,6 +42,7 @@ struct SettingsView: View {
                     statsSection
                 }
                 syncSection
+                yourDataSection
                 aboutSection
             }
             .navigationTitle("Settings")
@@ -51,6 +58,21 @@ struct SettingsView: View {
                 guard let client = flagsAgent else { return }
                 let enabled = await client.is("stats").enabled()
                 statsEnabled = enabled
+            }
+            .sheet(item: $exportFile) { file in
+                ShareSheet(items: [file.url])
+            }
+            .alert("Delete your account?", isPresented: $showingDeleteConfirm) {
+                TextField(APIService.deleteConfirmation, text: $deleteConfirmText)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Delete", role: .destructive) {
+                    Task { await deleteAccount() }
+                }
+                .disabled(!deleteConfirmed)
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This permanently deletes your interviews.tools account and everything in it: applications, interviews, notes, stories and availability links. Export your data first if you want a copy. Anything you added before signing in stays on this phone.\n\nType \"\(APIService.deleteConfirmation)\" to confirm.")
             }
             .alert("Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
@@ -150,6 +172,38 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var yourDataSection: some View {
+        if clerk.user != nil {
+            Section {
+                Button("Export applications (CSV)") {
+                    Task { await export("applications") }
+                }
+                .disabled(isExporting || isDeleting)
+                Button("Export STAR stories (CSV)") {
+                    Task { await export("stories") }
+                }
+                .disabled(isExporting || isDeleting)
+                if isDeleting {
+                    HStack {
+                        ProgressView()
+                        Text("Deleting your account...")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Button("Delete account", role: .destructive) {
+                        deleteConfirmText = ""
+                        showingDeleteConfirm = true
+                    }
+                }
+            } header: {
+                Text("Your data")
+            } footer: {
+                Text("Deleting your account removes it and all its data from interviews.tools. It can't be undone.")
+            }
+        }
+    }
+
     private var aboutSection: some View {
         Section("About") {
             Link(destination: URL(string: "https://interviews.tools")!) {
@@ -213,6 +267,57 @@ struct SettingsView: View {
         }
     }
     
+    private var deleteConfirmed: Bool {
+        deleteConfirmText.trimmingCharacters(in: .whitespaces).lowercased() == APIService.deleteConfirmation
+    }
+
+    /// A fresh token per call, so a long-open Settings screen doesn't send an expired one
+    private func authorize() async throws {
+        guard let session = clerk.session, let token = try await session.getToken() else {
+            throw APIError.unauthorized
+        }
+        await APIService.shared.setAuthToken(token.jwt)
+    }
+
+    private func export(_ kind: String) async {
+        isExporting = true
+        defer { isExporting = false }
+        do {
+            try await authorize()
+            let data = try await APIService.shared.exportData(kind: kind)
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("interview-tools-\(kind).csv")
+            try data.write(to: url, options: .atomic)
+            exportFile = ExportFile(url: url)
+        } catch {
+            errorMessage = "Couldn't export your data: \(error.localizedDescription)"
+            showingError = true
+        }
+    }
+
+    private func deleteAccount() async {
+        isDeleting = true
+        defer { isDeleting = false }
+        do {
+            try await authorize()
+            try await APIService.shared.deleteAccount()
+        } catch {
+            // Nothing local is touched unless the server confirms; its message says which part failed, and retrying is safe
+            errorMessage = error.localizedDescription
+            showingError = true
+            return
+        }
+        do {
+            try DatabaseCleanup.removeSyncedData(context: modelContext)
+        } catch {
+            errorMessage = "Your account is deleted, but this phone's copy couldn't be cleared: \(error.localizedDescription)"
+            showingError = true
+        }
+        // The login no longer exists on the server, so a failed sign-out just means the local session is already gone
+        try? await clerk.signOut()
+        await APIService.shared.setAuthToken(nil)
+        if !showingError { dismiss() }
+    }
+
     private func showDatabaseInfo() async {
         do {
             let stages = try modelContext.fetch(FetchDescriptor<Stage>())
@@ -256,6 +361,22 @@ struct SettingsView: View {
             showingError = true
         }
     }
+}
+
+struct ExportFile: Identifiable {
+    let url: URL
+    var id: URL { url }
+}
+
+/// The system share sheet, so an export can be saved to Files, emailed or AirDropped
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
 private extension SettingsView {

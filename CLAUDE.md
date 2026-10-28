@@ -60,6 +60,8 @@ The app integrates with the interviews.tools API (https://interviews.tools/api):
 
 **POST /api/interview** - Create new interview
 **PUT /api/interview/[id]** - Update existing interview
+**DELETE /api/account** - Delete the account and all its data; body `{"confirm": "delete my account"}`, 204 on success
+**GET /api/data/export?kind=applications|stories** - CSV export
 
 ### Sync Service
 
