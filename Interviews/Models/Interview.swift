@@ -26,6 +26,17 @@ final class Interview {
     var link: String?
     var jobListing: String?
 
+    // Outbox state. All optional so existing stores migrate without a version bump.
+    /// When a local change was made that the server hasn't confirmed; nil once it has
+    var pendingSince: Date?
+    /// Why the last attempt to send it failed, shown on the row
+    var syncError: String?
+    /// A next stage that hasn't reached the server: the server id of the stage it follows
+    var pendingPreviousId: Int?
+    /// The create request went out but no answer came back, so it may exist on the server.
+    /// It's matched against the next full sync instead of being sent again.
+    var createUncertain: Bool?
+
     @Relationship(deleteRule: .nullify)
     var company: Company?
 
@@ -73,6 +84,13 @@ final class Interview {
         self.updatedAt = updatedAt
         self.link = link
         self.jobListing = jobListing
+    }
+
+    /// Record a local edit so the outbox sends it, even after a relaunch
+    func markChanged() {
+        updatedAt = Date()
+        pendingSince = updatedAt
+        syncError = nil
     }
 
     // Helper to get display date (prefer date over deadline)

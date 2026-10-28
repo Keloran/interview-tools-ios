@@ -442,21 +442,8 @@ struct AddInterviewView: View {
     
     @MainActor
     private func pushToAPI(_ interview: Interview) async {
-        do {
-            let syncService = SyncService(modelContext: modelContext)
-            let apiInterview = try await syncService.pushInterview(interview)
-            
-            // Update the interview with the server ID
-            // This happens on the main context, so SwiftUI will pick it up immediately
-            interview.id = apiInterview.id
-            interview.updatedAt = Date()
-            try modelContext.save()
-            
-//            print("✅ Successfully pushed interview to server with ID: \(apiInterview.id)")
-        } catch {
-            print("❌ Failed to push interview to API: \(error)")
-            // Note: Interview is still saved locally, will sync later
-        }
+        // New interviews have no server id, which queues them; this sends the queue now
+        await SyncService(modelContext: modelContext).pushPending()
     }
     
     // MARK: - Link Inference

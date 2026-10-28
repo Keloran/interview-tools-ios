@@ -200,20 +200,34 @@ struct UpdateInterviewRequest: Codable, Sendable {
     let interviewer: String?
     let notes: String?
     let link: String?
+    var jobTitle: String? = nil
+    var clientCompany: String? = nil
+    /// A full snapshot of the edit screen: empty fields are sent as cleared (null, or "" for notes, which the
+    /// server only takes as a string) instead of being left out and silently kept on the server
+    var clearsEmptyFields = false
 
     enum CodingKeys: String, CodingKey {
-        case outcome, stage, date, deadline, interviewer, notes, link
+        case outcome, stage, date, deadline, interviewer, notes, link, jobTitle, clientCompany
     }
 
     nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(outcome, forKey: .outcome)
         try container.encodeIfPresent(stage, forKey: .stage)
-        try container.encodeIfPresent(date, forKey: .date)
-        try container.encodeIfPresent(deadline, forKey: .deadline)
-        try container.encodeIfPresent(interviewer, forKey: .interviewer)
-        try container.encodeIfPresent(notes, forKey: .notes)
-        try container.encodeIfPresent(link, forKey: .link)
+        try container.encodeIfPresent(jobTitle, forKey: .jobTitle)
+        if clearsEmptyFields {
+            for (value, key) in [(date, CodingKeys.date), (deadline, .deadline), (interviewer, .interviewer), (link, .link), (clientCompany, .clientCompany)] {
+                if let value { try container.encode(value, forKey: key) } else { try container.encodeNil(forKey: key) }
+            }
+            try container.encode(notes ?? "", forKey: .notes)
+        } else {
+            try container.encodeIfPresent(date, forKey: .date)
+            try container.encodeIfPresent(deadline, forKey: .deadline)
+            try container.encodeIfPresent(interviewer, forKey: .interviewer)
+            try container.encodeIfPresent(notes, forKey: .notes)
+            try container.encodeIfPresent(link, forKey: .link)
+            try container.encodeIfPresent(clientCompany, forKey: .clientCompany)
+        }
     }
 }
 

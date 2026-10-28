@@ -7,10 +7,12 @@
 
 import SwiftUI
 import SwiftData
+import Clerk
 
 struct EditInterviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.clerk) private var clerk
     
     let interview: Interview
     
@@ -108,9 +110,13 @@ struct EditInterviewView: View {
         interview.notes = notes.isEmpty ? nil : notes
         interview.date = hasDate ? date : nil
         interview.deadline = hasDeadline ? deadline : nil
-        interview.updatedAt = Date()
-        
+        interview.markChanged()
+
         try? modelContext.save()
+        if clerk.user != nil {
+            let context = modelContext
+            Task { await SyncService(modelContext: context).pushPending() }
+        }
         dismiss()
     }
     
