@@ -45,8 +45,10 @@ struct MessageTemplateTests {
 
     @Test("Follow-ups explain why they're due")
     func testFollowUpReason() throws {
-        let json = #"[{"id": 1, "jobTitle": "x", "clientCompany": null, "company": "Co", "stage": "Applied", "interviewer": null, "date": null, "nextStep": null, "replyBy": null, "followUps": 0, "lastFollowUp": null, "dueAt": "2026-10-01T00:00:00Z"},
-                      {"id": 2, "jobTitle": "x", "clientCompany": null, "company": "Co", "stage": "Technical", "interviewer": null, "date": null, "nextStep": null, "replyBy": null, "followUps": 2, "lastFollowUp": "2026-10-10T09:00:00Z", "dueAt": "2026-10-20T00:00:00Z"}]"#
+        let json = #"""
+            [{"id": 1, "jobTitle": "x", "clientCompany": null, "company": "Co", "stage": "Applied", "interviewer": null, "date": null, "nextStep": null, "replyBy": null, "followUps": 0, "lastFollowUp": null, "dueAt": "2026-10-01T00:00:00Z"},
+            {"id": 2, "jobTitle": "x", "clientCompany": null, "company": "Co", "stage": "Technical", "interviewer": null, "date": null, "nextStep": null, "replyBy": null, "followUps": 2, "lastFollowUp": "2026-10-10T09:00:00Z", "dueAt": "2026-10-20T00:00:00Z"}]
+            """#
         let items = try JSONDecoder().decode([APIFollowUp].self, from: Data(json.utf8))
         #expect(FollowUpText.reason(items[0]) == "No reply since you applied")
         #expect(FollowUpText.reason(items[1]).hasPrefix("Chased 2 times"))
