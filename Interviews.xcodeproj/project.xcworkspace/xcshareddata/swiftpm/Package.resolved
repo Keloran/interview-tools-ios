@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/BugFixes/bugfixes-swift",
       "state" : {
-        "branch" : "ios-sdk",
-        "revision" : "54136029800250893d2bc46a85fb980419c106b0"
+        "revision" : "accf6a4594f2a7a805d4ab21e94af0efb823114d",
+        "version" : "1.0.0"
       }
     },
     {
