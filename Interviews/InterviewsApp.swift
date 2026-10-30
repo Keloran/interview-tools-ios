@@ -10,6 +10,7 @@ import OSLog
 import SwiftData
 import ClerkKit
 import FlagsGG
+import Bugfixes
 
 @main
 struct InterviewsApp: App {
@@ -21,6 +22,8 @@ struct InterviewsApp: App {
     private let flagsClient: Flags?
     
     init() {
+        // First, so a crash during the rest of startup is still caught. The key is public
+        Bugfixes.start(key: "bfm_GtJ5NYuBW8nPO0AU0KQDPV5hGR3ammyuT_tDem8QFkw", environment: "production")
         // Once, before anything reads Clerk.shared; it restores the saved session and loads by itself
         Clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
         do {
