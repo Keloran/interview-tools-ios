@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import UniformTypeIdentifiers
 
 /// Import applications from a spreadsheet: map the columns, preview (nothing saved), then confirm.
