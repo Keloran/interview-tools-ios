@@ -23,7 +23,7 @@ struct InterviewsApp: App {
     
     init() {
         // First, so a crash during the rest of startup is still caught. The key is public; empty keeps reporting off
-        Bugfixes.start(key: "", environment: "production")
+        Bugfixes.start(key: "", environment: "testflight")
         // Once, before anything reads Clerk.shared; it restores the saved session and loads by itself
         Clerk.configure(publishableKey: ClerkConfiguration.publishableKey)
         do {

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Bugfixes
 import OSLog
 import SwiftData
 import ClerkKit
@@ -288,6 +289,17 @@ struct SettingsView: View {
                 Text(appVersionString)
                     .foregroundStyle(.secondary)
             }
+
+            // BF-51 test build only: this branch is never merged
+            Button("Bugfixes: report an error") {
+                Bugfixes.report(BugfixesTestError.reported)
+            }
+            Button("Bugfixes: raise an NSException", role: .destructive) {
+                NSException(name: .rangeException, reason: "Bugfixes test exception").raise()
+            }
+            Button("Bugfixes: fatalError", role: .destructive) {
+                fatalError("Bugfixes test fatalError")
+            }
         }
     }
     
@@ -454,3 +466,6 @@ private extension SettingsView {
     return SettingsView(modelContext: container.mainContext)
 }
 
+private enum BugfixesTestError: Error {
+    case reported
+}
