@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import UserNotifications
 
 /// Applications due a chase, with the follow-up message ready to send
