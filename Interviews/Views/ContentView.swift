@@ -67,6 +67,7 @@ struct ContentView: View {
             InterviewListView(selectedDate: $selectedDate, searchText: searchText)
                 .navigationTitle("Interview Planner")
                 .navigationBarTitleDisplayMode(.inline)
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("interviewListView")
                 .toolbar { iPadToolbar }
                 .overlay(alignment: .bottomTrailing) {
@@ -99,11 +100,13 @@ struct ContentView: View {
                         Divider()
                             .padding(.vertical, 12)
                     }
+                    .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("calendarSection")
 
                     // List section takes remaining space and scrolls
                     InterviewListView(selectedDate: $selectedDate, searchText: searchText)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("listSection")
                 }
                 .foregroundStyle(.primary)
