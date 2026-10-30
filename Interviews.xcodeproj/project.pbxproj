@@ -632,7 +632,7 @@
 			repositoryURL = "https://github.com/BugFixes/bugfixes-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
+				minimumVersion = 0.1.1;
 			};
 		};
 		F3372BC62EFD9792009DECED /* XCRemoteSwiftPackageReference "swift" */ = {
