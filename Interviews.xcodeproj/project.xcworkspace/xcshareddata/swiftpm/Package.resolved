@@ -1,6 +1,15 @@
 {
   "pins" : [
     {
+      "identity" : "bugfixes-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/BugFixes/bugfixes-swift",
+      "state" : {
+        "branch" : "ios-sdk",
+        "revision" : "54136029800250893d2bc46a85fb980419c106b0"
+      }
+    },
+    {
       "identity" : "clerk-ios",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/clerk/clerk-ios",

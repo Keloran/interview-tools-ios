@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B5C6D7E8F9A0B1C2D3E4F503 /* Bugfixes in Frameworks */ = {isa = PBXBuildFile; productRef = B5C6D7E8F9A0B1C2D3E4F502 /* Bugfixes */; };
 		F3372BC82EFD9792009DECED /* FlagsGG in Frameworks */ = {isa = PBXBuildFile; productRef = F3372BC72EFD9792009DECED /* FlagsGG */; };
 		F3F3C1DD2EE3A7F80000102D /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = F3F3C1DC2EE3A7F80000102D /* ClerkKit */; };
 		A1B2C3D4E5F6A7B8C9D0E101 /* ClerkKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6A7B8C9D0E102 /* ClerkKitUI */; };
@@ -73,6 +74,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F3372BC82EFD9792009DECED /* FlagsGG in Frameworks */,
+				B5C6D7E8F9A0B1C2D3E4F503 /* Bugfixes in Frameworks */,
 				F3F3C1DD2EE3A7F80000102D /* ClerkKit in Frameworks */,
 				A1B2C3D4E5F6A7B8C9D0E101 /* ClerkKitUI in Frameworks */,
 			);
@@ -139,6 +141,7 @@
 				F3F3C1DC2EE3A7F80000102D /* ClerkKit */,
 				A1B2C3D4E5F6A7B8C9D0E102 /* ClerkKitUI */,
 				F3372BC72EFD9792009DECED /* FlagsGG */,
+				B5C6D7E8F9A0B1C2D3E4F502 /* Bugfixes */,
 			);
 			productName = Interviews;
 			productReference = F3F3C1872EE397CD0000102D /* Interviews.app */;
@@ -225,6 +228,7 @@
 			packageReferences = (
 				F3F3C1DB2EE3A7F80000102D /* XCRemoteSwiftPackageReference "clerk-ios" */,
 				F3372BC62EFD9792009DECED /* XCRemoteSwiftPackageReference "swift" */,
+				B5C6D7E8F9A0B1C2D3E4F501 /* XCRemoteSwiftPackageReference "bugfixes-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F3F3C1882EE397CD0000102D /* Products */;
@@ -623,6 +627,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		B5C6D7E8F9A0B1C2D3E4F501 /* XCRemoteSwiftPackageReference "bugfixes-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/BugFixes/bugfixes-swift";
+			requirement = {
+				branch = "ios-sdk";
+				kind = branch;
+			};
+		};
 		F3372BC62EFD9792009DECED /* XCRemoteSwiftPackageReference "swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/flags-gg/swift.git";
@@ -642,6 +654,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		B5C6D7E8F9A0B1C2D3E4F502 /* Bugfixes */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B5C6D7E8F9A0B1C2D3E4F501 /* XCRemoteSwiftPackageReference "bugfixes-swift" */;
+			productName = Bugfixes;
+		};
 		F3372BC72EFD9792009DECED /* FlagsGG */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F3372BC62EFD9792009DECED /* XCRemoteSwiftPackageReference "swift" */;
