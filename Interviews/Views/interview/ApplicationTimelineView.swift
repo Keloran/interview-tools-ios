@@ -112,7 +112,7 @@ enum ApplicationTimeline {
         let days = APIDates.day(timeline.applicationDate).flatMap { applied in
             through >= applied ? Calendar.current.dateComponents([.day], from: applied, to: through).day : nil
         }
-        return (stages, closed, days, latest?.outcome.map(outcomeLabel) ?? "Awaiting response")
+        return (stages, closed, days, latest?.outcome.map { outcomeLabel($0) } ?? "Awaiting response")
     }
 
     static func stageDate(_ stage: APITimeline.Stage, applied: String) -> (date: String, label: String) {

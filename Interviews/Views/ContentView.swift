@@ -289,30 +289,17 @@ struct ContentView: View {
             isSyncing = true
         }
         
-        do {
-            // syncAll sends this account's unsent changes first, then pulls
-            let syncService = SyncService(modelContext: modelContext)
-            await syncService.syncAll()
-            
-            // Clean up any duplicates that may have been created
-            try? DatabaseCleanup.cleanupAll(context: modelContext)
-            await DebriefReminders.schedule(interviews)
+        // syncAll sends this account's unsent changes first, then pulls
+        let syncService = SyncService(modelContext: modelContext)
+        await syncService.syncAll()
 
-            // Guest-mode interviews only join the account if the person says so
-            guestInterviewCount = AccountStore.guestInterviewCount()
-            showingGuestImport = guestInterviewCount > 0
-            
-            // Log summary
-//            let descriptor = FetchDescriptor<Interview>()
-//            if let allInterviews = try? modelContext.fetch(descriptor) {
-//                let withDates = allInterviews.filter { $0.displayDate != nil }
-//                print("✅ Sync complete: \(allInterviews.count) interviews (\(withDates.count) with scheduled dates)")
-//            } else {
-//                print("✅ Sync completed successfully")
-//            }
-        } catch {
-            appLog.error("Initial sync failed: \(String(describing: error))")
-        }
+        // Clean up any duplicates that may have been created
+        try? DatabaseCleanup.cleanupAll(context: modelContext)
+        await DebriefReminders.schedule(interviews)
+
+        // Guest-mode interviews only join the account if the person says so
+        guestInterviewCount = AccountStore.guestInterviewCount()
+        showingGuestImport = guestInterviewCount > 0
         
         await MainActor.run {
             withAnimation {

@@ -55,6 +55,16 @@ struct ApplicationTimelineTests {
         #expect(ApplicationTimeline.outcomeLabel("SOMETHING_NEW") == "SOMETHING_NEW")
     }
 
+    @Test("Summary labels known, unknown and missing outcomes", arguments: [
+        ("NO_RESPONSE", "No response (closed as ghosted)"),
+        ("SOMETHING_NEW", "SOMETHING_NEW"),
+        (nil, "Awaiting response")
+    ] as [(String?, String)])
+    func testSummaryOutcomeLabel(outcome: String?, expected: String) throws {
+        let t = try Self.timeline(stages: "[\(Self.stage(1, parent: nil, name: "Applied", created: "2026-10-01T00:00:00Z", outcome: outcome))]")
+        #expect(ApplicationTimeline.summary(t).outcome == expected)
+    }
+
     @Test("Each kind of stage shows the right date")
     func testStageDates() throws {
         let t = try Self.timeline(stages: "[\(Self.stage(1, parent: nil, name: "Offer", created: "2026-10-10T09:00:00Z", deadline: "2026-11-06T00:00:00.000Z")), \(Self.stage(2, parent: nil, name: "Technical", created: "2026-10-03T00:00:00Z", date: "2026-10-08T14:00:00Z"))]")
